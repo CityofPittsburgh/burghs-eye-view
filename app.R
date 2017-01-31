@@ -498,9 +498,11 @@ icons_arrests <- iconList(
 
 # UI for application
 ui <- navbarPage(windowTitle = "Burgh's Eye View", 
-                 collapsible = TRUE, 
-                 theme = shinytheme("flatly"), 
+                 collapsible = TRUE,
+                 fluid = TRUE,
+                 theme = shinytheme("flatly"),
                  title = HTML('<img src="burghs_eyeview_logo_small.png" alt="Burghs Eye View" height="85%">'),
+                 position = "static-top",
                  tabPanel('Map', class = "Map",
                           #Run script to determine if user is loading from a mobile device
                           tags$script(getWidth),
@@ -538,8 +540,11 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                           tags$style(type="text/css", '.report.table {background-color: #fff;}'),
                           #Remove unwanted padding and margins
                           tags$style(type="text/css", ".container-fluid {padding:0;}"),
+                          tags$style(type="text/css", ".navbar-header {margin:auto;"),
                           tags$style(type="text/css", ".navbar-static-top {margin-bottom:0;}"),
                           tags$style(type="text/css", ".navbar-brand {height:60px; padding:0;}"),
+                          tags$style(type="text/css", ".navbar {border-right-width: 20px;
+                                                                border-left-width: 65px;}"),
                           #Set max height for pop-ups
                           tags$style(type="text/css", ".leaflet-popup-content {overflow-y: auto; max-height: 400px !important;}"),
                           #Edit top bar
@@ -568,7 +573,7 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                  tabPanel('About', class = "About",
                           includeHTML('about.html'),
                           #Twitter Button
-                          tags$script(HTML("var header = $('.navbar > .container > .navbar-collapse');
+                          tags$script(HTML("var header = $('.navbar > .container-fluid > .navbar-collapse');
                                            header.append('<div class =\"twit\" style=\"float:right;margin-top: 15px;\"><a href=\"https://twitter.com/share\" class=\"twitter-share-button\" align=\"middle\" data-url=\"data.pittsburghpa.gov/BurghsEyeView\" data-text=\"Check out Burgh&#39;s Eye View! A new tool to view city data in Pittsburgh: https://goo.gl/C4ySqW\" data-size=\"large\">Tweet</a></div>');
                                            console.log(header)")),
                           tags$script(HTML("!function(d,s,id){
