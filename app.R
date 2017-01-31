@@ -7,6 +7,7 @@
 # Load required packages
 library(shiny)
 library(shinythemes)
+library(xml2)
 #"Dogfooding" Packages
 library(httr)
 library(jsonlite)
@@ -20,7 +21,7 @@ library(plyr)
 library(zoo)
 library(lubridate)
 
-ckan_api <- 'c3ba98d3-a2ea-4d0d-8187-e01a0846db37'
+ckan_api <- jsonlite::fromJSON("key.json")$ckan_api
 
 #Function to read backslashes correctly
 chartr0 <- function(foo) chartr('\\','\\/',foo)
@@ -30,7 +31,7 @@ getWidth <- '$(document).on("shiny:connected", function(e) {
   Shiny.onInputChange("GetScreenWidth",jsWidth);
 });'
 
-# Make it work when Downloading stuff
+#Make it work when Downloading stuff
 httr::set_config(config(ssl_verifypeer = 0L))
 
 dollarsComma <- function(x){
@@ -87,7 +88,7 @@ fullWorkflow <- function (x, id) {
   return(x)
 }
 
-# Function to clean Geographies
+#Function to clean Geographies
 cleanGeo <- function(data) {
   data <- transform(data, COUNCIL_DISTRICT = as.factor(mapvalues(COUNCIL_DISTRICT, c(0:9),
                                                                  c(NA, "1: Harris", "2: Kail-Smith", "3: Kraus", "4: Rudiak", "5: O'Connor", "6: Lavelle", "7: Gross", "8: Gilman", "9: Burgess"))))
