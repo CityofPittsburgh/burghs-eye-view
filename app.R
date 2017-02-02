@@ -129,6 +129,7 @@ load.dpw@data <- cleanDPW(load.dpw@data)
 #Zone
 load.zones <- readShapeSpatial("boundaries/Pittsburgh_Police_Zones/Pittsburgh_Police_Zones.shp")
 load.zones$POLICE_ZONE <- load.zones$zone
+load.zones@data <- cleanZone(load.zones@data)
 
 #Load Marker Files
 #Load 311 Requests
