@@ -244,7 +244,7 @@ names(load.permits)[names(load.permits)=="police_zone"] <- "POLICE_ZONE"
 names(load.permits)[names(load.permits)=="council_district"] <- "COUNCIL_DISTRICT"
 names(load.permits)[names(load.permits)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
 load.permits <- cleanGeo(load.permits)
-
+  
 load.workflow <- ckan("7e0bf4bf-c7f5-48cd-8177-86f5ce776dfa")
 load.workflow$tool <- paste0("<dt>", load.workflow$status_date, ": ", load.workflow$action_by_dept, "</dt>", "<dd>", load.workflow$task, " - ", load.workflow$status, "</dd>")
 
@@ -1326,6 +1326,9 @@ server <- shinyServer(function(input, output, session) {
       temp <- subset(workflow, permit_id == i, select = c(tool))
       tt <- paste0('<br><b>Workflow:</b><br><dl style="margin-bottom: 0px; margin-left:10px";>', toString(temp), "</dl>")
       tt <- gsub(",", "", tt)
+      tt <- gsub('" "', "", tt)
+      tt <- gsub('c\\("', "", tt)
+      tt <- gsub('"\\)', "", tt)
       df <- data.frame(i,tt)
       if (i == levels(workflow$permit_id)[1]){
         tt.df <- df
@@ -1338,6 +1341,9 @@ server <- shinyServer(function(input, output, session) {
     colnames(tt.df) <- c("permit_id", "tt")
     # Merge Workflow Tooltip to Permits
     permits <- merge(permits, tt.df, by = "permit_id", all.x = TRUE)
+    # Make Unsuccessful tooltips blank instead of NA
+    permits$tt <- as.character(permits$tt)
+    permits$tt[is.na(permits$tt)] <- ""
     
     return(permits)
   })
