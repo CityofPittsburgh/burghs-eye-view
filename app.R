@@ -61,35 +61,6 @@ ckanQuery  <- function(id, days, column) {
   jsonlite::fromJSON(json)$result$records
 }
 
-workflowQuery <- function(id, record) {
-  url <- paste0("https://data.wprdc.org/api/action/datastore_search?resource_id=", id, "&q=", record)
-  r <- GET(url, add_headers(Authorization = ckan_api))
-  c <- content(r, "text")
-  json <- gsub('NaN', '""', c, perl = TRUE)
-  if (length(jsonlite::fromJSON(json)$result$records) > 0){
-    base <- jsonlite::fromJSON(json)$result$records
-    if (id == "7e0bf4bf-c7f5-48cd-8177-86f5ce776dfa") {
-      #Permits
-      final <- subset(base, status != "Not Required" & status != "Review Not Required")
-      final <- final[order(final$history_seq_nbr),]
-      final
-      tt <- paste0("<dt>", final$status_date, ": ", final$action_by_dept, "</dt>", "<dd>", final$task, " - ", final$status, "</dd>")
-      tt <- paste0('<br><b>Workflow:</b><br><dl style="margin-bottom: 0px; margin-left:10px";>', toString(tt), "</dl>")
-      tt <- gsub(",", "", tt)
-    } else {
-      #Violations
-    }
-  } else {
-    tt <- ""
-  }
-  return(tt)
-}
-
-fullWorkflow <- function (x, id) {
-  x$tt <- lapply(x$permit_id, function(z) workflowQuery(id, z))
-  return(x)
-}
-
 cleanCouncil <- function(data) {
   data <- transform(data, COUNCIL_DISTRICT = as.factor(mapvalues(COUNCIL_DISTRICT, c(0:9),
                                                                    c(NA, "1: Harris", "2: Kail-Smith", "3: Kraus", "4: Rudiak", "5: O'Connor", "6: Lavelle", "7: Gross", "8: Gilman", "9: Burgess"))))
@@ -272,6 +243,9 @@ names(load.permits)[names(load.permits)=="police_zone"] <- "POLICE_ZONE"
 names(load.permits)[names(load.permits)=="council_district"] <- "COUNCIL_DISTRICT"
 names(load.permits)[names(load.permits)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
 load.permits <- cleanGeo(load.permits)
+
+load.workflow <- ckan("7e0bf4bf-c7f5-48cd-8177-86f5ce776dfa")
+load.workflow$tool <- paste0("<dt>", load.workflow$status_date, ": ", load.workflow$action_by_dept, "</dt>", "<dd>", load.workflow$task, " - ", load.workflow$status, "</dd>")
 
 # Icons for Permit
 icons_permits <- iconList(
@@ -1338,8 +1312,31 @@ server <- shinyServer(function(input, output, session) {
       permits <- permits[apply(permits, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
     } 
     
-    #Append Workflows
-    permits <- fullWorkflow(permits, "7e0bf4bf-c7f5-48cd-8177-86f5ce776dfa")
+    # Append Workflows
+    workflow <- load.workflow
+    # Remove Old Workflows
+    workflow <- workflow[workflow$permit_id %in% permits$permit_id,]
+    workflow$permit_id <- as.factor(workflow$permit_id)
+    
+    # Loop which aggregates appropriate Workflows
+    for (i in  levels(workflow$permit_id)){
+      temp <- subset(workflow, permit_id == i)
+      temp <- temp[order(temp$history_seq_nbr),]
+      temp <- subset(workflow, permit_id == i, select = c(tool))
+      tt <- paste0('<br><b>Workflow:</b><br><dl style="margin-bottom: 0px; margin-left:10px";>', toString(temp), "</dl>")
+      tt <- gsub(",", "", tt)
+      df <- data.frame(i,tt)
+      if (i == levels(workflow$permit_id)[1]){
+        tt.df <- df
+      } else {
+        tt.df <- rbind(tt.df, df)
+      }
+    }
+    
+    # Rename Columns for Merge
+    colnames(tt.df) <- c("permit_id", "tt")
+    # Merge Workflow Tooltip to Permits
+    permits <- merge(permits, tt.df, by = "permit_id", all.x = TRUE)
     
     return(permits)
   })
