@@ -16,6 +16,8 @@ library(curl)
 # Visuals Libraries
 library(leaflet)
 library(DT)
+library(maptools)
+library(htmltools)
 # Data Transform
 library(plyr)
 library(zoo)
@@ -88,17 +90,47 @@ fullWorkflow <- function (x, id) {
   return(x)
 }
 
-#Function to clean Geographies
-cleanGeo <- function(data) {
+cleanCouncil <- function(data) {
   data <- transform(data, COUNCIL_DISTRICT = as.factor(mapvalues(COUNCIL_DISTRICT, c(0:9),
-                                                                 c(NA, "1: Harris", "2: Kail-Smith", "3: Kraus", "4: Rudiak", "5: O'Connor", "6: Lavelle", "7: Gross", "8: Gilman", "9: Burgess"))))
+                                                                   c(NA, "1: Harris", "2: Kail-Smith", "3: Kraus", "4: Rudiak", "5: O'Connor", "6: Lavelle", "7: Gross", "8: Gilman", "9: Burgess"))))
+  return(data)
+}
+
+cleanDPW <-function(data) {
   data <- transform(data, PUBLIC_WORKS_DIVISION = as.factor(mapvalues(PUBLIC_WORKS_DIVISION, c(0:6), 
                                                                       c( NA, "1: North Side", "2: East End (North)", "3: The Hill, East End (South) & South Side", "4: South Side", "5: West End & South Hills", "6: Downtown, Strip & North Shore"))))
+  return(data)
+}
+
+cleanZone <- function(data) {
   data <- transform(data, POLICE_ZONE = as.factor(mapvalues(POLICE_ZONE, c(append( c("OSC"), 0:6)), 
                                                             c(NA, NA, "1: North Side", "2: Downtown, Hill & Strip", "3: South Side", "4: East End (South) & South Side", "5: East End (North)", "6: West End & South Hills"))))
   return(data)
 }
+#Function to clean Geographies
+cleanGeo <- function(data) {
+  data <- cleanCouncil(data)
+  data <- cleanDPW(data)
+  data <- cleanZone(data)
+  return(data)
+}
 
+#Load Boundary Files
+#Neighborhoods
+load.hoods <- readShapeSpatial("boundaries/Pittsburgh_Neighborhoods/Pittsburgh_Neighborhoods.shp")
+#Council
+load.council <- readShapeSpatial("boundaries/Pittsburgh_City_Council_Districts/Pittsburgh_City_Council_Districts.shp")
+load.council$COUNCIL_DISTRICT <- load.council$council
+load.council@data <- cleanCouncil(load.council@data)
+#DPW
+load.dpw <- readShapeSpatial("boundaries/Pittsburgh_DPW_Divisions/Pittsburgh_DPW_Divisions.shp")
+load.dpw$PUBLIC_WORKS_DIVISION <- load.dpw$division
+load.dpw@data <- cleanDPW(load.dpw@data)
+#Zone
+load.zones <- readShapeSpatial("boundaries/Pittsburgh_Police_Zones/Pittsburgh_Police_Zones.shp")
+load.zones$POLICE_ZONE <- load.zones$zone
+
+#Load Marker Files
 #Load 311 Requests
 load311 <- ckanQuery("40776043-ad00-40f5-9dc8-1fde865ff571", 365, "CREATED_ON")
 load311$CREATED_ON <- as.POSIXct(load311$CREATED_ON, format = '%Y-%m-%dT%H:%M:%S')
@@ -1005,6 +1037,48 @@ server <- shinyServer(function(input, output, session) {
                 multiple = TRUE,
                 selectize=TRUE)
   })
+  #Boundary Data
+  #Neighborhoods
+  hoodsInput <- reactive({
+    hoods <- load.hoods
+    
+    if (length(input$hood_select) > 0){
+      hoods <- hoods[hoods$hood %in% input$hood_select,]
+    }
+    
+    hoods
+  })
+  #Council District
+  councilInput <- reactive({
+    council <- load.council
+    
+    if (length(input$council_select) > 0){
+      council <- council[council$COUNCIL_DISTRICT %in% input$council_select,]
+    }
+    
+    council
+  })
+  #DPW Divisions
+  dpwInput <- reactive({
+    dpw <- load.dpw
+    
+    if (length(input$DPW_select) > 0){
+      dpw <- dpw[dpw$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
+    }
+    
+    dpw
+  })
+  #Police Zones
+  zonesInput <- reactive({
+    zones <- load.zones
+    
+    if (length(input$zone_select) > 0){
+      zones <- zones[zones$POLICE_ZONE %in% input$zone_select,]
+    }
+    
+    zones
+  })
+  #Point Data
   #311 data with filters
   dat311Input <- reactive({
     dat311 <- load311
@@ -1420,6 +1494,49 @@ server <- shinyServer(function(input, output, session) {
     layerCount <- 0
     map <- leaflet() %>% 
       addProviderTiles("OpenStreetMap.HOT", options = providerTileOptions(noWrap = TRUE))
+    #Boundary Layers
+    #Neighborhood
+    if (input$filter_select == "Neighborhood") {
+      hoods <- hoodsInput()
+      if (nrow(hoods) > 0) {
+        map <- addPolygons(map, data = hoods,
+                           stroke = TRUE, smoothFactor = 0, weight = 1, color = "#000000", opacity = 0.6,
+                           fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0, 
+                           popup = ~paste("<font color='black'><b>Neighborhood:</b> ", htmlEscape(hood), "</font>")
+        )
+      }
+    } else if (input$filter_select == "Council District"){
+      council <- councilInput()
+      if (nrow(council) > 0) {
+        map <- addPolygons(map, data = council,
+                           stroke = TRUE, smoothFactor = 0, weight = 1, color = "#000000", opacity = 0.6,
+                           fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0, 
+                           popup = ~paste("<font color='black'><b>District:</b> ", htmlEscape(COUNCIL_DISTRICT),
+                                          "<br><b>Phone #:</b>", htmlEscape(phone),
+                                          "<br><b>Committee:</b>", htmlEscape(committee), "</font>")
+        )
+      }
+    } else if (input$filter_select == "Public Works Division"){
+      dpw <- dpwInput()
+      if (nrow(dpw) > 0) {
+        map <- addPolygons(map, data = dpw,
+                           stroke = TRUE, smoothFactor = 0, weight = 1, color = "#000000", opacity = 0.6,
+                           fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0, 
+                           popup = ~paste("<font color='black'><b>Zone:</b> ", htmlEscape(PUBLIC_WORKS_DIVISION), "</font>")
+        )
+      }
+    } else if (input$filter_select == "Police Zone"){
+      zones <- zonesInput()
+      if (nrow(zones) > 0) {
+        map <- addPolygons(map, data = zones,
+                           stroke = TRUE, smoothFactor = 0, weight = 1, color = "#000000", opacity = 0.6,
+                           fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0, 
+                           popup = ~paste("<font color='black'><b>Zone:</b> ", htmlEscape(POLICE_ZONE), "</font>")
+        )
+      }
+    }  
+    
+    #Point Layers
     #311 Data
     if (input$toggle311) {
       dat311 <- dat311Input()

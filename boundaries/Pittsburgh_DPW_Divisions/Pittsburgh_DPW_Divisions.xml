@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><metadata>
+<idinfo>
+<citation>
+<citeinfo>
+<title>Pittsburgh DPW Divisions</title>
+<onlink>http://maps.pittsburghpa.gov/arcgis/rest/services/OpenData/PGHODDPWDivisions/FeatureServer</onlink>
+</citeinfo>
+</citation>
+<descript>
+<abstract>Pittsburgh Public Work DivisionsMetadata: https://www.arcgis.com/sharing/rest/content/items/2d2c30d9633647ddab2f918afc38c35b/info/metadata/metadata.xml?format=default&amp;amp;output=html</abstract>
+<purpose>Pittsburgh Public Work Divisions</purpose>
+</descript>
+<spdom>
+<bounding>
+<westbc>-80.096786</westbc>
+<eastbc>-79.862845</eastbc>
+<northbc>40.503676</northbc>
+<southbc>40.358</southbc>
+</bounding>
+</spdom>
+<keywords>
+<theme>
+<themekt>None</themekt>
+<themekey>Pittsburgh</themekey>
+<themekey>Public Work Divisions</themekey>
+<themekey>Civic Vitality and Governance</themekey>
+</theme>
+</keywords>
+<accconst>None</accconst>
+<useconst>None</useconst>
+</idinfo>
+<metainfo>
+<metd>20151015</metd>
+<metc>
+<cntinfo>
+<!--no contact person or organization name available-->
+<cntaddr>
+<addrtype>unknown</addrtype>
+<country>AF</country>
+</cntaddr>
+</cntinfo>
+</metc>
+<metstdn>FGDC Content Standard for Digital Geospatial Metadata</metstdn>
+<metstdv>FGDC-STD-001-1998</metstdv>
+<mettc>local time</mettc>
+</metainfo>
+</metadata>
