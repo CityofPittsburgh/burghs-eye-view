@@ -246,7 +246,7 @@ icons_facilities <- iconList(
 )
 
 # Load Permit Layer
-load.permits <- ckan("95d69895-e58d-44de-a370-fec6ad2b332e") 
+load.permits <- ckan("95d69895-e58d-44de-a370-fec6ad2b332e")
 load.permits$date <- as.Date(load.permits$intake_date)
 #Full address clean
 load.permits$full_address <- paste0(ifelse(is.na(load.permits$street_address) | is.null(load.permits$street_address), "", paste0(as.character(load.permits$street_address), " ")),
@@ -470,6 +470,13 @@ if(Sys.Date() <= as.Date(paste0(this_year,"-10-31")) & Sys.Date() >= as.Date(pas
   load.egg <- data.frame(X,Y,title)
   load.egg$icon <- "new_year"
   load.egg$tt <- "3... 2... 1... Happy New Years! <br>Looks like a fresh start to the New Year, and a fresh blank map! Try something else in the search bar!"
+} else if (Sys.Date() >= as.Date(paste0(this_year,"-02-01")) & Sys.Date() <= as.Date(paste0(this_year,"-02-15"))) {
+  X <-  c(-80.002398,  -80.017794, -79.964644, -79.964708, -79.983140, -79.991428)
+  Y <- c(40.440397, 40.437650, 40.428210, 40.461866, 40.452217, 40.456897)
+  title <- c("Market Square", "Mt. Washington", "SouthSide Works", " Church Brew Works", "The Strip", "Penn Brewery")
+  load.egg <- data.frame(X,Y,title)
+  load.egg$icon <- "valentine"
+  load.egg$tt <- "Love is in the air, but doesn't look like any results are! <br>Would you be my Valentine?"
 } else {
   X <- c(-79.9968604, -80.004055)
   Y <- c(40.4381098, 40.440631)
@@ -484,7 +491,8 @@ icons_egg <- iconList(
   election = makeIcon("./icons/egg/vote.png", iconAnchorX = 9, iconAnchorY = 13, popupAnchorX = 0, popupAnchorY = -13),
   thanksgiving = makeIcon("./icons/egg/thanksgiving.png", iconAnchorX = 9, iconAnchorY = 13, popupAnchorX = 0, popupAnchorY = -13),
   snow = makeIcon("./icons/egg/snowboard.png", iconAnchorX = 9, iconAnchorY = 13, popupAnchorX = 0, popupAnchorY = -13),
-  new_year = makeIcon("./icons/egg/new_year.png", iconAnchorX = 9, iconAnchorY = 13.5, popupAnchorX = 0, popupAnchorY = -13.5)
+  new_year = makeIcon("./icons/egg/new_year.png", iconAnchorX = 9, iconAnchorY = 13.5, popupAnchorX = 0, popupAnchorY = -13.5),
+  valentine = makeIcon("./icons/egg/valentine.png", iconAnchorX = 40, iconAnchorY = 32, popupAnchorX = 0, popupAnchorY = -13.5)
 )
 
 # Non-Traffic Citations
@@ -1788,8 +1796,8 @@ server <- shinyServer(function(input, output, session) {
                                  facilities$url, "</font>"))
         )
         recs <- recs + nrow(facilities)
-                }
-                }
+      }
+    }
     #Capital Projects Layer
     if (input$toggleCproj) {
       cproj <- cprojInput()
@@ -1827,8 +1835,8 @@ server <- shinyServer(function(input, output, session) {
                           ))
         )
         recs <- recs + nrow(cproj)
-                }
-                }
+      }
+    }
     print(recs)
     if (layerCount < 1) {
       if (Sys.Date() >= as.Date(paste0(this_year,"-11-01")) & Sys.Date() <= as.Date(paste0(this_year,"-11-08"))) {
