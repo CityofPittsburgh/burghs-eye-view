@@ -1784,38 +1784,36 @@ server <- shinyServer(function(input, output, session) {
         }
       }
     # City Facilities Layer
-    if (input$toggleFacilities) {
-      facilities <- facilitiesInput()
-      # Remove unmappables
-      facilities <- facilities[!(is.na(facilities$Lng)),]
-      facilities <- facilities[!(is.na(facilities$Lat)),]
-      facilities <- subset(facilities, Lng > -80.242767 & Lng < -79.660492 & Lat < 40.591014 & Lat > 40.266428)
-      if (nrow(facilities) > 0) {
-        layerCount <- layerCount + 1
-        map <- addMarkers(map, data=facilities,
-                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
-                                                                                      var childCount = cluster.getChildCount();  
-                                                                                      if (childCount < 10) {  
-                                                                                      c = 'rgba(217, 217, 224, 0.95);'
-                                                                                      } else if (childCount < 100) {  
-                                                                                      c = 'rgba(171, 171, 182, 0.95);'  
-                                                                                      } else { 
-                                                                                      c = 'rgba(150, 150, 163, 0.95);'  
-                                                                                      }    
-                                                                                      return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-      }")), ~Lng, ~Lat, icon = ~icons_facilities[icon],
-                 popup = ~(paste("<font color='black'><b>Usage:</b>", facilities$usage,
-                                 "<br><b>Name:</b>", facilities$ID,
-                                 "<br><b>Dept:</b>", facilities$PrimaryUser,
-                                 "<br><b>Address:</b>", facilities$address,
-                                 "<br><b>Neighborhood:</b>", facilities$NEIGHBORHOOD,
-                                 "<br><b>Council District:</b>", facilities$COUNCIL_DISTRICT,
-                                 "<br><b>Public Works Division:</b>", facilities$PUBLIC_WORKS_DIVISION,
-                                 "<br><b>Police Zone:</b>", facilities$POLICE_ZONE, 
-                                 facilities$url, "</font>"))
-        )
-        recs <- recs + nrow(facilities)
-      }
+    facilities <- facilitiesInput()
+    # Remove unmappables
+    facilities <- facilities[!(is.na(facilities$Lng)),]
+    facilities <- facilities[!(is.na(facilities$Lat)),]
+    facilities <- subset(facilities, Lng > -80.242767 & Lng < -79.660492 & Lat < 40.591014 & Lat > 40.266428)
+    if (nrow(facilities) > 0) {
+      layerCount <- layerCount + 1
+      map <- addMarkers(map, data=facilities, group = "facilities",
+                        clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+                                                                                    var childCount = cluster.getChildCount();  
+                                                                                    if (childCount < 10) {  
+                                                                                    c = 'rgba(217, 217, 224, 0.95);'
+                                                                                    } else if (childCount < 100) {  
+                                                                                    c = 'rgba(171, 171, 182, 0.95);'  
+                                                                                    } else { 
+                                                                                    c = 'rgba(150, 150, 163, 0.95);'  
+                                                                                    }    
+                                                                                    return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+    }")), ~Lng, ~Lat, icon = ~icons_facilities[icon],
+               popup = ~(paste("<font color='black'><b>Usage:</b>", facilities$usage,
+                               "<br><b>Name:</b>", facilities$ID,
+                               "<br><b>Dept:</b>", facilities$PrimaryUser,
+                               "<br><b>Address:</b>", facilities$address,
+                               "<br><b>Neighborhood:</b>", facilities$NEIGHBORHOOD,
+                               "<br><b>Council District:</b>", facilities$COUNCIL_DISTRICT,
+                               "<br><b>Public Works Division:</b>", facilities$PUBLIC_WORKS_DIVISION,
+                               "<br><b>Police Zone:</b>", facilities$POLICE_ZONE, 
+                               facilities$url, "</font>"))
+      )
+      recs <- recs + nrow(facilities)
     }
     # Capital Projects Layer
     if (input$toggleCproj) {
@@ -1868,7 +1866,20 @@ server <- shinyServer(function(input, output, session) {
     }
     map
     })
+  observe({
+    if (is.null(input$toggleFacilities)) {
+      cFacilities <- TRUE
+    } else {
+      cFacilities <- input$toggleFacilities
+    }
+    
+    if(cFacilities) {
+      leafletProxy("map") %>% showGroup("facilities")
+    } else {
+      leafletProxy("map") %>% hideGroup("facilities")
+    }
   })
+})
 
 # Run the application 
 shinyApp(ui = ui, server = server, enableBookmarking = "url")
