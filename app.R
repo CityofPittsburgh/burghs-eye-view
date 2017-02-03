@@ -1321,18 +1321,26 @@ server <- shinyServer(function(input, output, session) {
     
     # Loop which aggregates appropriate Workflows
     for (i in  levels(workflow$permit_id)){
+      #Isolate Workflows for Permit ID
       temp <- subset(workflow, permit_id == i)
+      #Sort workflow to correct order
       temp <- temp[order(temp$history_seq_nbr),]
+      #Isolate only tooltip
       temp <- subset(workflow, permit_id == i, select = c(tool))
+      #Create DT string from list
       tt <- paste0('<br><b>Workflow:</b><br><dl style="margin-bottom: 0px; margin-left:10px";>', toString(temp), "</dl>")
+      #Remove Junk characters from unlisting
       tt <- gsub(",", "", tt)
       tt <- gsub('" "', "", tt)
       tt <- gsub('c\\("', "", tt)
       tt <- gsub('"\\)', "", tt)
+      #Create Columns for bind
       df <- data.frame(i,tt)
+      #Check for first Workflow
       if (i == levels(workflow$permit_id)[1]){
         tt.df <- df
       } else {
+        #Merge to other tooltips
         tt.df <- rbind(tt.df, df)
       }
     }
