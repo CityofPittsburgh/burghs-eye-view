@@ -244,9 +244,6 @@ names(load.permits)[names(load.permits)=="police_zone"] <- "POLICE_ZONE"
 names(load.permits)[names(load.permits)=="council_district"] <- "COUNCIL_DISTRICT"
 names(load.permits)[names(load.permits)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
 load.permits <- cleanGeo(load.permits)
-  
-load.workflow <- ckan("7e0bf4bf-c7f5-48cd-8177-86f5ce776dfa")
-load.workflow$tool <- paste0("<dt>", load.workflow$status_date, ": ", load.workflow$action_by_dept, "</dt>", "<dd>", load.workflow$task, " - ", load.workflow$status, "</dd>")
 
 # Icons for Permit
 icons_permits <- iconList(
@@ -264,6 +261,10 @@ icons_permits <- iconList(
   sprinkler_permit = makeIcon("./icons/PLI/sprinkler.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
   temp_occupancy = makeIcon("./icons/PLI/temp_occupancy_commercial.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
+
+# Load Workflow
+load.workflow <- ckan("7e0bf4bf-c7f5-48cd-8177-86f5ce776dfa")
+load.workflow$tool <- paste0("<dt>", load.workflow$status_date, ": ", load.workflow$action_by_dept, "</dt>", "<dd>", load.workflow$task, " - ", load.workflow$status, "</dd>")
 
 # Load Violations
 load.violations <- ckan("4e5374be-1a88-47f7-afee-6a79317019b4")
@@ -583,7 +584,7 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                           includeHTML('about.html'),
                           # Twitter Button
                           tags$script(HTML("var header = $('.navbar > .container-fluid > .navbar-collapse');
-                                           header.append('<div class =\"twit\" style=\"float:right;margin-top: 15px;\"><a href=\"https://twitter.com/share\" class=\"twitter-share-button\" align=\"middle\" data-url=\"data.pittsburghpa.gov/BurghsEyeView\" data-text=\"Check out Burgh&#39;s Eye View! A new tool to view city data in Pittsburgh: https://goo.gl/C4ySqW\" data-size=\"large\">Tweet</a></div>');
+                                           header.append('<div class =\"twit\" style=\"float:right;margin-top: 15px;\"><a href=\"https://twitter.com/share\" class=\"twitter-share-button\" align=\"middle\" data-url=\"data.pittsburghpa.gov/BurghsEyeView\" data-text=\"Check out Burgh&#39;s Eye View! A new tool to view city data in Pittsburgh: https://goo.gl/z4cZ30\" data-size=\"large\">Tweet</a></div>');
                                            console.log(header)")),
                           tags$script(HTML("!function(d,s,id){
                                            var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';
@@ -603,7 +604,7 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                                  js.src = \"//connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.8\";
                                  fjs.parentNode.insertBefore(js, fjs);
                           }(document, 'script', 'facebook-jssdk'));")),
-                tags$script(HTML('header.append(\'<div class="fb-share-button" style="float:right;margin-top: 15px;margin-right: 5px;" data-href="http://data.pittsburghpa.gov/BurghsEyeView/#utm_source=facebook_button&amp;utm_campaign=facebook_button&amp;utm_medium=facebook%2Fsocial\" data-layout="button" data-size="large" data-mobile-iframe="true"><a class="fb-xfbml-parse-ignore" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Fdata.pittsburghpa.gov%2FBurghsEyeView%2F%23utm_source%3Dfacebook_button%26utm_campaign%3Dfacebook_button%26utm_medium%3Dfacebook%252Fsocial&amp;src=sdkpreparse">Share</a></div>\');
+                tags$script(HTML('header.append(\'<div class="fb-share-button" style="float:right;margin-top: 15px;margin-right: 5px;" data-href="http://pittsburghpa.shinyapps.io/BurghsEyeView/?utm_source=facebook_button&amp;utm_campaign=facebook_button&amp;utm_medium=facebook%2Fsocial\" data-layout="button" data-size="large" data-mobile-iframe="true"><a class="fb-xfbml-parse-ignore" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Fpittsburghpa.shinyapps.io%2FBurghsEyeView%2F%23utm_source%3Dfacebook_button%26utm_campaign%3Dfacebook_button%26utm_medium%3Dfacebook%252Fsocial&amp;src=sdkpreparse">Share</a></div>\');
                                  console.log(header)'))
                 )
                  )
@@ -1320,32 +1321,32 @@ server <- shinyServer(function(input, output, session) {
     
     # Append Workflows
     workflow <- load.workflow
-    # Remove Old Workflows
+    # Select Workflows
     workflow <- workflow[workflow$permit_id %in% permits$permit_id,]
     workflow$permit_id <- as.factor(workflow$permit_id)
     
     # Loop which aggregates appropriate Workflows
     for (i in  levels(workflow$permit_id)){
-      #Isolate Workflows for Permit ID
+      # Isolate Workflows for Permit ID
       temp <- subset(workflow, permit_id == i)
-      #Sort workflow to correct order
+      # Sort workflow to correct order
       temp <- temp[order(temp$history_seq_nbr),]
-      #Isolate only tooltip
+      # Isolate only tooltip
       temp <- subset(workflow, permit_id == i, select = c(tool))
-      #Create DT string from list
+      # Create DT string from list
       tt <- paste0('<br><b>Workflow:</b><br><dl style="margin-bottom: 0px; margin-left:10px";>', toString(temp), "</dl>")
-      #Remove Junk characters from unlisting
+      # Remove Junk characters from unlisting
       tt <- gsub(",", "", tt)
       tt <- gsub('" "', "", tt)
       tt <- gsub('c\\("', "", tt)
       tt <- gsub('"\\)', "", tt)
-      #Create Columns for bind
+      # Create Columns for bind
       df <- data.frame(i,tt)
-      #Check for first Workflow
+      # Check for first Workflow
       if (i == levels(workflow$permit_id)[1]){
         tt.df <- df
+      # Merge to other tooltips  
       } else {
-        #Merge to other tooltips
         tt.df <- rbind(tt.df, df)
       }
     }
@@ -1563,8 +1564,9 @@ server <- shinyServer(function(input, output, session) {
                            popup = ~paste("<font color='black'><b>Zone:</b> ", htmlEscape(POLICE_ZONE), "</font>")
         )
       }
-    }
-    # Marker Layers
+    }  
+    
+    # Point Layers
     # 311 Data
     if (input$toggle311) {
       dat311 <- dat311Input()
