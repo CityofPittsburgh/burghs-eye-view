@@ -545,6 +545,13 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                           tags$style(type="text/css",
                                      ".shiny-output-error { visibility: hidden; }",
                                      ".shiny-output-error:before { visibility: hidden; }"),
+                          # Add background image
+                          tags$head(tags$style(type="text/css", '.Map {
+                                               background-image: url("loading.png");
+                                               background-repeat: no-repeat;
+                                               background-position: center;
+                                               background-size: contain;
+                                               }')),
                           # Background of report.table
                           tags$style(type="text/css", '.report.table {background-color: #fff;}'),
                           # Remove unwanted padding and margins
@@ -652,13 +659,6 @@ server <- shinyServer(function(input, output, session) {
                               value = ifelse(Sys.Date() == as.Date(paste0(this_year,"-11-08")), "Election Day!", ""),
                               label = NULL, 
                               placeholder = "Search"),
-                    # Add background image
-                    tags$head(tags$style(type="text/css", '.Map {
-                                               background-image: url("loading.png");
-                                               background-repeat: no-repeat;
-                                               background-position: center;
-                                               background-size: contain;
-                                               }')),
                     HTML('<small style="font-size:11px;margin-left:3px">Locations are not exact. (See &rsquo;About&rsquo; for details.)</small><br><br>'),
                     dateRangeInput("dates",
                                    label = NULL,
@@ -881,16 +881,11 @@ server <- shinyServer(function(input, output, session) {
                      uiOutput("filter_UI"),
                      HTML('</div>')
                      ),
-                  # Generate Map
-                  div(class="mapBack",leafletOutput("map")),
-                  # Set map to style for Mobile
-                  tags$style(type = "text/css", "#map {height: calc(100vh - 110px) !important;}"),
-                  tags$head(tags$style(type="text/css", '.mapBack {
-                                             background-image: url("loading.png");
-                                             background-repeat: no-repeat;
-                                             background-position: center;
-                                             background-size: contain;}'))
-       )
+        # Generate Map
+        leafletOutput("map"),
+        # Set map to style for Mobile
+        tags$style(type = "text/css", "#map {height: calc(100vh - 110px) !important;}")
+                     )
   }
 })
   # Filter by Area Display Options
