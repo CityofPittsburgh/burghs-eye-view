@@ -1332,7 +1332,7 @@ server <- shinyServer(function(input, output, session) {
       # Sort workflow to correct order
       temp <- temp[order(temp$history_seq_nbr),]
       # Isolate only tooltip
-      temp <- subset(workflow, permit_id == i, select = c(tool))
+      temp <- temp[,"tool"]
       # Create DT string from list
       tt <- paste0('<br><b>Workflow:</b><br><dl style="margin-bottom: 0px; margin-left:10px";>', toString(temp), "</dl>")
       # Remove Junk characters from unlisting
