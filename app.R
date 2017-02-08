@@ -1497,10 +1497,10 @@ server <- shinyServer(function(input, output, session) {
     
     # Report Table Search Filter
     if (!is.null(input$report.table_search) && input$report.table_search != "") {
-      download <- report[apply(report, 1, function(row){any(grepl(input$report.table_search, row, ignore.case = TRUE))}), ]
+      report <- report[apply(report, 1, function(row){any(grepl(input$report.table_search, row, ignore.case = TRUE))}), ]
     }
     
-    return(download)
+    return(report)
   })
   # Generate Report Table
   output$report.table <- DT::renderDataTable({
