@@ -391,14 +391,17 @@ icons_blotter <- iconList(
 
 # Capital Projects
 load.cproj <- read.csv("cgCapitalProjects.csv")
-load.cproj$year <- as.numeric(format(as.Date(load.cproj$StopDateField, format = "%m/%d/%Y"), "%Y"))
+load.cproj$year <- as.numeric(format(as.Date(load.cproj$StartDateField), "%Y"))
 load.cproj$TotalCostActualField <- dollarsComma(load.cproj$TotalCostActualField)
+load.cproj$BudgetedAmountField <- dollarsComma(load.cproj$BudgetedAmountField)
 load.cproj$COUNCIL_DISTRICT <- ""
 load.cproj$POLICE_ZONE <- ""
 load.cproj$NEIGHBORHOOD <- ""
 load.cproj$PUBLIC_WORKS_DIVISION <- ""
 
 load.cproj <- cleanGeo(load.cproj)
+
+load.cproj <- transform(load.cproj, icon = as.factor(mapvalues(CapitalProjectFunctionalAreaField, c("Administration/Sub-Award", "Engineering and Construction", "Facility Improvement", "Neighborhood and Community Development", "Public Safety","Vehicles and Equipment"), c("administration", "engineering_construction", "facility_improvement", "neighborhood_development", "public_safety", "vehicles_equipment"))))
 
 icons_cproj <- iconList(
   administration = makeIcon("./icons/omb/administration.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
@@ -1842,13 +1845,13 @@ server <- shinyServer(function(input, output, session) {
       }")), ~Lng, ~Lat, icon = ~icons_cproj[icon],
                  popup = ~(paste("<font color='black'><b>Functional Area:</b>", cproj$CapitalProjectFunctionalAreaField, 
                                  "<br><b>Name:</b>", cproj$CapitalProjectNameField,
-                                 "<br><b>Statu:s</b>",  cproj$StatusField,
+                                 "<br><b>Asset:</b>", cproj$cgAssetandIDField,
+                                 "<br><b>Description:</b>", cproj$TaskDescriptionField,
+                                 "<br><b>Status:</b>",  cproj$StatusField,
                                  "<br><b>Amount Budgeted:</b>", cproj$BudgetedAmountField,
                                  "<br><b>Amount Spent:</b>", cproj$TotalCostActualField,
-                                 "<br><b>Asset:</b>", cproj$cgAssetandIDField,
                                  "<br><b>Start Date:</b>", cproj$StartDateField,
                                  "<br><b>Stop Date:</b>", cproj$StopDateField,
-                                 "<br><b>Description:</b>", cproj$TaskDescriptionField,
                                  "<br><b>Neighborhood:</b>", cproj$NEIGHBORHOOD,
                                  "<br><b>Council District:</b>", cproj$COUNCIL_DISTRICT,
                                  "<br><b>Public Works Division:</b>", cproj$PUBLIC_WORKS_DIVISION,
