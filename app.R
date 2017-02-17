@@ -764,9 +764,10 @@ server <- shinyServer(function(input, output, session) {
     } else {
       tagList(
         # Input panel for Mobile (stationary at top)
-        sidebarPanel(id = "tPanel",
+        absolutePanel(top = 65, left = 0, width = '100%' ,
+                      wellPanel(id = "tPanel", style ="padding-left: 5px; padding-right: 5px;",
                      # Remove padding from Search Bar
-                     tags$style(type= "text/css", "#tPanel {margin-bottom:0px; padding:0px;}"),
+                     tags$style(type= "text/css", "#tPanel {margin-bottom:0px; padding:0px; overflow-y:scroll; max-height: calc(100vh - 60px); !important; min-height: 55px;}"),
                      # Set background color to match panels
                      tags$style(type = "text/css", "body {background-color: #ecf0f1}"),
                      tags$style(type= "text/css", "{width:100%;
@@ -774,20 +775,20 @@ server <- shinyServer(function(input, output, session) {
                                 text-align: center;}
                                 .inner
                                 {display: inline-block;}"),
-                     HTML('<div id="outer">'),
+                     HTML('<div id="outer" style="position:absolute;z-index: 9; background-color:#ecf0f1; width:100%;">'),
                      # Set Searchvar width optimal for device
-                     tags$style(type = "text/css", paste0('#search {width: ', input$GetScreenWidth - 84, 'px}')),
+                     tags$style(type = "text/css", paste0('#search {width: ', input$GetScreenWidth - 84, 'px; margin-left:10px;}')),
                      # Inputs
-                     div(style="display:inline-block", 
+                     div(style="display:inline-block;", 
                          textInput("search", 
                                    value = ifelse(Sys.Date() == as.Date(paste0(this_year,"-11-08")), "Election Day!", ""),
                                    label = NULL, 
                                    placeholder = "Search")),
                      tags$style(style="text/css", chartr0('#mapPanel button .fa:before { content: "\\f056";  }
                                                           #mapPanel button.collapsed .fa:before { content: "\\f055";  }')),
-                     HTML('<button class="btn collapsed" data-toggle="collapse" data-target="#mobile"><i class="fa fa-search-plus" aria-hidden="true"></i></button></div><div id="mobile" class="collapse">
-                          <small style="font-size:11px;margin-left:3px">Not locations are exact. (See &rsquo;About&rsquo; for details.)</small>
-                          <br>
+                     HTML('<button class="btn collapsed" data-toggle="collapse" data-target="#mobile"><i class="fa fa-search-plus" aria-hidden="true"></i></button></div>
+                          <div id="mobile" class="collapse" style="margin-top:55px;">
+                            <small style="font-size:11px;margin-left:3px">Not all locations are exact. (See &rsquo;About&rsquo; for details.)</small>
                           <br>'),
                      dateRangeInput("dates",
                                     label = NULL,
@@ -877,24 +878,29 @@ server <- shinyServer(function(input, output, session) {
                                  c(`Facility Usage`='', levels(load.facilities$usage)),
                                  multiple = TRUE,
                                  selectize=TRUE),
+                     uiOutput("filter_UI"),
                      selectInput("filter_select",
                                  "Filter by Area",
                                  c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Public Works Division")),
                                  selectize = TRUE,
                                  selected = ""),
-                     uiOutput("filter_UI"),
+                     
                      HTML('</div>')
                      ),
                   # Generate Map
-                  div(class="mapBack",leafletOutput("map")),
+                  div(class="mapBack", style="position: absolute;
+                                              width: 100%;z-index: -1;
+                                              left: 0px;
+                                              top: 55px;", leafletOutput("map")),
                   # Set map to style for Mobile
-                  tags$style(type = "text/css", "#map {height: calc(100vh - 110px) !important;}"),
+                  tags$style(type = "text/css", "#map {height: calc(100vh - 115px) !important;}"),
                   tags$head(tags$style(type="text/css", '.mapBack {
                                              background-image: url("loading.png");
                                              background-repeat: no-repeat;
                                              background-position: center;
                                              background-size: contain;}'))
-       )
+        )
+      )
   }
 })
   # Filter by Area Display Options
