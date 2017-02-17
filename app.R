@@ -1849,10 +1849,10 @@ server <- shinyServer(function(input, output, session) {
                                                                                       }    
                                                                                       return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
       }")), ~Lng, ~Lat, icon = ~icons_cproj[icon],
-                 popup = ~(paste("<font color='black'><b>Functional Area:</b>", cproj$CapitalProjectFunctionalAreaField, 
-                                 "<br><b>Name:</b>", cproj$CapitalProjectNameField,
+                 popup = ~(paste("<font color='black'><br><b>Name:</b>", cproj$CapitalProjectNameField,
                                  "<br><b>Asset:</b>", cproj$cgAssetandIDField,
                                  "<br><b>Description:</b>", cproj$TaskDescriptionField,
+                                 "<b>Functional Area:</b>", cproj$CapitalProjectFunctionalAreaField, 
                                  "<br><b>Status:</b>",  cproj$StatusField,
                                  "<br><b>Amount Budgeted:</b>", cproj$BudgetedAmountField,
                                  "<br><b>Amount Spent:</b>", cproj$TotalCostActualField,
