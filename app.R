@@ -668,6 +668,8 @@ server <- shinyServer(function(input, output, session) {
                                    label = NULL,
                                    start = Sys.Date()-10,
                                    end = Sys.Date(),
+                                   min = Sys.Date()-365,
+                                   max = Sys.Date(),
                                    startview = "day"),
                     HTML('<font color="#F47B25">'),
                     checkboxInput("toggle311",
@@ -775,6 +777,7 @@ server <- shinyServer(function(input, output, session) {
                                 text-align: center;}
                                 .inner
                                 {display: inline-block;}"),
+                     # Div for Search Bar and Expansion
                      HTML('<div id="outer" style="position:absolute;z-index: 9; background-color:#ecf0f1; width:100%;">'),
                      # Set Searchvar width optimal for device
                      tags$style(type = "text/css", paste0('#search {width: ', input$GetScreenWidth - 84, 'px; margin-left:10px;}')),
@@ -794,6 +797,8 @@ server <- shinyServer(function(input, output, session) {
                                     label = NULL,
                                     start = Sys.Date()-10,
                                     end = Sys.Date(),
+                                    min = Sys.Date()-365,
+                                    max = Sys.Date(),
                                     startview = "day"),
                      HTML('<font color="#F47B25">'),
                      checkboxInput("toggle311",
