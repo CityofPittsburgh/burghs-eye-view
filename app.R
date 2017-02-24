@@ -23,6 +23,9 @@ library(plyr)
 library(zoo)
 library(lubridate)
 
+# Turn off Scientific Notation
+options(scipen = 999)
+
 ckan_api <- jsonlite::fromJSON("key.json")$ckan_api
 
 # Function to read backslashes correctly
@@ -188,33 +191,93 @@ load.facilities <- transform(load.facilities, icon = as.factor(mapvalues(Facilit
                                                                          c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC_STATION", "OFFICE", "POLICE", "POOL", "POOL_CLOSED", "POOL_REC", "REC", "RECYCLING", "RESTROOMS", "SALT_DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT"))))
 
 load.facilities$url <- ifelse(load.facilities$usage %in% c("Shelter", "Community", "Senior Center", "Activity"), '<br><center><a href="https://registerparks.pittsburghpa.gov/" target="_blank">Rent this facility</a></center>', "")
-load.facilities <- cleanGeo(load.facilities)
 
-# Icons for Facilities
-icons_facilities <- iconList(
-  ACTIVITY = makeIcon("./icons/facilities/activity.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  CABIN = makeIcon("./icons/facilities/cabin.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  COMMUNITY = makeIcon("./icons/facilities/community.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  CONCESSION = makeIcon("./icons/facilities/concession.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  DUGOUT = makeIcon("./icons/facilities/dugout.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  FIREHOUSE = makeIcon("./icons/facilities/firehouse.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  MEDIC_STATION = makeIcon("./icons/facilities/medic_station.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  OFFICE = makeIcon("./icons/facilities/office.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  POLICE = makeIcon("./icons/facilities/police.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  POOL = makeIcon("./icons/facilities/pool.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  POOL_CLOSED = makeIcon("./icons/facilities/pool_closed.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  POOL_REC = makeIcon("./icons/facilities/pool_recreation.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  REC = makeIcon("./icons/facilities/recreation.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  RECYCLING = makeIcon("./icons/facilities/recycling.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  RESTROOMS = makeIcon("./icons/facilities/restrooms.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  SALT_DOME= makeIcon("./icons/facilities/salt_dome.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  SENIOR = makeIcon("./icons/facilities/healthy_living.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  SERVICE = makeIcon("./icons/facilities/service.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  SHELTER = makeIcon("./icons/facilities/shelter.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  STORAGE = makeIcon("./icons/facilities/storage.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  TRAINING = makeIcon("./icons/facilities/training.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  UTILITY = makeIcon("./icons/facilities/utility.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  VACANT = makeIcon("./icons/facilities/vacant.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+attr(load.facilities, "spec") <- NULL
+
+load.facilities <- subset(load.facilities, select = c(usage, ID, PrimaryUser, address, NEIGHBORHOOD, COUNCIL_DISTRICT, PUBLIC_WORKS_DIVISION, POLICE_ZONE, url, icon, Lat, Lng))
+
+# Load Water Features
+load.wf <- ckan("1b74a658-0465-456a-929e-ff4057220274")
+# Remove Inactive Water Features
+load.wf <- subset(load.wf, inactive == "False")
+
+# Prepare for Merge to Facilities
+names(load.wf)[names(load.wf)=="feature_type"] <- "usage"
+load.wf$usage <- as.factor(load.wf$usage)
+names(load.wf)[names(load.wf)=="name"] <- "address"
+load.wf$ID <- paste0(ifelse(is.na(load.wf$control_type), "", load.wf$control_type), ifelse(is.na(load.wf$make), "",paste0(" (", load.wf$make, ")")))
+load.wf$PrimaryUser <- "DEPARTMENT OF PUBLIC WORKS"
+names(load.wf)[names(load.wf)=="latitude"] <- "Lat"
+names(load.wf)[names(load.wf)=="longitude"] <- "Lng"
+load.wf$url<- ""
+
+load.wf <- transform(load.wf, icon = as.factor(mapvalues(usage, c("Decorative", "Drinking Fountain", "Spray"), c("DECORATIVE", "DRINKING_FOUNTAIN", "SPRAY"))))
+
+# Clean Geographies
+names(load.wf)[names(load.wf)=="neighborhood"] <- "NEIGHBORHOOD"
+names(load.wf)[names(load.wf)=="police_zone"] <- "POLICE_ZONE"
+names(load.wf)[names(load.wf)=="council_district"] <- "COUNCIL_DISTRICT"
+names(load.wf)[names(load.wf)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
+load.wf <- cleanGeo(load.wf)
+
+# Subset for rBind
+load.wf <- subset(load.wf, select = colnames(load.facilities))
+# rBind Facilities and Water Features
+load.assets <- rbind(load.facilities, load.wf)
+
+# Load Signalized Intersections
+load.si <- ckan("c864e31e-e2f4-4a1e-946c-50006537e73d")
+load.si$usage <- "Signalized Intersection"
+load.si$icon <- "SIGNALIZED_INTERSECTION"
+names(load.si)[names(load.si)=="description"] <- "address"
+load.si$PrimaryUser <- "DEPARTMENT OF PUBLIC WORKS"
+load.si$ID <- paste(ifelse(is.na(load.si$operation_type), "", load.si$operation_type), ifelse(is.na(load.si$operation_type) & is.na(load.si$flash_time), "", "-"), ifelse(is.na(load.si$flash_time), "", load.si$flash_time))
+load.si$url<- ""
+names(load.si)[names(load.si)=="latitude"] <- "Lat"
+names(load.si)[names(load.si)=="longitude"] <- "Lng"
+
+# Clean Geographies
+names(load.si)[names(load.si)=="neighborhood"] <- "NEIGHBORHOOD"
+names(load.si)[names(load.si)=="police_zone"] <- "POLICE_ZONE"
+names(load.si)[names(load.si)=="council_district"] <- "COUNCIL_DISTRICT"
+names(load.si)[names(load.si)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
+load.si <- cleanGeo(load.si)
+
+# Subset for rBind
+load.si <- subset(load.si, select = colnames(load.assets))
+# rBind Assets and Water Features
+load.assets <- rbind(load.assets, load.si)
+load.assets$usage <- as.factor(load.assets$usage)
+
+# Icons for Assets
+icons_assets <- iconList(
+  ACTIVITY = makeIcon("./icons/assets/activity.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  CABIN = makeIcon("./icons/assets/cabin.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  COMMUNITY = makeIcon("./icons/assets/community.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  CONCESSION = makeIcon("./icons/assets/concession.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  DUGOUT = makeIcon("./icons/assets/dugout.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  DECORATIVE = makeIcon("./icons/PLI/sprinkler.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  DRINKING_FOUNTAIN = makeIcon("./icons/PLI/sprinkler.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  FIREHOUSE = makeIcon("./icons/assets/firehouse.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  MEDIC_STATION = makeIcon("./icons/assets/medic_station.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  OFFICE = makeIcon("./icons/assets/office.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  POLICE = makeIcon("./icons/assets/police.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  POOL = makeIcon("./icons/assets/pool.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  POOL_CLOSED = makeIcon("./icons/assets/pool_closed.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  POOL_REC = makeIcon("./icons/assets/pool_recreation.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  REC = makeIcon("./icons/assets/recreation.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  RECYCLING = makeIcon("./icons/assets/recycling.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  RESTROOMS = makeIcon("./icons/assets/restrooms.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  SALT_DOME= makeIcon("./icons/assets/salt_dome.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  SENIOR = makeIcon("./icons/assets/healthy_living.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  SERVICE = makeIcon("./icons/assets/service.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  SHELTER = makeIcon("./icons/assets/shelter.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  SIGNALIZED_INTERSECTION = makeIcon("./icons/311/trafficlight_repair.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  SPRAY = makeIcon("./icons/PLI/sprinkler.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  STORAGE = makeIcon("./icons/assets/storage.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  TRAINING = makeIcon("./icons/assets/training.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  UTILITY = makeIcon("./icons/assets/utility.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  VACANT = makeIcon("./icons/assets/vacant.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
 
 # Load Permit Layer
@@ -572,7 +635,7 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                           inputPanel(
                             selectInput("report_select", 
                                         tagList(shiny::icon("map-marker"), "Select Layer:"),
-                                        choices = c("311 Requests", "Arrests", "Blotter", "Building Permits", "Capital Projects", "City Facilities", "Code Violations", "Non-Traffic Citations"), #
+                                        choices = c("311 Requests", "Arrests", "Blotter", "Building Permits", "Capital Projects", "City Assets", "Code Violations", "Non-Traffic Citations"), #
                                         selected= "311 Requests"),
                             # Define Button Position
                             uiOutput("buttonStyle")
@@ -745,15 +808,15 @@ server <- shinyServer(function(input, output, session) {
                                 multiple = TRUE,
                                 selectize=TRUE),
                     HTML('<font color="#474545">'),
-                    checkboxInput("toggleFacilities",
-                                  label = "City Facilities",
+                    checkboxInput("toggleAssets",
+                                  label = "City Assets",
                                   value = TRUE),
                     HTML('</font>'),
                     selectInput("usage_select",
                                 label = NULL,
-                                c(`Facility Usage`='', levels(load.facilities$usage)),
+                                c(`Facility Usage`='', levels(load.assets$usage)),
                                 multiple = TRUE,
-                                selectize=TRUE),
+                                selectize = TRUE),
                     selectInput("filter_select",
                                 "Filter by Area",
                                 c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Public Works Division")),
@@ -874,13 +937,13 @@ server <- shinyServer(function(input, output, session) {
                                  multiple = TRUE,
                                  selectize=TRUE),
                      HTML('<font color="#474545">'),
-                     checkboxInput("toggleFacilities",
-                                   label = "City Facilities",
+                     checkboxInput("toggleAssets",
+                                   label = "City Assets",
                                    value = TRUE),
                      HTML('</font>'),
                      selectInput("usage_select",
                                  label = NULL,
-                                 c(`Facility Usage`='', levels(load.facilities$usage)),
+                                 c(`Facility Usage`='', levels(load.assets$usage)),
                                  multiple = TRUE,
                                  selectize=TRUE),
                      uiOutput("filter_UI"),
@@ -1375,32 +1438,32 @@ server <- shinyServer(function(input, output, session) {
     
     return(permits)
   })
-  # City Facilities data with filters
-  facilitiesInput <- reactive({
-    facilities <- load.facilities
+  # City Assets data with filters
+  assetsInput <- reactive({
+    assets <- load.assets
     
     # Usage Filter
     if (length(input$usage_select) > 0) {
-      facilities <- facilities[facilities$usage %in% input$usage_select,]
+      assets <- assets[assets$usage %in% input$usage_select,]
     }
     
     # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
-      facilities <- facilities[facilities$POLICE_ZONE %in% input$zone_select,]
+      assets <- assets[assets$POLICE_ZONE %in% input$zone_select,]
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
-      facilities <- facilities[facilities$NEIGHBORHOOD %in% input$hood_select,]
+      assets <- assets[assets$NEIGHBORHOOD %in% input$hood_select,]
     } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
-      facilities <- facilities[facilities$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
+      assets <- assets[assets$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
-      facilities <- facilities[facilities$COUNCIL_DISTRICT %in% input$council_select,]
+      assets <- assets[assets$COUNCIL_DISTRICT %in% input$council_select,]
     } 
     
     # Search Filter
     if (!is.null(input$search) && input$search != "") {
-      facilities <- facilities[apply(facilities, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
+      assets <- assets[apply(assets, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
     }
     
-    return(facilities)
+    return(assets)
   })
   # Capital Projects data with filters
   cprojInput <- reactive({
@@ -1486,14 +1549,14 @@ server <- shinyServer(function(input, output, session) {
       
       colnames(violations) <- c("Violation", "Result", "Inspection Date", "Address", "Neighborhood", "Council District", "Police Zone", "Public Works Division", "Case #", "Parcel ID")
       report <- violations
-    } else if (input$report_select == "City Facilities") {
-      facilities <- facilitiesInput()
+    } else if (input$report_select == "City Assets") {
+      assets <- assetsInput()
       
-      facilities <- subset(facilities, select = c(usage, ID, PrimaryUser, address, NEIGHBORHOOD, COUNCIL_DISTRICT, PUBLIC_WORKS_DIVISION, POLICE_ZONE))
+      assets <- subset(assets, select = c(usage, ID, PrimaryUser, address, NEIGHBORHOOD, COUNCIL_DISTRICT, PUBLIC_WORKS_DIVISION, POLICE_ZONE))
       
-      colnames(facilities) <- c("Usage", "Name", "Dept", "Address", "Neighborhood", "Council", "Public Works Division", "Police Zone")
+      colnames(assets) <- c("Usage", "Description", "Dept", "Location", "Neighborhood", "Council", "Public Works Division", "Police Zone")
       
-      report <- facilities
+      report <- assets
     } else if (input$report_select == "Capital Projects") {
       cproj <- cprojInput()
       
@@ -1799,16 +1862,16 @@ server <- shinyServer(function(input, output, session) {
         recs <- recs + nrow(violations)
         }
       }
-    # City Facilities Layer
-    if (input$toggleFacilities) {
-      facilities <- facilitiesInput()
+    # City Assets Layer
+    if (input$toggleAssets) {
+      assets <- assetsInput()
       # Remove unmappables
-      facilities <- facilities[!(is.na(facilities$Lng)),]
-      facilities <- facilities[!(is.na(facilities$Lat)),]
-      facilities <- subset(facilities, Lng > -80.242767 & Lng < -79.660492 & Lat < 40.591014 & Lat > 40.266428)
-      if (nrow(facilities) > 0) {
+      assets <- assets[!(is.na(assets$Lng)),]
+      assets <- assets[!(is.na(assets$Lat)),]
+      assets <- subset(assets, Lng > -80.242767 & Lng < -79.660492 & Lat < 40.591014 & Lat > 40.266428)
+      if (nrow(assets) > 0) {
         layerCount <- layerCount + 1
-        map <- addMarkers(map, data=facilities,
+        map <- addMarkers(map, data=assets,
                           clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
                                                                                       var childCount = cluster.getChildCount();  
                                                                                       if (childCount < 10) {  
@@ -1819,18 +1882,18 @@ server <- shinyServer(function(input, output, session) {
                                                                                       c = 'rgba(150, 150, 163, 0.95);'  
                                                                                       }    
                                                                                       return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-      }")), ~Lng, ~Lat, icon = ~icons_facilities[icon],
-                 popup = ~(paste("<font color='black'><b>Usage:</b>", facilities$usage,
-                                 "<br><b>Name:</b>", facilities$ID,
-                                 "<br><b>Dept:</b>", facilities$PrimaryUser,
-                                 "<br><b>Address:</b>", facilities$address,
-                                 "<br><b>Neighborhood:</b>", facilities$NEIGHBORHOOD,
-                                 "<br><b>Council District:</b>", facilities$COUNCIL_DISTRICT,
-                                 "<br><b>Public Works Division:</b>", facilities$PUBLIC_WORKS_DIVISION,
-                                 "<br><b>Police Zone:</b>", facilities$POLICE_ZONE, 
-                                 facilities$url, "</font>"))
+      }")), ~Lng, ~Lat, icon = ~icons_assets[icon],
+                 popup = ~(paste("<font color='black'><b>Usage:</b>", assets$usage,
+                                 "<br><b>Description:</b>", assets$ID,
+                                 "<br><b>Dept:</b>", assets$PrimaryUser,
+                                 "<br><b>Location:</b>", assets$address,
+                                 "<br><b>Neighborhood:</b>", assets$NEIGHBORHOOD,
+                                 "<br><b>Council District:</b>", assets$COUNCIL_DISTRICT,
+                                 "<br><b>Public Works Division:</b>", assets$PUBLIC_WORKS_DIVISION,
+                                 "<br><b>Police Zone:</b>", assets$POLICE_ZONE, 
+                                 assets$url, "</font>"))
         )
-        recs <- recs + nrow(facilities)
+        recs <- recs + nrow(assets)
       }
     }
     # Capital Projects Layer
@@ -1857,7 +1920,7 @@ server <- shinyServer(function(input, output, session) {
                  popup = ~(paste("<font color='black'><br><b>Name:</b>", cproj$CapitalProjectNameField,
                                  "<br><b>Asset:</b>", cproj$cgAssetandIDField,
                                  "<br><b>Description:</b>", cproj$TaskDescriptionField,
-                                 "<b>Functional Area:</b>", cproj$CapitalProjectFunctionalAreaField, 
+                                 "<br><b>Functional Area:</b>", cproj$CapitalProjectFunctionalAreaField, 
                                  "<br><b>Status:</b>",  cproj$StatusField,
                                  "<br><b>Amount Budgeted:</b>", cproj$BudgetedAmountField,
                                  "<br><b>Amount Spent:</b>", cproj$TotalCostActualField,
