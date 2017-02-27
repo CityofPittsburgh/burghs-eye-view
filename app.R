@@ -18,6 +18,7 @@ library(leaflet)
 library(DT)
 library(maptools)
 library(htmltools)
+library(rgeos)
 # Data Transform
 library(plyr)
 library(zoo)
@@ -173,48 +174,49 @@ icons_311 <- iconList(
 )
 
 # Load facilities
-load.facilities <- ckan("9a5a52fd-fbe5-45b3-b6b2-c3bdaf6a2e04")
+load.facilities <- ckan("07bf416f-9df2-4d70-b48d-682f608f9a6b")
+# Remove Inactive Facilities
+load.facilities <- subset(load.facilities, inactive == "False")
 # Clean Geographies
+names(load.facilities)[names(load.facilities)=="police_zone"] <- "POLICE_ZONE"
+names(load.facilities)[names(load.facilities)=="council_district"] <- "COUNCIL_DISTRICT"
+names(load.facilities)[names(load.facilities)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
 load.facilities <- cleanGeo(load.facilities)
 # Create Adress Column (checks to see if Address No. is valid, to add number and add space between street name)
-load.facilities$address <- paste0(ifelse(is.na(load.facilities$AddressNumber), "", paste0(load.facilities$AddressNumber, " ")), ifelse(is.na(load.facilities$Street), "", load.facilities$Street))
+load.facilities$address <- paste0(ifelse(is.na(load.facilities$address_number), "", paste0(load.facilities$address_number, " ")), ifelse(is.na(load.facilities$street), "", load.facilities$street))
 # Clean NA's in Facility Type
-load.facilities$FacilityType <- ifelse(load.facilities$ID == "Southside Park Third Base Dugout" | load.facilities$ID == "Josh Gibson  1 Third Base Dugout", "DUGOUT",load.facilities$FacilityType)
-load.facilities$FacilityType <- ifelse(load.facilities$ID =="Herschel Upper  Building", "DUGOUT", load.facilities$FacilityType)
-load.facilities$FacilityType <- ifelse(load.facilities$ID =="Martin Luther King Field Field House" | load.facilities$ID =="Frick Park Entrance Gate", "ACTIVITY", load.facilities$FacilityType)
-load.facilities$FacilityType <- as.factor(load.facilities$FacilityType)
+load.facilities$facility_type <- ifelse(load.facilities$name == "Southsnamee Park Third Base Dugout" | load.facilities$name == "Josh Gibson  1 Third Base Dugout", "DUGOUT",load.facilities$facility_type)
+load.facilities$facility_type <- ifelse(load.facilities$name =="Herschel Upper  Building", "DUGOUT", load.facilities$facility_type)
+load.facilities$facility_type <- ifelse(load.facilities$name =="Martin Luther King Field Field House" | load.facilities$name =="Frick Park Entrance Gate", "ACTIVITY", load.facilities$facility_type)
+load.facilities$facility_type <- as.factor(load.facilities$facility_type)
 # Clean Facility Type for humans
-load.facilities <- transform(load.facilities, usage = as.factor(mapvalues(FacilityType, c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC STATION", "OFFICE", "POLICE", "POOL", "POOL CLOSED", "POOL/REC", "REC", "RECYCLING", "RESTROOMS", "SALT DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT", NA),
+load.facilities <- transform(load.facilities, usage = as.factor(mapvalues(facility_type, c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC STATION", "OFFICE", "POLICE", "POOL", "POOL CLOSED", "POOL/REC", "REC", "RECYCLING", "RESTROOMS", "SALT DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT", NA),
                                                                           c("Activity", "Cabin", "Community", "Concession", "Dugout", "Firehouse", "Medic Station", "Office", "Police", "Pool", "Pool - Closed", "Pool/Recreation", "Recreation", "Recycling", "Restrooms", "Salt Dome", "Senior Center", "Service", "Shelter", "Storage", "Training", "Utility", "Vacant", "STORAGE"))))
 # Create Icon set
-load.facilities <- transform(load.facilities, icon = as.factor(mapvalues(FacilityType, c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC STATION", "OFFICE", "POLICE", "POOL", "POOL CLOSED", "POOL/REC", "REC", "RECYCLING", "RESTROOMS", "SALT DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT"),
+load.facilities <- transform(load.facilities, icon = as.factor(mapvalues(facility_type, c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC STATION", "OFFICE", "POLICE", "POOL", "POOL CLOSED", "POOL/REC", "REC", "RECYCLING", "RESTROOMS", "SALT DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT"),
                                                                          c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC_STATION", "OFFICE", "POLICE", "POOL", "POOL_CLOSED", "POOL_REC", "REC", "RECYCLING", "RESTROOMS", "SALT_DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT"))))
 
 load.facilities$url <- ifelse(load.facilities$usage %in% c("Shelter", "Community", "Senior Center", "Activity"), '<br><center><a href="https://registerparks.pittsburghpa.gov/" target="_blank">Rent this facility</a></center>', "")
 
 attr(load.facilities, "spec") <- NULL
 
-load.facilities <- subset(load.facilities, select = c(usage, ID, PrimaryUser, address, NEIGHBORHOOD, COUNCIL_DISTRICT, PUBLIC_WORKS_DIVISION, POLICE_ZONE, url, icon, Lat, Lng))
+load.facilities <- subset(load.facilities, select = c(usage, name, primary_user, address, neighborhood, COUNCIL_DISTRICT, PUBLIC_WORKS_DIVISION, POLICE_ZONE, url, icon, latitude, longitude))
 
 # Load Water Features
 load.wf <- ckan("1b74a658-0465-456a-929e-ff4057220274")
 # Remove Inactive Water Features
 load.wf <- subset(load.wf, inactive == "False")
-
 # Prepare for Merge to Facilities
 names(load.wf)[names(load.wf)=="feature_type"] <- "usage"
 load.wf$usage <- as.factor(load.wf$usage)
 names(load.wf)[names(load.wf)=="name"] <- "address"
-load.wf$ID <- paste0(ifelse(is.na(load.wf$control_type), "", load.wf$control_type), ifelse(is.na(load.wf$make), "",paste0(" (", load.wf$make, ")")))
-load.wf$PrimaryUser <- "DEPARTMENT OF PUBLIC WORKS"
-names(load.wf)[names(load.wf)=="latitude"] <- "Lat"
-names(load.wf)[names(load.wf)=="longitude"] <- "Lng"
+load.wf$name <- paste0(ifelse(is.na(load.wf$control_type), "", load.wf$control_type), ifelse(is.na(load.wf$make), "",paste0(" (", load.wf$make, ")")))
+load.wf$primary_user <- "DEPARTMENT OF PUBLIC WORKS"
 load.wf$url<- ""
 
 load.wf <- transform(load.wf, icon = as.factor(mapvalues(usage, c("Decorative", "Drinking Fountain", "Spray"), c("DECORATIVE", "DRINKING_FOUNTAIN", "SPRAY"))))
 
 # Clean Geographies
-names(load.wf)[names(load.wf)=="neighborhood"] <- "NEIGHBORHOOD"
 names(load.wf)[names(load.wf)=="police_zone"] <- "POLICE_ZONE"
 names(load.wf)[names(load.wf)=="council_district"] <- "COUNCIL_DISTRICT"
 names(load.wf)[names(load.wf)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
@@ -230,14 +232,11 @@ load.si <- ckan("c864e31e-e2f4-4a1e-946c-50006537e73d")
 load.si$usage <- "Signalized Intersection"
 load.si$icon <- "SIGNALIZED_INTERSECTION"
 names(load.si)[names(load.si)=="description"] <- "address"
-load.si$PrimaryUser <- "DEPARTMENT OF PUBLIC WORKS"
-load.si$ID <- paste(ifelse(is.na(load.si$operation_type), "", load.si$operation_type), ifelse(is.na(load.si$operation_type) & is.na(load.si$flash_time), "", "-"), ifelse(is.na(load.si$flash_time), "", load.si$flash_time))
+load.si$primary_user <- "DEPARTMENT OF PUBLIC WORKS"
+load.si$name <- paste(ifelse(is.na(load.si$operation_type), "", load.si$operation_type), ifelse(is.na(load.si$operation_type) & is.na(load.si$flash_time), "", "-"), ifelse(is.na(load.si$flash_time), "", load.si$flash_time))
 load.si$url<- ""
-names(load.si)[names(load.si)=="latitude"] <- "Lat"
-names(load.si)[names(load.si)=="longitude"] <- "Lng"
 
 # Clean Geographies
-names(load.si)[names(load.si)=="neighborhood"] <- "NEIGHBORHOOD"
 names(load.si)[names(load.si)=="police_zone"] <- "POLICE_ZONE"
 names(load.si)[names(load.si)=="council_district"] <- "COUNCIL_DISTRICT"
 names(load.si)[names(load.si)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
@@ -1451,7 +1450,7 @@ server <- shinyServer(function(input, output, session) {
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
       assets <- assets[assets$POLICE_ZONE %in% input$zone_select,]
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
-      assets <- assets[assets$NEIGHBORHOOD %in% input$hood_select,]
+      assets <- assets[assets$neighborhood %in% input$hood_select,]
     } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
       assets <- assets[assets$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
@@ -1552,7 +1551,7 @@ server <- shinyServer(function(input, output, session) {
     } else if (input$report_select == "City Assets") {
       assets <- assetsInput()
       
-      assets <- subset(assets, select = c(usage, ID, PrimaryUser, address, NEIGHBORHOOD, COUNCIL_DISTRICT, PUBLIC_WORKS_DIVISION, POLICE_ZONE))
+      assets <- subset(assets, select = c(usage, name, primary_user, address, neighborhood, COUNCIL_DISTRICT, PUBLIC_WORKS_DIVISION, POLICE_ZONE))
       
       colnames(assets) <- c("Usage", "Description", "Dept", "Location", "Neighborhood", "Council", "Public Works Division", "Police Zone")
       
@@ -1866,9 +1865,8 @@ server <- shinyServer(function(input, output, session) {
     if (input$toggleAssets) {
       assets <- assetsInput()
       # Remove unmappables
-      assets <- assets[!(is.na(assets$Lng)),]
-      assets <- assets[!(is.na(assets$Lat)),]
-      assets <- subset(assets, Lng > -80.242767 & Lng < -79.660492 & Lat < 40.591014 & Lat > 40.266428)
+      assets <- assets[!(is.na(assets$longitude)),]
+      assets <- assets[!(is.na(assets$latitude)),]
       if (nrow(assets) > 0) {
         layerCount <- layerCount + 1
         map <- addMarkers(map, data=assets,
@@ -1882,12 +1880,12 @@ server <- shinyServer(function(input, output, session) {
                                                                                       c = 'rgba(150, 150, 163, 0.95);'  
                                                                                       }    
                                                                                       return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-      }")), ~Lng, ~Lat, icon = ~icons_assets[icon],
+      }")), ~longitude, ~latitude, icon = ~icons_assets[icon],
                  popup = ~(paste("<font color='black'><b>Usage:</b>", assets$usage,
-                                 "<br><b>Description:</b>", assets$ID,
-                                 "<br><b>Dept:</b>", assets$PrimaryUser,
+                                 "<br><b>Description:</b>", assets$name,
+                                 "<br><b>Dept:</b>", assets$primary_user,
                                  "<br><b>Location:</b>", assets$address,
-                                 "<br><b>Neighborhood:</b>", assets$NEIGHBORHOOD,
+                                 "<br><b>Neighborhood:</b>", assets$neighborhood,
                                  "<br><b>Council District:</b>", assets$COUNCIL_DISTRICT,
                                  "<br><b>Public Works Division:</b>", assets$PUBLIC_WORKS_DIVISION,
                                  "<br><b>Police Zone:</b>", assets$POLICE_ZONE, 
