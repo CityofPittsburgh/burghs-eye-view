@@ -518,6 +518,13 @@ if(Sys.Date() <= as.Date(paste0(this_year,"-10-31")) & Sys.Date() >= as.Date(pas
   load.egg <- data.frame(X,Y,title)
   load.egg$icon <- "valentine"
   load.egg$tt <- "Love is in the air, but doesn't look like any results are! <br>Would you be my Valentine?"
+} else if (Sys.Date() >= as.Date(paste0(this_year,"-03-01")) & Sys.Date() <= as.Date(paste0(this_year,"-03-31"))){
+  X <- c(-79.9968604, -80.004055)
+  Y <- c(40.4381098, 40.440631)
+  title <- c("City County Building", "Market Square")
+  load.egg <- data.frame(X,Y,title)
+  load.egg$icon <- "patrick"
+  load.egg$tt <- "<i>Your search didn't turn up anything, not even my Pot-o-Gold!</i>"
 } else {
   X <- c(-79.9968604, -80.004055)
   Y <- c(40.4381098, 40.440631)
@@ -533,7 +540,8 @@ icons_egg <- iconList(
   thanksgiving = makeIcon("./icons/egg/thanksgiving.png", iconAnchorX = 9, iconAnchorY = 13, popupAnchorX = 0, popupAnchorY = -13),
   snow = makeIcon("./icons/egg/snowboard.png", iconAnchorX = 9, iconAnchorY = 13, popupAnchorX = 0, popupAnchorY = -13),
   new_year = makeIcon("./icons/egg/new_year.png", iconAnchorX = 9, iconAnchorY = 13.5, popupAnchorX = 0, popupAnchorY = -13.5),
-  valentine = makeIcon("./icons/egg/valentine.png", iconAnchorX = 40, iconAnchorY = 32, popupAnchorX = 0, popupAnchorY = -13.5)
+  valentine = makeIcon("./icons/egg/valentine.png", iconAnchorX = 40, iconAnchorY = 32, popupAnchorX = 0, popupAnchorY = -13.5),
+  patrick = makeIcon("./icons/egg/patrick.png", iconAnchorX = 40, iconAnchorY = 32, popupAnchorX = 0, popupAnchorY = -13.5)
 )
 
 # Non-Traffic Citations
