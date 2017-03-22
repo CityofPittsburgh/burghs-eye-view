@@ -7,6 +7,7 @@
 # Load required packages
 library(shiny)
 library(shinythemes)
+library(xml2)
 #"Dogfooding" Packages
 library(httr)
 library(jsonlite)
@@ -15,14 +16,20 @@ library(curl)
 # Visuals Libraries
 library(leaflet)
 library(DT)
+library(maptools)
+library(htmltools)
+library(rgeos)
 # Data Transform
 library(plyr)
 library(zoo)
 library(lubridate)
 
-ckan_api <- 'c3ba98d3-a2ea-4d0d-8187-e01a0846db37'
+# Turn off Scientific Notation
+options(scipen = 999)
 
-#Function to read backslashes correctly
+ckan_api <- jsonlite::fromJSON("key.json")$ckan_api
+
+# Function to read backslashes correctly
 chartr0 <- function(foo) chartr('\\','\\/',foo)
 
 getWidth <- '$(document).on("shiny:connected", function(e) {
@@ -47,7 +54,7 @@ ckan <- function(id) {
   content(r)
 }
 
-#Function to Query WPRDC Data on Time Frame
+# Function to Query WPRDC Data on Time Frame
 ckanQuery  <- function(id, days, column) {
   today <- as.character(format(Sys.Date(), "%m-%d-%Y"))
   query <- as.character(format(Sys.Date() - days, "%m-%d-%Y"))
@@ -58,65 +65,68 @@ ckanQuery  <- function(id, days, column) {
   jsonlite::fromJSON(json)$result$records
 }
 
-workflowQuery <- function(id, record) {
-  url <- paste0("https://data.wprdc.org/api/action/datastore_search?resource_id=", id, "&q=", record)
-  r <- GET(url, add_headers(Authorization = ckan_api))
-  c <- content(r, "text")
-  json <- gsub('NaN', '""', c, perl = TRUE)
-  if (length(jsonlite::fromJSON(json)$result$records) > 0){
-    base <- jsonlite::fromJSON(json)$result$records
-    if (id == "7e0bf4bf-c7f5-48cd-8177-86f5ce776dfa") {
-      #Permits
-      final <- subset(base, status != "Not Required" & status != "Review Not Required")
-      final <- final[order(final$history_seq_nbr),]
-      final
-      tt <- paste0("<dt>", final$status_date, ": ", final$action_by_dept, "</dt>", "<dd>", final$task, " - ", final$status, "</dd>")
-      tt <- paste0('<br><b>Workflow:</b><br><dl style="margin-bottom: 0px; margin-left:10px";>', toString(tt), "</dl>")
-      tt <- gsub(",", "", tt)
-    } else {
-      #Violations
-    }
-  } else {
-    tt <- ""
-  }
-  return(tt)
-}
-
-fullWorkflow <- function (x, id) {
-  x$tt <- lapply(x$permit_id, function(z) workflowQuery(id, z))
-  return(x)
-}
-
-# Function to clean Geographies
-cleanGeo <- function(data) {
+# Council Clean
+cleanCouncil <- function(data) {
   data <- transform(data, COUNCIL_DISTRICT = as.factor(mapvalues(COUNCIL_DISTRICT, c(0:9),
-                                                                 c(NA, "1: Harris", "2: Kail-Smith", "3: Kraus", "4: Rudiak", "5: O'Connor", "6: Lavelle", "7: Gross", "8: Gilman", "9: Burgess"))))
+                                                                   c(NA, "1: Harris", "2: Kail-Smith", "3: Kraus", "4: Rudiak", "5: O'Connor", "6: Lavelle", "7: Gross", "8: Gilman", "9: Burgess"))))
+  return(data)
+}
+# DPW Clean
+cleanDPW <-function(data) {
   data <- transform(data, PUBLIC_WORKS_DIVISION = as.factor(mapvalues(PUBLIC_WORKS_DIVISION, c(0:6), 
                                                                       c( NA, "1: North Side", "2: East End (North)", "3: The Hill, East End (South) & South Side", "4: South Side", "5: West End & South Hills", "6: Downtown, Strip & North Shore"))))
+  return(data)
+}
+# Police Zone Clean
+cleanZone <- function(data) {
   data <- transform(data, POLICE_ZONE = as.factor(mapvalues(POLICE_ZONE, c(append( c("OSC"), 0:6)), 
                                                             c(NA, NA, "1: North Side", "2: Downtown, Hill & Strip", "3: South Side", "4: East End (South) & South Side", "5: East End (North)", "6: West End & South Hills"))))
   return(data)
 }
+# Function to clean all Geographies
+cleanGeo <- function(data) {
+  data <- cleanCouncil(data)
+  data <- cleanDPW(data)
+  data <- cleanZone(data)
+  return(data)
+}
 
-#Load 311 Requests
+# Load Boundary Files
+# Neighborhoods
+load.hoods <- readShapeSpatial("boundaries/Pittsburgh_Neighborhoods/Pittsburgh_Neighborhoods.shp")
+# Council
+load.council <- readShapeSpatial("boundaries/Pittsburgh_City_Council_Districts/Pittsburgh_City_Council_Districts.shp")
+load.council$COUNCIL_DISTRICT <- load.council$council
+load.council@data <- cleanCouncil(load.council@data)
+# DPW
+load.dpw <- readShapeSpatial("boundaries/Pittsburgh_DPW_Divisions/Pittsburgh_DPW_Divisions.shp")
+load.dpw$PUBLIC_WORKS_DIVISION <- load.dpw$division
+load.dpw@data <- cleanDPW(load.dpw@data)
+# Zone
+load.zones <- readShapeSpatial("boundaries/Pittsburgh_Police_Zones/Pittsburgh_Police_Zones.shp")
+load.zones$POLICE_ZONE <- load.zones$zone
+load.zones@data <- cleanZone(load.zones@data)
+
+# Load Marker Files
+# Load 311 Requests
 load311 <- ckanQuery("40776043-ad00-40f5-9dc8-1fde865ff571", 365, "CREATED_ON")
 load311$CREATED_ON <- as.POSIXct(load311$CREATED_ON, format = '%Y-%m-%dT%H:%M:%S')
-#Clean Geographies
+# Clean Geographies
 load311 <- subset(load311, select = -REQUEST_ID)
 load311 <- cleanGeo(load311)
 load311$date <- as.Date(load311$CREATED_ON)
 load311$CREATED_ON <- as.POSIXct(load311$CREATED_ON, tz = "EST")
 load311$icon <- as.character(load311$REQUEST_TYPE)
 load311$REQUEST_TYPE <- ifelse(load311$REQUEST_TYPE == "Potholes - 4th Div", "Potholes", load311$REQUEST_TYPE)
-#Prepare for Icons
+# Prepare for Icons
 requests311 <-c("Abandoned Vehicle (parked on street)", "Building Maintenance", "Building Without a Permit", "Drug Enforcement", "Fire Department", "Fire Lane", "Fire Prevention", "Gang Activity", "Graffiti, Documentation", "Graffiti, Removal", "Hydrant - Fire Admin", "Illegal Dumping", "Illegal Parking", "Litter","Noise", "Missed Pick Up", "Panhandling", "Patrol", "Paving Request", "Potholes", "Pruning (city tree)", "Refuse Violations", "Replace/Repair a Sign", "Request New Sign", "Rodent control", "Sidewalk Obstruction", "Sinkhole", "Smoke detectors", "Snow/Ice removal", "Street Cleaning/Sweeping", "Street Light - Repair", "Traffic", "Traffic or Pedestrian Signal, Repair", "Vacant Building", "Weeds/Debris")
-#Set Icon to Other
+# Set Icon to Other
 load311$icon <- ifelse(load311$icon %in% requests311, load311$icon, "Other")
 load311$icon <- as.factor(load311$icon)
 load311$REQUEST_TYPE <- as.factor(load311$REQUEST_TYPE)
 load311 <- transform(load311, icon = as.factor(mapvalues(icon, c("Abandoned Vehicle (parked on street)", "Building Maintenance", "Building Without a Permit", "Drug Enforcement", "Fire Department", "Fire Lane", "Fire Prevention", "Gang Activity", "Graffiti, Documentation", "Graffiti, Removal", "Hydrant - Fire Admin", "Illegal Dumping", "Illegal Parking", "Litter","Noise", "Other", "Missed Pick Up", "Panhandling", "Patrol", "Paving Request", "Potholes", "Pruning (city tree)", "Refuse Violations", "Replace/Repair a Sign", "Request New Sign", "Rodent control", "Sidewalk Obstruction", "Sinkhole", "Smoke detectors", "Snow/Ice removal", "Street Cleaning/Sweeping", "Street Light - Repair", "Traffic", "Traffic or Pedestrian Signal, Repair", "Vacant Building", "Weeds/Debris"),
                                                          c("abandoned_vehicle", "building_maintenance", "building_nopermit", "drug_enforcement", "fire_dept", "fire_lane", "fire_prevention",  "gang_activity", "graffiti", "graffiti", "hydrant", "illegal_dumping", "illegal_parking", "litter", "noise","other311", "missed_pickup","panhandling", "patrol", "paving_request", "pothole", "pruning", "refuse_violation", "replace_sign", "request_sign", "rodent_control", "sidewalk_obstruction", "sinkhole", "smoke_detectors", "snow_removal", "street_sweeper", "streetlight_repair", "traffic", "trafficlight_repair", "vacant_building", "weeds_debris"))))
-#Origin Clean
+# Origin Clean
 load311 <- transform(load311, REQUEST_ORIGIN = as.factor(mapvalues(REQUEST_ORIGIN, c("Report2Gov Android", "Report2Gov iOS", "Report2Gov Website"),
                                                                    c("myBurgh (Android)", "myBurgh (iOS)", "Website"))))
 load311 <- transform(load311, REQUEST_ORIGIN2 = as.factor(mapvalues(REQUEST_ORIGIN, c("myBurgh (Android)", "myBurgh (iOS)", "Website"),
@@ -164,57 +174,115 @@ icons_311 <- iconList(
 )
 
 # Load facilities
-load.facilities <- ckan("9a5a52fd-fbe5-45b3-b6b2-c3bdaf6a2e04")
-#Clean Geographies
+load.facilities <- ckan("07bf416f-9df2-4d70-b48d-682f608f9a6b")
+# Remove Inactive Facilities
+load.facilities <- subset(load.facilities, inactive == "False")
+# Clean Geographies
+names(load.facilities)[names(load.facilities)=="police_zone"] <- "POLICE_ZONE"
+names(load.facilities)[names(load.facilities)=="council_district"] <- "COUNCIL_DISTRICT"
+names(load.facilities)[names(load.facilities)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
 load.facilities <- cleanGeo(load.facilities)
-#Create Adress Column (checks to see if Address No. is valid, to add number and add space between street name)
-load.facilities$address <- paste0(ifelse(is.na(load.facilities$AddressNumber), "", paste0(load.facilities$AddressNumber, " ")), ifelse(is.na(load.facilities$Street), "", load.facilities$Street))
-#Clean NA's in Facility Type
-load.facilities$FacilityType <- ifelse(load.facilities$ID == "Southside Park Third Base Dugout" | load.facilities$ID == "Josh Gibson  1 Third Base Dugout", "DUGOUT",load.facilities$FacilityType)
-load.facilities$FacilityType <- ifelse(load.facilities$ID =="Herschel Upper  Building", "DUGOUT", load.facilities$FacilityType)
-load.facilities$FacilityType <- ifelse(load.facilities$ID =="Martin Luther King Field Field House" | load.facilities$ID =="Frick Park Entrance Gate", "ACTIVITY", load.facilities$FacilityType)
-load.facilities$FacilityType <- as.factor(load.facilities$FacilityType)
-#Clean Facility Type for humans
-load.facilities <- transform(load.facilities, usage = as.factor(mapvalues(FacilityType, c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC STATION", "OFFICE", "POLICE", "POOL", "POOL CLOSED", "POOL/REC", "REC", "RECYCLING", "RESTROOMS", "SALT DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT", NA),
+# Create Adress Column (checks to see if Address No. is valid, to add number and add space between street name)
+load.facilities$address <- paste0(ifelse(is.na(load.facilities$address_number), "", paste0(load.facilities$address_number, " ")), ifelse(is.na(load.facilities$street), "", load.facilities$street))
+# Clean NA's in Facility Type
+load.facilities$facility_type <- ifelse(load.facilities$name == "Southsnamee Park Third Base Dugout" | load.facilities$name == "Josh Gibson  1 Third Base Dugout", "DUGOUT",load.facilities$facility_type)
+load.facilities$facility_type <- ifelse(load.facilities$name =="Herschel Upper  Building", "DUGOUT", load.facilities$facility_type)
+load.facilities$facility_type <- ifelse(load.facilities$name =="Martin Luther King Field Field House" | load.facilities$name =="Frick Park Entrance Gate", "ACTIVITY", load.facilities$facility_type)
+load.facilities$facility_type <- as.factor(load.facilities$facility_type)
+# Clean Facility Type for humans
+load.facilities <- transform(load.facilities, usage = as.factor(mapvalues(facility_type, c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC STATION", "OFFICE", "POLICE", "POOL", "POOL CLOSED", "POOL/REC", "REC", "RECYCLING", "RESTROOMS", "SALT DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT", NA),
                                                                           c("Activity", "Cabin", "Community", "Concession", "Dugout", "Firehouse", "Medic Station", "Office", "Police", "Pool", "Pool - Closed", "Pool/Recreation", "Recreation", "Recycling", "Restrooms", "Salt Dome", "Senior Center", "Service", "Shelter", "Storage", "Training", "Utility", "Vacant", "STORAGE"))))
-#Create Icon set
-load.facilities <- transform(load.facilities, icon = as.factor(mapvalues(FacilityType, c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC STATION", "OFFICE", "POLICE", "POOL", "POOL CLOSED", "POOL/REC", "REC", "RECYCLING", "RESTROOMS", "SALT DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT"),
+# Create Icon set
+load.facilities <- transform(load.facilities, icon = as.factor(mapvalues(facility_type, c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC STATION", "OFFICE", "POLICE", "POOL", "POOL CLOSED", "POOL/REC", "REC", "RECYCLING", "RESTROOMS", "SALT DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT"),
                                                                          c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC_STATION", "OFFICE", "POLICE", "POOL", "POOL_CLOSED", "POOL_REC", "REC", "RECYCLING", "RESTROOMS", "SALT_DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT"))))
 
 load.facilities$url <- ifelse(load.facilities$usage %in% c("Shelter", "Community", "Senior Center", "Activity"), '<br><center><a href="https://registerparks.pittsburghpa.gov/" target="_blank">Rent this facility</a></center>', "")
-load.facilities <- cleanGeo(load.facilities)
 
-# Icons for Facilities
-icons_facilities <- iconList(
-  ACTIVITY = makeIcon("./icons/facilities/activity.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  CABIN = makeIcon("./icons/facilities/cabin.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  COMMUNITY = makeIcon("./icons/facilities/community.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  CONCESSION = makeIcon("./icons/facilities/concession.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  DUGOUT = makeIcon("./icons/facilities/dugout.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  FIREHOUSE = makeIcon("./icons/facilities/firehouse.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  MEDIC_STATION = makeIcon("./icons/facilities/medic_station.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  OFFICE = makeIcon("./icons/facilities/office.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  POLICE = makeIcon("./icons/facilities/police.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  POOL = makeIcon("./icons/facilities/pool.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  POOL_CLOSED = makeIcon("./icons/facilities/pool_closed.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  POOL_REC = makeIcon("./icons/facilities/pool_recreation.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  REC = makeIcon("./icons/facilities/recreation.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  RECYCLING = makeIcon("./icons/facilities/recycling.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  RESTROOMS = makeIcon("./icons/facilities/restrooms.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  SALT_DOME= makeIcon("./icons/facilities/salt_dome.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  SENIOR = makeIcon("./icons/facilities/healthy_living.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  SERVICE = makeIcon("./icons/facilities/service.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  SHELTER = makeIcon("./icons/facilities/shelter.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  STORAGE = makeIcon("./icons/facilities/storage.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  TRAINING = makeIcon("./icons/facilities/training.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  UTILITY = makeIcon("./icons/facilities/utility.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  VACANT = makeIcon("./icons/facilities/vacant.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+attr(load.facilities, "spec") <- NULL
+
+load.facilities <- subset(load.facilities, select = c(usage, name, primary_user, address, neighborhood, COUNCIL_DISTRICT, PUBLIC_WORKS_DIVISION, POLICE_ZONE, url, icon, latitude, longitude))
+
+# Load Water Features
+load.wf <- ckan("1b74a658-0465-456a-929e-ff4057220274")
+# Remove Inactive Water Features
+load.wf <- subset(load.wf, inactive == "False")
+# Prepare for Merge to Facilities
+names(load.wf)[names(load.wf)=="feature_type"] <- "usage"
+load.wf$usage <- as.factor(load.wf$usage)
+names(load.wf)[names(load.wf)=="name"] <- "address"
+load.wf$name <- paste0(ifelse(is.na(load.wf$control_type), "", load.wf$control_type), ifelse(is.na(load.wf$make), "",paste0(" (", load.wf$make, ")")))
+load.wf$primary_user <- "DEPARTMENT OF PUBLIC WORKS"
+load.wf$url<- ""
+
+load.wf <- transform(load.wf, icon = as.factor(mapvalues(usage, c("Decorative", "Drinking Fountain", "Spray"), c("DECORATIVE", "DRINKING_FOUNTAIN", "SPRAY"))))
+
+# Clean Geographies
+names(load.wf)[names(load.wf)=="police_zone"] <- "POLICE_ZONE"
+names(load.wf)[names(load.wf)=="council_district"] <- "COUNCIL_DISTRICT"
+names(load.wf)[names(load.wf)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
+load.wf <- cleanGeo(load.wf)
+
+# Subset for rBind
+load.wf <- subset(load.wf, select = colnames(load.facilities))
+# rBind Facilities and Water Features
+load.assets <- rbind(load.facilities, load.wf)
+
+# Load Signalized Intersections
+load.si <- ckan("c864e31e-e2f4-4a1e-946c-50006537e73d")
+load.si$usage <- "Signalized Intersection"
+load.si$icon <- "SIGNALIZED_INTERSECTION"
+names(load.si)[names(load.si)=="description"] <- "address"
+load.si$primary_user <- "DEPARTMENT OF PUBLIC WORKS"
+load.si$name <- paste(ifelse(is.na(load.si$operation_type), "", load.si$operation_type), ifelse(is.na(load.si$operation_type) & is.na(load.si$flash_time), "", "-"), ifelse(is.na(load.si$flash_time), "", load.si$flash_time))
+load.si$url<- ""
+
+# Clean Geographies
+names(load.si)[names(load.si)=="police_zone"] <- "POLICE_ZONE"
+names(load.si)[names(load.si)=="council_district"] <- "COUNCIL_DISTRICT"
+names(load.si)[names(load.si)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
+load.si <- cleanGeo(load.si)
+
+# Subset for rBind
+load.si <- subset(load.si, select = colnames(load.assets))
+# rBind Assets and Water Features
+load.assets <- rbind(load.assets, load.si)
+load.assets$usage <- as.factor(load.assets$usage)
+
+# Icons for Assets
+icons_assets <- iconList(
+  ACTIVITY = makeIcon("./icons/assets/activity.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  CABIN = makeIcon("./icons/assets/cabin.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  COMMUNITY = makeIcon("./icons/assets/community.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  CONCESSION = makeIcon("./icons/assets/concession.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  DUGOUT = makeIcon("./icons/assets/dugout.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  DECORATIVE = makeIcon("./icons/assets/decorative.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  DRINKING_FOUNTAIN = makeIcon("./icons/assets/drinking_fountain.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  FIREHOUSE = makeIcon("./icons/assets/firehouse.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  MEDIC_STATION = makeIcon("./icons/assets/medic_station.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  OFFICE = makeIcon("./icons/assets/office.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  POLICE = makeIcon("./icons/assets/police.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  POOL = makeIcon("./icons/assets/pool.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  POOL_CLOSED = makeIcon("./icons/assets/pool_closed.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  POOL_REC = makeIcon("./icons/assets/pool_recreation.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  REC = makeIcon("./icons/assets/recreation.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  RECYCLING = makeIcon("./icons/assets/recycling.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  RESTROOMS = makeIcon("./icons/assets/restrooms.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  SALT_DOME= makeIcon("./icons/assets/salt_dome.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  SENIOR = makeIcon("./icons/assets/healthy_living.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  SERVICE = makeIcon("./icons/assets/service.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  SHELTER = makeIcon("./icons/assets/shelter.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  SIGNALIZED_INTERSECTION = makeIcon("./icons/assets/signalized_intersection.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  SPRAY = makeIcon("./icons/assets/spray_park.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  STORAGE = makeIcon("./icons/assets/storage.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  TRAINING = makeIcon("./icons/assets/training.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  UTILITY = makeIcon("./icons/assets/utility.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  VACANT = makeIcon("./icons/assets/vacant.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
 
 # Load Permit Layer
-load.permits <- ckan("95d69895-e58d-44de-a370-fec6ad2b332e") 
+load.permits <- ckan("95d69895-e58d-44de-a370-fec6ad2b332e")
 load.permits$date <- as.Date(load.permits$intake_date)
-#Full address clean
+# Full address clean
 load.permits$full_address <- paste0(ifelse(is.na(load.permits$street_address) | is.null(load.permits$street_address), "", paste0(as.character(load.permits$street_address), " ")),
                                     ifelse(is.na(load.permits$city) | is.null(load.permits$city), "",  paste0(load.permits$city, ", ")),
                                     ifelse(is.na(load.permits$state) | is.null(load.permits$state), "",  paste0(load.permits$state, " ")),
@@ -228,12 +296,12 @@ load.permits$lon <- as.numeric(load.permits$lon)
 load.permits$permit_type <- as.factor(load.permits$permit_type)
 load.permits$neighborhood <- as.factor(load.permits$neighborhood)
 
-#Create County Parcel viewer link
+# Create County Parcel viewer link
 load.permits$url <-  paste0('<a href="http://www2.county.allegheny.pa.us/RealEstate/GeneralInfo.aspx?ParcelID=',load.permits$parcel_id, '" target="_blank">', load.permits$parcel_id, '</a>')
 
 load.permits <- transform(load.permits, icon = as.factor(mapvalues(primary_type, c("Board of Appeals Application", "Building Permit", "Communication Tower", "Demolition Permit", "Electrical Permit", "Fire Alarm Permit", "HVAC Permit", "Land Operations Permit", "Occupancy Only", "Occupant Load Placard", "Sign Permit", "Sprinkler Permit", "Temporary Occupancy", "Temporary Occupancy Commercial"),
                                                                    c('appeals', 'building_permit', 'communication_tower', 'demolition_permit', 'electrical_permit', 'fire_alarm', 'HVAC_permit', 'land_operations', 'occupancy', 'occupant_load_placard', 'sign_permit', 'sprinkler_permit', 'temp_occupancy', 'temp_occupancy'))))
-#Clean Geograhies
+# Clean Geograhies
 names(load.permits)[names(load.permits)=="police_zone"] <- "POLICE_ZONE"
 names(load.permits)[names(load.permits)=="council_district"] <- "COUNCIL_DISTRICT"
 names(load.permits)[names(load.permits)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
@@ -256,6 +324,10 @@ icons_permits <- iconList(
   temp_occupancy = makeIcon("./icons/PLI/temp_occupancy_commercial.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
 
+# Load Workflow
+load.workflow <- ckan("7e0bf4bf-c7f5-48cd-8177-86f5ce776dfa")
+load.workflow$tool <- paste0("<dt>", load.workflow$status_date, ": ", load.workflow$action_by_dept, "</dt>", "<dd>", load.workflow$task, " - ", load.workflow$status, "</dd>")
+
 # Load Violations
 load.violations <- ckan("4e5374be-1a88-47f7-afee-6a79317019b4")
 load.violations$date <- as.Date(load.violations$INSPECTION_DATE)
@@ -263,10 +335,10 @@ load.violations$INSPECTION_RESULT <- as.factor(load.violations$INSPECTION_RESULT
 load.violations <- transform(load.violations, icon = as.factor(mapvalues(INSPECTION_RESULT, c('Abated','Violations Found','Voided'),
                                                                          c('violations_abated', 'violations_found', 'violations_void'))))
 load.violations$FullAddress <- paste(ifelse(is.na(load.violations$STREET_NUM) | is.null(load.violations$STREET_NUM) | load.violations$STREET_NUM == 0, "", load.violations$STREET_NUM) , ifelse(is.na(load.violations$STREET_NAME) | is.null(load.violations$STREET_NAME), "", load.violations$STREET_NAME))
-#Create Parcel URL
+# Create Parcel URL
 load.violations$full_address <- paste(load.violations$STREET_NUM, load.violations$STREET_NAME)
 load.violations$url <-  paste0('<a href="http://www2.county.allegheny.pa.us/RealEstate/GeneralInfo.aspx?ParcelID=',load.violations$PARCEL, '" target="_blank">', load.violations$PARCEL, '</a>')
-#Prepare 
+# Prepare 
 violations1 <- ncol(load.violations) + 1
 list <- as.data.frame(do.call(rbind, strsplit(load.violations$VIOLATION, ":: ", fixed = FALSE)))
 load.violations <- cbind(load.violations, list)
@@ -275,7 +347,7 @@ load.violations$VIOLATION <- as.character(load.violations$VIOLATION)
 load.violations$VIOLATION <- gsub("::", "/", load.violations$VIOLATION)
 load.violations$CORRECTIVE_ACTION <- gsub("::", "/", load.violations$CORRECTIVE_ACTION)
 
-#Clean Geographies
+# Clean Geographies
 load.violations <- cleanGeo(load.violations)
 
 icons_violations <- iconList(
@@ -330,20 +402,20 @@ load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 0 | load.blotter$
 # Transform to Factors for icons
 load.blotter$HIERARCHY <- as.factor(load.blotter$HIERARCHY)
 load.blotter$HIERARCHY_Num <-as.numeric(load.blotter$HIERARCHY_Num)
-#Unify Neighborhoods
+# Unify Neighborhoods
 load.blotter <- transform(load.blotter, INCIDENTNEIGHBORHOOD = as.factor(mapvalues(INCIDENTNEIGHBORHOOD, c("Golden Triangle/Civic Arena", "Central Northside", "Mt. Oliver Neighborhood", "Troy Hill-Herrs Island"),
                                                                                    c("Central Business District", "Central North Side", "Mount Oliver", "Troy Hill"))))
 
 load.blotter <- transform(load.blotter, icon = as.factor(mapvalues(HIERARCHY, c("08 Arson", "04 Assault", "05 Burglary", "15 Carrying Weapon", "24 Disorderly Conduct", "18 Drug Offense", "21 DUI", "20 Endangering Children", "12 Embezzlement", "09 Forgery", "11 Fraud", "19 Gambling", "22 Liquor Laws", "01 Murder", "26 Other", "16 Prostitution", "23 Public Drunkenness", "02 Rape", "13 Receiving Stolen Prop", "03 Robbery", "17 Sex Offense", "10 Simple Assault", "06 Theft", "14 Vandalism", "14 Vagrancy", "07 Vehicle Theft"), 
                                                                    c("arson", "assault",  "burglary", "carrying_weapon", "disorderly_conduct", "drug_offense", "DUI", "endangering_children", "embezzlement", "forgery", "fraud", "gambling", "liquor_laws", "murder", "other", "prostitution", "public_drunkenness", "rape", "receiving_stolen_property", "robbery", "sex_offense", "simple_assault", "theft", "vandalism", "vagrancy", "vehicle_theft"))))
-#Clean Geographies
+# Clean Geographies
 load.blotter$HIERARCHY <- as.factor(load.blotter$HIERARCHY)
 names(load.blotter)[names(load.blotter)=="INCIDENTZONE"] <- "POLICE_ZONE"
 load.blotter <- cleanGeo(load.blotter)
-#Clean Flag
+# Clean Flag
 load.blotter$CLEAREDFLAG <- ifelse(load.blotter$CLEAREDFLAG == "Y", "Yes", "No")
 
-#Offenses Columns
+# Offenses Columns
 incidents <- as.data.frame(do.call(rbind, strsplit(load.blotter$OFFENSES, " / ", fixed = FALSE)))
 load.blotter <- cbind(load.blotter, incidents)
 offensesCol <- as.numeric(ncol(load.blotter))
@@ -379,16 +451,19 @@ icons_blotter <- iconList(
   other = makeIcon("./icons/police/other.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
 
-#Capital Projects
+# Capital Projects
 load.cproj <- read.csv("cgCapitalProjects.csv")
-load.cproj$year <- as.numeric(format(as.Date(load.cproj$StopDateField, format = "%m/%d/%Y"), "%Y"))
+load.cproj$year <- as.numeric(format(as.Date(load.cproj$StartDateField), "%Y"))
 load.cproj$TotalCostActualField <- dollarsComma(load.cproj$TotalCostActualField)
+load.cproj$BudgetedAmountField <- dollarsComma(load.cproj$BudgetedAmountField)
 load.cproj$COUNCIL_DISTRICT <- ""
 load.cproj$POLICE_ZONE <- ""
 load.cproj$NEIGHBORHOOD <- ""
 load.cproj$PUBLIC_WORKS_DIVISION <- ""
 
 load.cproj <- cleanGeo(load.cproj)
+
+load.cproj <- transform(load.cproj, icon = as.factor(mapvalues(CapitalProjectFunctionalAreaField, c("Administration/Sub-Award", "Engineering and Construction", "Facility Improvement", "Neighborhood and Community Development", "Public Safety","Vehicles and Equipment"), c("administration", "engineering_construction", "facility_improvement", "neighborhood_development", "public_safety", "vehicles_equipment"))))
 
 icons_cproj <- iconList(
   administration = makeIcon("./icons/omb/administration.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
@@ -399,7 +474,7 @@ icons_cproj <- iconList(
   vehicles_equipment = makeIcon("./icons/omb/vehicles_equipment.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
 
-#this_year
+# this_year
 this_year <- format(Sys.Date(), format="%Y")
 
 if(Sys.Date() <= as.Date(paste0(this_year,"-10-31")) & Sys.Date() >= as.Date(paste0(this_year,"-10-01"))) {
@@ -436,6 +511,20 @@ if(Sys.Date() <= as.Date(paste0(this_year,"-10-31")) & Sys.Date() >= as.Date(pas
   load.egg <- data.frame(X,Y,title)
   load.egg$icon <- "new_year"
   load.egg$tt <- "3... 2... 1... Happy New Years! <br>Looks like a fresh start to the New Year, and a fresh blank map! Try something else in the search bar!"
+} else if (Sys.Date() >= as.Date(paste0(this_year,"-02-01")) & Sys.Date() <= as.Date(paste0(this_year,"-02-15"))) {
+  X <-  c(-80.002398,  -80.017794, -79.964644, -79.964708, -79.983140, -79.991428)
+  Y <- c(40.440397, 40.437650, 40.428210, 40.461866, 40.452217, 40.456897)
+  title <- c("Market Square", "Mt. Washington", "SouthSide Works", " Church Brew Works", "The Strip", "Penn Brewery")
+  load.egg <- data.frame(X,Y,title)
+  load.egg$icon <- "valentine"
+  load.egg$tt <- "Love is in the air, but doesn't look like any results are! <br>Would you be my Valentine?"
+} else if (Sys.Date() >= as.Date(paste0(this_year,"-03-01")) & Sys.Date() <= as.Date(paste0(this_year,"-03-31"))){
+  X <- c(-79.9968604, -80.004055)
+  Y <- c(40.4381098, 40.440631)
+  title <- c("City County Building", "Market Square")
+  load.egg <- data.frame(X,Y,title)
+  load.egg$icon <- "patrick"
+  load.egg$tt <- "<i>Your search didn't turn up anything, not even my Pot-o-Gold!</i>"
 } else {
   X <- c(-79.9968604, -80.004055)
   Y <- c(40.4381098, 40.440631)
@@ -450,21 +539,23 @@ icons_egg <- iconList(
   election = makeIcon("./icons/egg/vote.png", iconAnchorX = 9, iconAnchorY = 13, popupAnchorX = 0, popupAnchorY = -13),
   thanksgiving = makeIcon("./icons/egg/thanksgiving.png", iconAnchorX = 9, iconAnchorY = 13, popupAnchorX = 0, popupAnchorY = -13),
   snow = makeIcon("./icons/egg/snowboard.png", iconAnchorX = 9, iconAnchorY = 13, popupAnchorX = 0, popupAnchorY = -13),
-  new_year = makeIcon("./icons/egg/new_year.png", iconAnchorX = 9, iconAnchorY = 13.5, popupAnchorX = 0, popupAnchorY = -13.5)
+  new_year = makeIcon("./icons/egg/new_year.png", iconAnchorX = 9, iconAnchorY = 13.5, popupAnchorX = 0, popupAnchorY = -13.5),
+  valentine = makeIcon("./icons/egg/valentine.png", iconAnchorX = 40, iconAnchorY = 32, popupAnchorX = 0, popupAnchorY = -13.5),
+  patrick = makeIcon("./icons/egg/patrick.png", iconAnchorX = 40, iconAnchorY = 32, popupAnchorX = 0, popupAnchorY = -13.5)
 )
 
 # Non-Traffic Citations
 load.citations <- ckan("6b11e87d-1216-463d-bbd3-37460e539d86")
 load.citations$date <- as.Date(load.citations$CITEDTIME)
 load.citations$icon <- "citation"
-#Unify Neighborhoods
+# Unify Neighborhoods
 load.citations <- transform(load.citations, NEIGHBORHOOD = as.factor(mapvalues(NEIGHBORHOOD, c("Golden Triangle/Civic Arena", "Central Northside", "Mt. Oliver Neighborhood", "Troy Hill-Herrs Island"),
                                                                                c("Central Business District", "Central North Side", "Mount Oliver", "Troy Hill"))))
-#Clean Geographies
+# Clean Geographies
 names(load.citations)[names(load.citations)=="ZONE"] <- "POLICE_ZONE"
 load.citations <- cleanGeo(load.citations)
 
-#Offenses Columns
+# Offenses Columns
 incidents2 <- as.data.frame(do.call(rbind, strsplit(load.citations$OFFENSES, " / ", fixed = FALSE)))
 load.citations <- cbind(load.citations, incidents2)
 offensesColCit <- as.numeric(ncol(load.citations))
@@ -478,14 +569,14 @@ icons_citations <- iconList(
 load.arrests <- ckan("e03a89dd-134a-4ee8-a2bd-62c40aeebc6f")
 load.arrests$icon <- "arrest_made"
 load.arrests$date <- as.Date(load.arrests$ARRESTTIME)
-#Unify Neighborhoods
+# Unify Neighborhoods
 load.arrests <- transform(load.arrests, INCIDENTNEIGHBORHOOD = as.factor(mapvalues(INCIDENTNEIGHBORHOOD, c("Golden Triangle/Civic Arena", "Central Northside", "Mt. Oliver Neighborhood", "Troy Hill-Herrs Island"),
                                                                                    c("Central Business District", "Central North Side", "Mount Oliver", "Troy Hill"))))
-#Clean Geographies
+# Clean Geographies
 names(load.arrests)[names(load.arrests)=="INCIDENTZONE"] <- "POLICE_ZONE"
 load.arrests <- cleanGeo(load.arrests)
 
-#Offenses Columns
+# Offenses Columns
 incidents2 <- as.data.frame(do.call(rbind, strsplit(load.arrests$OFFENSES, " / ", fixed = FALSE)))
 load.arrests <- cbind(load.arrests, incidents2)
 offensesColAr <- as.numeric(ncol(load.arrests))
@@ -497,15 +588,17 @@ icons_arrests <- iconList(
 
 # UI for application
 ui <- navbarPage(windowTitle = "Burgh's Eye View", 
-                 collapsible = TRUE, 
-                 theme = shinytheme("flatly"), 
+                 collapsible = TRUE,
+                 fluid = TRUE,
+                 theme = shinytheme("flatly"),
                  title = HTML('<img src="burghs_eyeview_logo_small.png" alt="Burghs Eye View" height="85%">'),
+                 position = "static-top",
                  tabPanel('Map', class = "Map",
-                          #Run script to determine if user is loading from a mobile device
+                          # Run script to determine if user is loading from a mobile device
                           tags$script(getWidth),
-                          #Google Tag Manager Script to Head
+                          # Google Tag Manager Script to Head
                           tags$head(includeScript("tag-manager-head.js")),
-                          #Set favicon
+                          # Set favicon
                           tags$head(tags$link(rel = "icon", type = "image/png", href="favicon.png")),
                           tags$head(HTML('<link rel="apple-touch-icon-precomposed" href="apple-touch-icon-precomposed.png" />
                                          <link rel="apple-touch-icon" sizes="76x76" href="apple-icon-76x76-precomposed.png" />
@@ -518,47 +611,43 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                                          <meta property="og:title"         content="Burgh&#39;s Eye View" />
                                          <meta property="og:description"   content="Pittsburgh&#39;s one stop shop for geographic City Data" />
                                          <meta property="og:image"         content="http://apps.pittsburghpa.gov/cis/burgh-seye-icon.png" />')),
-                          #Add Google Analytics Script to page
+                          # Add Google Analytics Script to page
                           tags$head(includeScript("google-analytics.js")),
-                          #Add Tag Manager Script to Body
+                          # Add Tag Manager Script to Body
                           tags$body(tags$noscript(tags$iframe(src='https://www.googletagmanager.com/ns.html?id=GTM-TCTCQVD', height = 0, width = 0, style="display:none;visibility:hidden"))),
-                          #Hide error codes that may appear
+                          # Hide error codes that may appear
                           tags$style(type="text/css",
                                      ".shiny-output-error { visibility: hidden; }",
                                      ".shiny-output-error:before { visibility: hidden; }"),
-                          #Add background image
-                          tags$head(tags$style(type="text/css", '.Map {
-                                               background-image: url("loading.png");
-                                               background-repeat: no-repeat;
-                                               background-position: center;
-                                               background-size: contain;
-                                               }')),
-                          #Background of report.table
+                          # Background of report.table
                           tags$style(type="text/css", '.report.table {background-color: #fff;}'),
-                          #Remove unwanted padding and margins
+                          # Remove unwanted padding and margins
                           tags$style(type="text/css", ".container-fluid {padding:0;}"),
+                          tags$style(type="text/css", ".navbar-header {margin:auto;"),
                           tags$style(type="text/css", ".navbar-static-top {margin-bottom:0;}"),
                           tags$style(type="text/css", ".navbar-brand {height:60px; padding:0;}"),
-                          #Set max height for pop-ups
+                          tags$style(type="text/css", ".navbar {border-right-width: 20px;
+                                                                border-left-width: 65px;}"),
+                          # Set max height for pop-ups
                           tags$style(type="text/css", ".leaflet-popup-content {overflow-y: auto; max-height: 400px !important;}"),
-                          #Edit top bar
+                          # Edit top bar
                           tags$style(type= "text/css", ".form-group {
                                      margin-bottom: 0px;
                                      }"),
-                          #Generate search & layer panel & Map (checks for mobile devices)
+                          # Generate search & layer panel & Map (checks for mobile devices)
                           uiOutput("mapPanel")
                           ),
                  tabPanel('Data', class = "Data",
-                          #Select Dataset for Export
+                          # Select Dataset for Export
                           inputPanel(
                             selectInput("report_select", 
                                         tagList(shiny::icon("map-marker"), "Select Layer:"),
-                                        choices = c("311 Requests", "Arrests", "Blotter", "Building Permits", "Capital Projects", "City Facilities", "Code Violations", "Non-Traffic Citations"), #
+                                        choices = c("311 Requests", "Arrests", "Blotter", "Building Permits", "Capital Projects", "City Assets", "Code Violations", "Non-Traffic Citations"), #
                                         selected= "311 Requests"),
-                            #Define Button Position
+                            # Define Button Position
                             uiOutput("buttonStyle")
                           ),
-                          #Clean up the Data Table CSS
+                          # Clean up the Data Table CSS
                           tags$style(type = "text/css", ".dataTables_length {margin-left: 10px;}"),
                           tags$style(type = "text/css", ".dataTables_info {margin-left: 10px;}"),
                           tags$style(type = "text/css", ".dataTables_filter {margin-right: 5px;}"),
@@ -566,9 +655,9 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                  ),
                  tabPanel('About', class = "About",
                           includeHTML('about.html'),
-                          #Twitter Button
-                          tags$script(HTML("var header = $('.navbar > .container > .navbar-collapse');
-                                           header.append('<div class =\"twit\" style=\"float:right;margin-top: 15px;\"><a href=\"https://twitter.com/share\" class=\"twitter-share-button\" align=\"middle\" data-url=\"data.pittsburghpa.gov/BurghsEyeView\" data-text=\"Check out Burgh&#39;s Eye View! A new tool to view city data in Pittsburgh: https://goo.gl/C4ySqW\" data-size=\"large\">Tweet</a></div>');
+                          # Twitter Button
+                          tags$script(HTML("var header = $('.navbar > .container-fluid > .navbar-collapse');
+                                           header.append('<div class =\"twit\" style=\"float:right;margin-top: 15px;\"><a href=\"https://twitter.com/share\" class=\"twitter-share-button\" align=\"middle\" data-url=\"data.pittsburghpa.gov/BurghsEyeView\" data-text=\"Check out Burgh&#39;s Eye View! A new tool to view city data in Pittsburgh: https://goo.gl/z4cZ30\" data-size=\"large\">Tweet</a></div>');
                                            console.log(header)")),
                           tags$script(HTML("!function(d,s,id){
                                            var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';
@@ -579,7 +668,7 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                                            fjs.parentNode.insertBefore(js,fjs);
                                            }
                           }(document, 'script', 'twitter-wjs');")),
-                #Facebook Button
+                # Facebook Button
                 HTML('<div id="fb-root"></div>'),
                 tags$script(HTML("(function(d, s, id) {
                                  var js, fjs = d.getElementsByTagName(s)[0];
@@ -588,14 +677,14 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                                  js.src = \"//connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.8\";
                                  fjs.parentNode.insertBefore(js, fjs);
                           }(document, 'script', 'facebook-jssdk'));")),
-                tags$script(HTML('header.append(\'<div class="fb-share-button" style="float:right;margin-top: 15px;margin-right: 5px;" data-href="http://data.pittsburghpa.gov/BurghsEyeView/#utm_source=facebook_button&amp;utm_campaign=facebook_button&amp;utm_medium=facebook%2Fsocial\" data-layout="button" data-size="large" data-mobile-iframe="true"><a class="fb-xfbml-parse-ignore" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Fdata.pittsburghpa.gov%2FBurghsEyeView%2F%23utm_source%3Dfacebook_button%26utm_campaign%3Dfacebook_button%26utm_medium%3Dfacebook%252Fsocial&amp;src=sdkpreparse">Share</a></div>\');
+                tags$script(HTML('header.append(\'<div class="fb-share-button" style="float:right;margin-top: 15px;margin-right: 5px;" data-href="http://pittsburghpa.shinyapps.io/BurghsEyeView/?utm_source=facebook_button&amp;utm_campaign=facebook_button&amp;utm_medium=facebook%2Fsocial\" data-layout="button" data-size="large" data-mobile-iframe="true"><a class="fb-xfbml-parse-ignore" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Fpittsburghpa.shinyapps.io%2FBurghsEyeView%2F%23utm_source%3Dfacebook_button%26utm_campaign%3Dfacebook_button%26utm_medium%3Dfacebook%252Fsocial&amp;src=sdkpreparse">Share</a></div>\');
                                  console.log(header)'))
                 )
                  )
 
 # Define server
 server <- shinyServer(function(input, output, session) {
-  #Observe changes to the dates function, if not default include in bookmark/url
+  # Observe changes to the dates function, if not default include in bookmark/url
   observeEvent(input$dates,  {
     if (input$dates[1] != Sys.Date()-10 | input$dates[2] != Sys.Date()){
       setBookmarkExclude("GetScreenWidth")
@@ -608,40 +697,49 @@ server <- shinyServer(function(input, output, session) {
     reactiveValuesToList(input)
     session$doBookmark()
   })
-  #Update page URL
+  # Update page URL
   onBookmarked(function(url) {
     updateQueryString(url)
   })
   output$buttonStyle <- renderUI({
-    #Generate search & layer panel & Map (checks for mobile devices)
+    # Generate search & layer panel & Map (checks for mobile devices)
     if (as.numeric(input$GetScreenWidth) > 800) {
       div(style="margin-top: 20px", downloadButton("downloadData", paste("Export" , input$report_select), class = "dlBut"))
     } else {
       div(downloadButton("downloadData", paste("Export" , input$report_select), class = "dlBut"))
     }
   })
-  #Map Tab UI
+  # Map Tab UI
   output$mapPanel <- renderUI({
-    #UI for Desktop Users
+    # UI for Desktop Users
     if (as.numeric(input$GetScreenWidth) > 800) {
       tagList(
-        #Generate Map
+        # Generate Map
         leafletOutput("map"),
-        #Map size for Desktop CSS
+        # Map size for Desktop CSS
         tags$style(type = "text/css", "#map {height: calc(100vh - 60px) !important;}"),
         absolutePanel(
-          #Input panel for Desktops (alpha'd)
+          # Input panel for Desktops (alpha'd)
           top = 70, left = 50, width = '300px',
           wellPanel(id = "tPanel", style = "overflow-y:auto; max-height: calc(100vh - 85px) !important;",
                     textInput("search",
                               value = ifelse(Sys.Date() == as.Date(paste0(this_year,"-11-08")), "Election Day!", ""),
                               label = NULL, 
                               placeholder = "Search"),
+                    # Add background image
+                    tags$head(tags$style(type="text/css", '.Map {
+                                               background-image: url("loading.png");
+                                               background-repeat: no-repeat;
+                                               background-position: center;
+                                               background-size: contain;
+                                               }')),
                     HTML('<small style="font-size:11px;margin-left:3px">Locations are not exact. (See &rsquo;About&rsquo; for details.)</small><br><br>'),
                     dateRangeInput("dates",
                                    label = NULL,
                                    start = Sys.Date()-10,
                                    end = Sys.Date(),
+                                   min = Sys.Date()-365,
+                                   max = Sys.Date(),
                                    startview = "day"),
                     HTML('<font color="#F47B25">'),
                     checkboxInput("toggle311",
@@ -683,7 +781,7 @@ server <- shinyServer(function(input, output, session) {
                     HTML('<font color="#009FE1">'),
                     checkboxInput("togglePermits",
                                   label = "Building Permits",
-                                  value = TRUE),
+                                  value = FALSE),
                     HTML('</font>'),
                     selectInput("permit_select",
                                 label = NULL,
@@ -717,15 +815,15 @@ server <- shinyServer(function(input, output, session) {
                                 multiple = TRUE,
                                 selectize=TRUE),
                     HTML('<font color="#474545">'),
-                    checkboxInput("toggleFacilities",
-                                  label = "City Facilities",
+                    checkboxInput("toggleAssets",
+                                  label = "City Assets",
                                   value = TRUE),
                     HTML('</font>'),
                     selectInput("usage_select",
                                 label = NULL,
-                                c(`Facility Usage`='', levels(load.facilities$usage)),
+                                c(`Facility Usage`='', levels(load.assets$usage)),
                                 multiple = TRUE,
-                                selectize=TRUE),
+                                selectize = TRUE),
                     selectInput("filter_select",
                                 "Filter by Area",
                                 c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Public Works Division")),
@@ -737,36 +835,40 @@ server <- shinyServer(function(input, output, session) {
       )
     } else {
       tagList(
-        #Input panel for Mobile (stationary at top)
-        sidebarPanel(id = "tPanel",
-                     #Remove padding from Search Bar
-                     tags$style(type= "text/css", "#tPanel {margin-bottom:0px; padding:0px;}"),
-                     #Set background color to match panels
+        # Input panel for Mobile (stationary at top)
+        absolutePanel(top = 65, left = 0, width = '100%' ,
+                      wellPanel(id = "tPanel", style ="padding-left: 5px; padding-right: 5px;",
+                     # Remove padding from Search Bar
+                     tags$style(type= "text/css", "#tPanel {margin-bottom:0px; padding:0px; overflow-y:scroll; max-height: calc(100vh - 60px); !important; min-height: 55px;}"),
+                     # Set background color to match panels
                      tags$style(type = "text/css", "body {background-color: #ecf0f1}"),
                      tags$style(type= "text/css", "{width:100%;
                                 margin-bottom:5px;
                                 text-align: center;}
                                 .inner
                                 {display: inline-block;}"),
-                     HTML('<div id="outer">'),
-                     #Set Searchvar width optimal for device
-                     tags$style(type = "text/css", paste0('#search {width: ', input$GetScreenWidth - 84, 'px}')),
-                     #Inputs
-                     div(style="display:inline-block", 
+                     # Div for Search Bar and Expansion
+                     HTML('<div id="outer" style="position:absolute;z-index: 9; background-color:#ecf0f1; width:100%;">'),
+                     # Set Searchvar width optimal for device
+                     tags$style(type = "text/css", paste0('#search {width: ', input$GetScreenWidth - 84, 'px; margin-left:10px;}')),
+                     # Inputs
+                     div(style="display:inline-block;", 
                          textInput("search", 
                                    value = ifelse(Sys.Date() == as.Date(paste0(this_year,"-11-08")), "Election Day!", ""),
                                    label = NULL, 
                                    placeholder = "Search")),
                      tags$style(style="text/css", chartr0('#mapPanel button .fa:before { content: "\\f056";  }
                                                           #mapPanel button.collapsed .fa:before { content: "\\f055";  }')),
-                     HTML('<button class="btn collapsed" data-toggle="collapse" data-target="#mobile"><i class="fa fa-search-plus" aria-hidden="true"></i></button></div><div id="mobile" class="collapse">
-                          <small style="font-size:11px;margin-left:3px">Not locations are exact. (See &rsquo;About&rsquo; for details.)</small>
-                          <br>
+                     HTML('<button class="btn collapsed" data-toggle="collapse" data-target="#mobile"><i class="fa fa-search-plus" aria-hidden="true"></i></button></div>
+                          <div id="mobile" class="collapse" style="margin-top:55px;">
+                            <small style="font-size:11px;margin-left:3px">Not all locations are exact. (See &rsquo;About&rsquo; for details.)</small>
                           <br>'),
                      dateRangeInput("dates",
                                     label = NULL,
                                     start = Sys.Date()-10,
                                     end = Sys.Date(),
+                                    min = Sys.Date()-365,
+                                    max = Sys.Date(),
                                     startview = "day"),
                      HTML('<font color="#F47B25">'),
                      checkboxInput("toggle311",
@@ -808,7 +910,7 @@ server <- shinyServer(function(input, output, session) {
                      HTML('<font color="#009FE1">'),
                      checkboxInput("togglePermits",
                                    label = "Building Permits",
-                                   value = TRUE),
+                                   value = FALSE),
                      HTML('</font>'),
                      selectInput("permit_select",
                                  label = NULL,
@@ -842,31 +944,41 @@ server <- shinyServer(function(input, output, session) {
                                  multiple = TRUE,
                                  selectize=TRUE),
                      HTML('<font color="#474545">'),
-                     checkboxInput("toggleFacilities",
-                                   label = "City Facilities",
+                     checkboxInput("toggleAssets",
+                                   label = "City Assets",
                                    value = TRUE),
                      HTML('</font>'),
                      selectInput("usage_select",
                                  label = NULL,
-                                 c(`Facility Usage`='', levels(load.facilities$usage)),
+                                 c(`Facility Usage`='', levels(load.assets$usage)),
                                  multiple = TRUE,
                                  selectize=TRUE),
+                     uiOutput("filter_UI"),
                      selectInput("filter_select",
                                  "Filter by Area",
                                  c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Public Works Division")),
                                  selectize = TRUE,
                                  selected = ""),
-                     uiOutput("filter_UI"),
+                     
                      HTML('</div>')
                      ),
-        #Generate Map
-        leafletOutput("map"),
-        #Set map to style for Mobile
-        tags$style(type = "text/css", "#map {height: calc(100vh - 110px) !important;}")
-                     )
+                  # Generate Map
+                  div(class="mapBack", style="position: absolute;
+                                              width: 100%;z-index: -1;
+                                              left: 0px;
+                                              top: 55px;", leafletOutput("map")),
+                  # Set map to style for Mobile
+                  tags$style(type = "text/css", "#map {height: calc(100vh - 115px) !important;}"),
+                  tags$head(tags$style(type="text/css", '.mapBack {
+                                             background-image: url("loading.png");
+                                             background-repeat: no-repeat;
+                                             background-position: center;
+                                             background-size: contain;}'))
+        )
+      )
   }
 })
-  #Filter by Area Display Options
+  # Filter by Area Display Options
   output$filter_UI <- renderUI({
     if (input$filter_select == "Neighborhood"){
       selectInput("hood_select",
@@ -894,7 +1006,7 @@ server <- shinyServer(function(input, output, session) {
                   selectize=TRUE)
     }
   })
-  #311 Request Type UI
+  # 311 Request Type UI
   output$request_UI <- renderUI({
     dat311 <- load311
     if (length(input$dept_select) > 0) {
@@ -911,21 +1023,21 @@ server <- shinyServer(function(input, output, session) {
                 selectize=TRUE
     )
   })
-  #Blotter Offense UI
+  # Blotter Offense UI
   output$offense_UI <- renderUI({
     blotter <- load.blotter
     
-    #Hierarchy Filter
+    # Hierarchy Filter
     if (length(input$hier) > 0){
       blotter <- blotter[blotter$HIERARCHY %in% input$hier,]
     } 
     
-    #Search Filter
+    # Search Filter
     if (!is.null(input$search) && input$search != "") {
       blotter <- blotter[apply(blotter, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
     }
     
-    #Geographic Filters
+    # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
       blotter <- blotter[blotter$POLICE_ZONE %in% input$zone_select,]
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
@@ -938,25 +1050,25 @@ server <- shinyServer(function(input, output, session) {
     
     blotter <- subset(blotter, date >= input$dates[1] & date <= input$dates[2])
     
-    #Select offense rows
+    # Select offense rows
     offenses <- blotter[,offenses1:offensesCol]
     
     for (i in 1:ncol(offenses)) {
-      #Apply character
+      # Apply character
       lvls <- as.character(offenses[,i])
       
       if (i == 1) {
-        #Create list beginning
+        # Create list beginning
         offenseList <- as.data.frame(lvls)
       } else {
-        #Append List
+        # Append List
         offenseList <- rbind(lvls, offenseList)
       }
-      #Trim list
+      # Trim list
       offenseList <- unique(offenseList)
     } 
     
-    #Apply factor
+    # Apply factor
     offenseList$lvls <- as.factor(offenseList$lvls)
     
     selectInput("offense_select",
@@ -966,31 +1078,31 @@ server <- shinyServer(function(input, output, session) {
                 selectize=TRUE
     )
   })
-  #Code Violations UI
+  # Code Violations UI
   output$violations_UI <- renderUI({
     violations <- load.violations
     
-    #Date Filter
+    # Date Filter
     violations <- subset(violations, date >= input$dates[1] & date <= input$dates[2])
     
     violations <- violations[,violations1:violationsCol]
     
     for (i in 1:ncol(violations)) {
-      #Apply character
+      # Apply character
       lvls <- as.character(violations[,i])
       
       if (i == 1) {
-        #Create list beginning
+        # Create list beginning
         violationList <- as.data.frame(lvls)
       } else {
-        #Append List
+        # Append List
         violationList <- rbind(lvls, violationList)
       }
-      #Trim list
+      # Trim list
       violationList <- unique(violationList)
     } 
     
-    #Apply factor
+    # Apply factor
     violationList$lvls <- as.factor(violationList$lvls)
     
     selectInput("violation_select",
@@ -999,14 +1111,56 @@ server <- shinyServer(function(input, output, session) {
                 multiple = TRUE,
                 selectize=TRUE)
   })
-  #311 data with filters
+  # Boundary Data
+  # Neighborhoods
+  hoodsInput <- reactive({
+    hoods <- load.hoods
+    
+    if (length(input$hood_select) > 0){
+      hoods <- hoods[hoods$hood %in% input$hood_select,]
+    }
+    
+    hoods
+  })
+  # Council District
+  councilInput <- reactive({
+    council <- load.council
+    
+    if (length(input$council_select) > 0){
+      council <- council[council$COUNCIL_DISTRICT %in% input$council_select,]
+    }
+    
+    council
+  })
+  # DPW Divisions
+  dpwInput <- reactive({
+    dpw <- load.dpw
+    
+    if (length(input$DPW_select) > 0){
+      dpw <- dpw[dpw$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
+    }
+    
+    dpw
+  })
+  # Police Zones
+  zonesInput <- reactive({
+    zones <- load.zones
+    
+    if (length(input$zone_select) > 0){
+      zones <- zones[zones$POLICE_ZONE %in% input$zone_select,]
+    }
+    
+    zones
+  })
+  # Point Data
+  # 311 data with filters
   dat311Input <- reactive({
     dat311 <- load311
     
-    #Sort
+    # Sort
     dat311 <- dat311[rev(order(as.Date(dat311$date, format="%d/%m/%Y"))),]
     
-    #311 Filters
+    # 311 Filters
     if (length(input$dept_select) > 0){
       dat311 <- dat311[dat311$DEPARTMENT %in% input$dept_select,]
     }
@@ -1017,7 +1171,7 @@ server <- shinyServer(function(input, output, session) {
       dat311 <- dat311[dat311$REQUEST_ORIGIN %in% input$origin_select,]
     }
     
-    #Geographic Filters
+    # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone") {
       dat311 <- dat311[dat311$POLICE_ZONE %in% input$zone_select,]
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
@@ -1032,29 +1186,29 @@ server <- shinyServer(function(input, output, session) {
     
     dat311 <- subset(dat311, date >= input$dates[1] & date <= input$dates[2])
     
-    #Search Filter
+    # Search Filter
     if (!is.null(input$search) && input$search != "") {
       dat311 <- dat311[apply(dat311, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
     }
     
     return(dat311)
   })
-  #Police Blotter data with filters
+  # Police Blotter data with filters
   blotterInput <- reactive({
     blotter <- load.blotter
     
-    #Date filter
+    # Date filter
     blotter <- subset(blotter, date >= input$dates[1] & date <= input$dates[2])
     
-    #Sort
+    # Sort
     blotter <- blotter[rev(order(as.Date(blotter$date, format="%d/%m/%Y"))),]
     
-    #Hierarchy Filter
+    # Hierarchy Filter
     if (length(input$hier) > 0){
       blotter <- blotter[blotter$HIERARCHY %in% input$hier,]
     } 
     
-    #Geographic Filters
+    # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
       blotter <- blotter[blotter$POLICE_ZONE %in% input$zone_select,]
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
@@ -1065,7 +1219,7 @@ server <- shinyServer(function(input, output, session) {
       blotter <- blotter[blotter$COUNCIL_DISTRICT %in% input$council_select,]
     }
     
-    #Prepare Filter
+    # Prepare Filter
     if (length(input$offense_select) > 0) { 
       for (i in offenses1:offensesCol) {
         if (i ==offenses1) {
@@ -1078,24 +1232,24 @@ server <- shinyServer(function(input, output, session) {
       blotter <- unique(out)
     }
     
-    #Search Filter
+    # Search Filter
     if (!is.null(input$search) && input$search != "") {
       blotter <- blotter[apply(blotter, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
     }
     
     return(blotter)
   })
-  #Arrest data with filters
+  # Arrest data with filters
   arrestsInput <- reactive({
     arrests <- load.arrests
     
-    #Date filter
+    # Date filter
     arrests <- subset(arrests, date >= input$dates[1] & date <= input$dates[2])
     
-    #Sort
+    # Sort
     arrests <- arrests[rev(order(as.Date(arrests$date, format="%d/%m/%Y"))),]
     
-    #Geographic Filters
+    # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
       arrests <- arrests[arrests$POLICE_ZONE %in% input$zone_select,]
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
@@ -1106,7 +1260,7 @@ server <- shinyServer(function(input, output, session) {
       arrests <-arrests[arrests$COUNCIL_DISTRICT %in% input$council_select,]
     } 
     
-    #Offense Filter
+    # Offense Filter
     if (length(input$offense_select) > 0) { 
       for (i in offensesAr1:offensesColAr) {
         if (i == offensesAr1) {
@@ -1119,24 +1273,24 @@ server <- shinyServer(function(input, output, session) {
       arrests <- unique(out)
     }
     
-    #Search Filter
+    # Search Filter
     if (!is.null(input$search) && input$search != "") {
       arrests <- arrests[apply(arrests, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
     }
     
     return(arrests)
   })
-  #Citations data with filters
+  # Citations data with filters
   citationsInput <- reactive({
     citations <- load.citations
     
-    #Date filter
+    # Date filter
     citations <- subset(citations, date >= input$dates[1] & date <= input$dates[2])
     
-    #Sort
+    # Sort
     citations <- citations[rev(order(as.Date(citations$date, format="%d/%m/%Y"))),]
     
-    #Geographic Filters
+    # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
       citations <- citations[citations$POLICE_ZONE %in% input$zone_select,]
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
@@ -1147,7 +1301,7 @@ server <- shinyServer(function(input, output, session) {
       citations <-citations[citations$COUNCIL_DISTRICT %in% input$council_select,]
     } 
     
-    #Offense Filter
+    # Offense Filter
     if (length(input$offense_select) > 0) { 
       for (i in offensesCit1:offensesColCit) {
         if (i == offensesCit1) {
@@ -1160,24 +1314,24 @@ server <- shinyServer(function(input, output, session) {
       citations <- unique(out)
     }
     
-    #Search Filter
+    # Search Filter
     if (!is.null(input$search) && input$search != "") {
       citations <- citations[apply(citations, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
     }
     
     return(citations)
   })
-  #Code Violations data with filters
+  # Code Violations data with filters
   violationsInput <- reactive({
     violations <- load.violations
     
-    #Date Filter
+    # Date Filter
     violations <- subset(violations, date >= input$dates[1] & date <= input$dates[2])
     
-    #Sort
+    # Sort
     violations <- violations[rev(order(as.Date(violations$date, format="%d/%m/%Y"))),]
     
-    #Violation Filter
+    # Violation Filter
     if (length(input$violation_select) > 0) { 
       for (i in violations1:violationsCol) {
         if (i == violations1) {
@@ -1190,7 +1344,7 @@ server <- shinyServer(function(input, output, session) {
       violations <- unique(out)
     }
     
-    #Result Filter
+    # Result Filter
     if (length(input$result_select) > 0){
       violations <- violations[violations$INSPECTION_RESULT %in% input$result_select,]
     }
@@ -1205,24 +1359,24 @@ server <- shinyServer(function(input, output, session) {
       violations <-violations[violations$COUNCIL_DISTRICT %in% input$council_select,]
     }
     
-    #Search Filter
+    # Search Filter
     if (!is.null(input$search) && input$search != "") {
       violations <- violations[apply(violations, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
     }
     
     return(violations)
   })
-  #Building Permits data with filters
+  # Building Permits data with filters
   permitsInput <- reactive({
     permits <- load.permits
     
-    #Date Filter
+    # Date Filter
     permits <- subset(permits, date >= input$dates[1] &  date <= input$dates[2])
     
-    #Sort
+    # Sort
     permits <- permits[rev(order(as.Date(permits$date, format="%d/%m/%Y"))),]
     
-    #Permit Filters
+    # Permit Filters
     if (length(input$permit_select) > 0) {
       permits <- permits[permits$permit_type %in% input$permit_select,]
     } 
@@ -1233,7 +1387,7 @@ server <- shinyServer(function(input, output, session) {
       permits <- permits[permits$record_category %in% input$category_select,]
     }
     
-    #Geographic Filters
+    # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
       permits <- permits[permits$POLICE_ZONE %in% input$zone_select,]
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
@@ -1244,55 +1398,92 @@ server <- shinyServer(function(input, output, session) {
       permits <-permits[permits$COUNCIL_DISTRICT %in% input$council_select,]
     }
     
-    #Search Filter
+    # Search Filter
     if (!is.null(input$search) && input$search != "") {
       permits <- permits[apply(permits, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
     } 
     
-    #Append Workflows
-    permits <- fullWorkflow(permits, "7e0bf4bf-c7f5-48cd-8177-86f5ce776dfa")
+    # Append Workflows
+    workflow <- load.workflow
+    # Select Workflows
+    workflow <- workflow[workflow$permit_id %in% permits$permit_id,]
+    workflow$permit_id <- as.factor(workflow$permit_id)
+    
+    # Loop which aggregates appropriate Workflows
+    for (i in  levels(workflow$permit_id)){
+      # Isolate Workflows for Permit ID
+      temp <- subset(workflow, permit_id == i)
+      # Sort workflow to correct order
+      temp <- temp[order(temp$history_seq_nbr),]
+      # Isolate only tooltip
+      temp <- temp[,"tool"]
+      # Create DT string from list
+      tt <- paste0('<br><b>Workflow:</b><br><dl style="margin-bottom: 0px; margin-left:10px";>', toString(temp), "</dl>")
+      # Remove Junk characters from unlisting
+      tt <- gsub(",", "", tt)
+      tt <- gsub('" "', "", tt)
+      tt <- gsub('c\\("', "", tt)
+      tt <- gsub('"\\)', "", tt)
+      # Create Columns for bind
+      df <- data.frame(i,tt)
+      # Check for first Workflow
+      if (i == levels(workflow$permit_id)[1]){
+        tt.df <- df
+      # Merge to other tooltips  
+      } else {
+        tt.df <- rbind(tt.df, df)
+      }
+    }
+    
+    # Rename Columns for Merge
+    colnames(tt.df) <- c("permit_id", "tt")
+    # Merge Workflow Tooltip to Permits
+    permits <- merge(permits, tt.df, by = "permit_id", all.x = TRUE)
+    # Make Unsuccessful tooltips blank instead of NA
+    permits$tt <- as.character(permits$tt)
+    permits$tt[is.na(permits$tt)] <- ""
     
     return(permits)
   })
-  #City Facilities data with filters
-  facilitiesInput <- reactive({
-    facilities <- load.facilities
+  # City Assets data with filters
+  assetsInput <- reactive({
+    assets <- load.assets
     
-    #Usage Filter
+    # Usage Filter
     if (length(input$usage_select) > 0) {
-      facilities <- facilities[facilities$usage %in% input$usage_select,]
+      assets <- assets[assets$usage %in% input$usage_select,]
     }
     
-    #Geographic Filters
+    # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
-      facilities <- facilities[facilities$POLICE_ZONE %in% input$zone_select,]
+      assets <- assets[assets$POLICE_ZONE %in% input$zone_select,]
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
-      facilities <- facilities[facilities$NEIGHBORHOOD %in% input$hood_select,]
+      assets <- assets[assets$neighborhood %in% input$hood_select,]
     } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
-      facilities <- facilities[facilities$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
+      assets <- assets[assets$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
-      facilities <- facilities[facilities$COUNCIL_DISTRICT %in% input$council_select,]
+      assets <- assets[assets$COUNCIL_DISTRICT %in% input$council_select,]
     } 
     
-    #Search Filter
+    # Search Filter
     if (!is.null(input$search) && input$search != "") {
-      facilities <- facilities[apply(facilities, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
+      assets <- assets[apply(assets, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
     }
     
-    return(facilities)
+    return(assets)
   })
-  #Capital Projects data with filters
+  # Capital Projects data with filters
   cprojInput <- reactive({
     cproj <- load.cproj
     
-    #Year filter
+    # Year filter
     cproj <- subset(cproj, year >= this_year)
     
     if (length(input$funcarea_select) > 0) {
       cproj <- cproj[cproj$CapitalProjectFunctionalAreaField %in% input$funcarea_select,]
     }
     
-    #Geographic Filters
+    # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
       cproj <- cproj[cproj$POLICE_ZONE %in% input$zone_select,]
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
@@ -1303,30 +1494,30 @@ server <- shinyServer(function(input, output, session) {
       cproj <- cproj[cproj$COUNCIL_DISTRICT %in% input$council_select,]
     } 
     
-    #Search Filter
+    # Search Filter
     if (!is.null(input$search) && input$search != "") {
       cproj <- cproj[apply(cproj, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
     }
     
     return(cproj)
   })
-  #Generate table for Data page and export
-  #Note all reports do same data process comments only exist for 311
+  # Generate table for Data page and export
+  # Note all reports do same data process comments only exist for 311
   reportInput <- reactive({
     if (input$report_select == "311 Requests") {
-      #Load dataset
+      # Load dataset
       dat311 <- dat311Input()
       
-      #Select display columns
+      # Select display columns
       dat311 <- subset(dat311, select = c(REQUEST_TYPE, DEPARTMENT, CREATED_ON, NEIGHBORHOOD, COUNCIL_DISTRICT, POLICE_ZONE, PUBLIC_WORKS_DIVISION))
       
-      #Rename columns for humans
+      # Rename columns for humans
       colnames(dat311) <- c("Request Type", "Dept", "Create Date", "Neighborhood", "Council District", "Police Zone",  "Public Works Division")
       
-      #Set report data
+      # Set report data
       report <- dat311
     } else if (input$report_select == "Blotter"){
-      #Select Columns of Interest
+      # Select Columns of Interest
       blotter <- blotterInput()
       
       blotter <- subset(blotter, select = c(HIERARCHY, OFFENSES, INCIDENTTIME, CLEAREDFLAG, INCIDENTLOCATION, INCIDENTNEIGHBORHOOD, COUNCIL_DISTRICT, POLICE_ZONE, PUBLIC_WORKS_DIVISION, CCR))
@@ -1365,14 +1556,14 @@ server <- shinyServer(function(input, output, session) {
       
       colnames(violations) <- c("Violation", "Result", "Inspection Date", "Address", "Neighborhood", "Council District", "Police Zone", "Public Works Division", "Case #", "Parcel ID")
       report <- violations
-    } else if (input$report_select == "City Facilities") {
-      facilities <- facilitiesInput()
+    } else if (input$report_select == "City Assets") {
+      assets <- assetsInput()
       
-      facilities <- subset(facilities, select = c(usage, ID, PrimaryUser, address, NEIGHBORHOOD, COUNCIL_DISTRICT, PUBLIC_WORKS_DIVISION, POLICE_ZONE))
+      assets <- subset(assets, select = c(usage, name, primary_user, address, neighborhood, COUNCIL_DISTRICT, PUBLIC_WORKS_DIVISION, POLICE_ZONE))
       
-      colnames(facilities) <- c("Usage", "Name", "Dept", "Address", "Neighborhood", "Council", "Public Works Division", "Police Zone")
+      colnames(assets) <- c("Usage", "Description", "Dept", "Location", "Neighborhood", "Council", "Public Works Division", "Police Zone")
       
-      report <- facilities
+      report <- assets
     } else if (input$report_select == "Capital Projects") {
       cproj <- cprojInput()
       
@@ -1382,25 +1573,25 @@ server <- shinyServer(function(input, output, session) {
       
       report <- cproj
     }
-    #Return Data
+    # Return Data
     report
   })
   downloadInput <- reactive({
     report <- reportInput()
     
-    #Report Table Search Filter
+    # Report Table Search Filter
     if (!is.null(input$report.table_search) && input$report.table_search != "") {
-      download <- report[apply(report, 1, function(row){any(grepl(input$report.table_search, row, ignore.case = TRUE))}), ]
+      report <- report[apply(report, 1, function(row){any(grepl(input$report.table_search, row, ignore.case = TRUE))}), ]
     }
     
-    return(download)
+    return(report)
   })
-  #Generate Report Table
+  # Generate Report Table
   output$report.table <- DT::renderDataTable({
-    #Load Report dataset
+    # Load Report dataset
     reportInput()
   }, escape = FALSE, options = list(scrollX = TRUE), rownames= FALSE)
-  #Execute download function
+  # Execute download function
   output$downloadData <- downloadHandler(
     filename = function() {
       paste(input$report_select, ".csv", sep="") },
@@ -1408,13 +1599,59 @@ server <- shinyServer(function(input, output, session) {
       write.csv(downloadInput(), file)
     }
   )
-  #Build main map
+  # Build main map
   output$map <- renderLeaflet({
     recs <- 0
     layerCount <- 0
     map <- leaflet() %>% 
       addProviderTiles("OpenStreetMap.HOT", options = providerTileOptions(noWrap = TRUE))
-    #311 Data
+    # Boundary Layers
+    # Neighborhoods
+    if (input$filter_select == "Neighborhood") {
+      hoods <- hoodsInput()
+      if (nrow(hoods) > 0) {
+        map <- addPolygons(map, data = hoods,
+                           stroke = TRUE, smoothFactor = 0, weight = 1, color = "#000000", opacity = 0.6,
+                           fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0, 
+                           popup = ~paste("<font color='black'><b>Neighborhood:</b> ", htmlEscape(hood), "</font>")
+        )
+      }
+      # Council Districts
+    } else if (input$filter_select == "Council District"){
+      council <- councilInput()
+      if (nrow(council) > 0) {
+        map <- addPolygons(map, data = council,
+                           stroke = TRUE, smoothFactor = 0, weight = 1, color = "#000000", opacity = 0.6,
+                           fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0, 
+                           popup = ~paste("<font color='black'><b>District:</b> ", htmlEscape(COUNCIL_DISTRICT),
+                                          "<br><b>Phone #:</b>", htmlEscape(phone),
+                                          "<br><b>Committee:</b>", htmlEscape(committee), "</font>")
+        )
+      }
+      # DPW Divisions
+    } else if (input$filter_select == "Public Works Division"){
+      dpw <- dpwInput()
+      if (nrow(dpw) > 0) {
+        map <- addPolygons(map, data = dpw,
+                           stroke = TRUE, smoothFactor = 0, weight = 1, color = "#000000", opacity = 0.6,
+                           fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0, 
+                           popup = ~paste("<font color='black'><b>Zone:</b> ", htmlEscape(PUBLIC_WORKS_DIVISION), "</font>")
+        )
+      }
+      # Police Zones
+    } else if (input$filter_select == "Police Zone"){
+      zones <- zonesInput()
+      if (nrow(zones) > 0) {
+        map <- addPolygons(map, data = zones,
+                           stroke = TRUE, smoothFactor = 0, weight = 1, color = "#000000", opacity = 0.6,
+                           fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0, 
+                           popup = ~paste("<font color='black'><b>Zone:</b> ", htmlEscape(POLICE_ZONE), "</font>")
+        )
+      }
+    }  
+    
+    # Point Layers
+    # 311 Data
     if (input$toggle311) {
       dat311 <- dat311Input()
       dat311 <- dat311[!(is.na(dat311$X)),] 
@@ -1448,10 +1685,10 @@ server <- shinyServer(function(input, output, session) {
         recs <- recs + nrow(dat311)
   }
 }
-    #Arrests Layer
+    # Arrests Layer
     if(input$toggleArrests) {
       arrests <- arrestsInput()
-      #Remove unmappables
+      # Remove unmappables
       arrests <- arrests[!(is.na(arrests$X)),] 
       arrests <- arrests[!(is.na(arrests$Y)),]
       arrests <- subset(arrests, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
@@ -1484,10 +1721,10 @@ server <- shinyServer(function(input, output, session) {
         recs <- recs + nrow(arrests)
                 }
       }
-    #Non-Traffic Citations
+    # Non-Traffic Citations
     if (input$toggleCitations) {
       citations <- citationsInput()
-      #Remove unmappables
+      # Remove unmappables
       citations <- citations[!(is.na(citations$X)),] 
       citations <- citations[!(is.na(citations$Y)),]
       citations <- subset(citations, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
@@ -1519,16 +1756,16 @@ server <- shinyServer(function(input, output, session) {
         recs <- recs + nrow(citations)
         }
       }
-    #Police Blotter Layer
+    # Police Blotter Layer
     if (input$toggleBlotter) {
       blotter <- blotterInput()
-      #Remove unmappables
+      # Remove unmappables
       blotter <- blotter[!(is.na(blotter$X)),] 
       blotter <- blotter[!(is.na(blotter$Y)),]
       blotter <- subset(blotter, X >= -80.242767 & X <= -79.660492 & Y <= 40.591014 & Y >= 40.266428)
-      #Remove non-pittsburgh incidents for map (these incidents still appear in data extracts)
+      # Remove non-pittsburgh incidents for map (these incidents still appear in data extracts)
       blotter <- subset(blotter, POLICE_ZONE != "OSC" | INCIDENTNEIGHBORHOOD != "Outside City" | INCIDENTNEIGHBORHOOD != "Outside County")
-      #Remove Citation instances from Blotter data (if layer is)
+      # Remove Citation instances from Blotter data (if layer is)
       if (input$toggleCitations) {
         blotter <- blotter[!(blotter$CCR %in% citations$CCR),]
       }
@@ -1559,10 +1796,10 @@ server <- shinyServer(function(input, output, session) {
         recs <- recs + nrow(blotter)
         }
       }
-    #Building Permits Layer
+    # Building Permits Layer
     if(input$togglePermits) {
       permits <- permitsInput()
-      #Remove unmappables
+      # Remove unmappables
       permits <- permits[!(is.na(permits$lat)),]
       permits <- permits[!(is.na(permits$lon)),]
       permits <- subset(permits, lon > -80.242767 & lon < -79.660492 & lat < 40.591014 & lat > 40.266428)
@@ -1595,10 +1832,10 @@ server <- shinyServer(function(input, output, session) {
         recs <- recs + nrow(permits)
         }
       }
-    #Building Code Violations
+    # Building Code Violations
     if(input$toggleViolations) {
       violations <- violationsInput()
-      #Remove unmappables
+      # Remove unmappables
       violations <- violations[!(is.na(violations$X)),]
       violations <- violations[!(is.na(violations$Y)),]
       violations <- subset(violations, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
@@ -1632,16 +1869,15 @@ server <- shinyServer(function(input, output, session) {
         recs <- recs + nrow(violations)
         }
       }
-    #City Facilities Layer
-    if (input$toggleFacilities) {
-      facilities <- facilitiesInput()
-      #Remove unmappables
-      facilities <- facilities[!(is.na(facilities$Lng)),]
-      facilities <- facilities[!(is.na(facilities$Lat)),]
-      facilities <- subset(facilities, Lng > -80.242767 & Lng < -79.660492 & Lat < 40.591014 & Lat > 40.266428)
-      if (nrow(facilities) > 0) {
+    # City Assets Layer
+    if (input$toggleAssets) {
+      assets <- assetsInput()
+      # Remove unmappables
+      assets <- assets[!(is.na(assets$longitude)),]
+      assets <- assets[!(is.na(assets$latitude)),]
+      if (nrow(assets) > 0) {
         layerCount <- layerCount + 1
-        map <- addMarkers(map, data=facilities,
+        map <- addMarkers(map, data=assets,
                           clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
                                                                                       var childCount = cluster.getChildCount();  
                                                                                       if (childCount < 10) {  
@@ -1652,24 +1888,24 @@ server <- shinyServer(function(input, output, session) {
                                                                                       c = 'rgba(150, 150, 163, 0.95);'  
                                                                                       }    
                                                                                       return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-      }")), ~Lng, ~Lat, icon = ~icons_facilities[icon],
-                 popup = ~(paste("<font color='black'><b>Usage:</b>", facilities$usage,
-                                 "<br><b>Name:</b>", facilities$ID,
-                                 "<br><b>Dept:</b>", facilities$PrimaryUser,
-                                 "<br><b>Address:</b>", facilities$address,
-                                 "<br><b>Neighborhood:</b>", facilities$NEIGHBORHOOD,
-                                 "<br><b>Council District:</b>", facilities$COUNCIL_DISTRICT,
-                                 "<br><b>Public Works Division:</b>", facilities$PUBLIC_WORKS_DIVISION,
-                                 "<br><b>Police Zone:</b>", facilities$POLICE_ZONE, 
-                                 facilities$url, "</font>"))
+      }")), ~longitude, ~latitude, icon = ~icons_assets[icon],
+                 popup = ~(paste("<font color='black'><b>Usage:</b>", assets$usage,
+                                 "<br><b>Description:</b>", assets$name,
+                                 "<br><b>Dept:</b>", assets$primary_user,
+                                 "<br><b>Location:</b>", assets$address,
+                                 "<br><b>Neighborhood:</b>", assets$neighborhood,
+                                 "<br><b>Council District:</b>", assets$COUNCIL_DISTRICT,
+                                 "<br><b>Public Works Division:</b>", assets$PUBLIC_WORKS_DIVISION,
+                                 "<br><b>Police Zone:</b>", assets$POLICE_ZONE, 
+                                 assets$url, "</font>"))
         )
-        recs <- recs + nrow(facilities)
-                }
-                }
-    #Capital Projects Layer
+        recs <- recs + nrow(assets)
+      }
+    }
+    # Capital Projects Layer
     if (input$toggleCproj) {
       cproj <- cprojInput()
-      #Remove unmappables
+      # Remove unmappables
       cproj <- cproj[!(is.na(cproj$Lng)),]
       cproj <- cproj[!(is.na(cproj$Lat)),]
       cproj <- subset(cproj, Lng > -80.242767 & Lng < -79.660492 & Lat < 40.591014 & Lat > 40.266428)
@@ -1687,15 +1923,15 @@ server <- shinyServer(function(input, output, session) {
                                                                                       }    
                                                                                       return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
       }")), ~Lng, ~Lat, icon = ~icons_cproj[icon],
-                 popup = ~(paste("<font color='black'><b>Functional Area:</b>", cproj$CapitalProjectFunctionalAreaField, 
-                                 "<br><b>Name:</b>", cproj$CapitalProjectNameField,
-                                 "<br><b>Statu:s</b>",  cproj$StatusField,
+                 popup = ~(paste("<font color='black'><br><b>Name:</b>", cproj$CapitalProjectNameField,
+                                 "<br><b>Asset:</b>", cproj$cgAssetandIDField,
+                                 "<br><b>Description:</b>", cproj$TaskDescriptionField,
+                                 "<br><b>Functional Area:</b>", cproj$CapitalProjectFunctionalAreaField, 
+                                 "<br><b>Status:</b>",  cproj$StatusField,
                                  "<br><b>Amount Budgeted:</b>", cproj$BudgetedAmountField,
                                  "<br><b>Amount Spent:</b>", cproj$TotalCostActualField,
-                                 "<br><b>Asset:</b>", cproj$cgAssetandIDField,
                                  "<br><b>Start Date:</b>", cproj$StartDateField,
                                  "<br><b>Stop Date:</b>", cproj$StopDateField,
-                                 "<br><b>Description:</b>", cproj$TaskDescriptionField,
                                  "<br><b>Neighborhood:</b>", cproj$NEIGHBORHOOD,
                                  "<br><b>Council District:</b>", cproj$COUNCIL_DISTRICT,
                                  "<br><b>Public Works Division:</b>", cproj$PUBLIC_WORKS_DIVISION,
@@ -1703,8 +1939,8 @@ server <- shinyServer(function(input, output, session) {
                           ))
         )
         recs <- recs + nrow(cproj)
-                }
-                }
+      }
+    }
     print(recs)
     if (layerCount < 1) {
       if (Sys.Date() >= as.Date(paste0(this_year,"-11-01")) & Sys.Date() <= as.Date(paste0(this_year,"-11-08"))) {

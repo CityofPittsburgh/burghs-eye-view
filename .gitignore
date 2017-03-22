@@ -1,2 +1,6 @@
 packrat
 .Rproj.user
+.Rhistory
+key.json
+rsconnect
+.RData
