@@ -1,1 +1,1 @@
-Burgh's Eye View is the framework used by Pittsburgh I+P's Analytics & Strategy team for mapping open data.
+Burgh's Eye View is the core application used by Pittsburgh I+P's Analytics & Strategy team for mapping open data.
