@@ -215,7 +215,7 @@ load.facilities$url <- ifelse(load.facilities$usage %in% c("Shelter", "Community
 
 attr(load.facilities, "spec") <- NULL
 
-load.facilities <- subset(load.facilities, select = c(usage, name, primary_user, address, neighborhood, council_district, public_works_division, POLICE_ZONE, url, icon, latitude, longitude))
+load.facilities <- subset(load.facilities, select = c(usage, name, primary_user, address, neighborhood, council_district, public_works_division, police_zone, url, icon, latitude, longitude))
 
 # Load Water Features
 load.wf <- ckan("1b74a658-0465-456a-929e-ff4057220274")
@@ -354,7 +354,7 @@ load.violations$VIOLATION <- gsub("::", "/", load.violations$VIOLATION)
 load.violations$CORRECTIVE_ACTION <- gsub("::", "/", load.violations$CORRECTIVE_ACTION)
 
 # Clean Geographies
-load.violations <- cleanGeo(load.violations)
+load.violations <- cleanGeo(load.violations, TRUE)
 
 icons_violations <- iconList(
   violations_abated = makeIcon("./icons/PLI/violations_abated.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
@@ -458,18 +458,33 @@ icons_blotter <- iconList(
 )
 
 # Capital Projects
-load.cproj <- read.csv("cgCapitalProjects.csv")
-load.cproj$year <- as.numeric(format(as.Date(load.cproj$StartDateField), "%Y"))
-load.cproj$TotalCostActualField <- dollarsComma(load.cproj$TotalCostActualField)
-load.cproj$BudgetedAmountField <- dollarsComma(load.cproj$BudgetedAmountField)
-load.cproj$COUNCIL_DISTRICT <- ""
-load.cproj$POLICE_ZONE <- ""
-load.cproj$NEIGHBORHOOD <- ""
-load.cproj$PUBLIC_WORKS_DIVISION <- ""
+load.cproj <- ckan("2fb96406-813e-4031-acfe-1a82e78dc33c")
+# Clean Hood
+load.cproj$neighborhood <- gsub("\\|", ", ", load.cproj$neighborhood)
+# Clean Zones
+for (i in 1:length(levels(load311$POLICE_ZONE))) {
+  rep <- as.character(levels(load311$POLICE_ZONE)[i])
+  load.cproj$police_zone <- gsub(as.character(i), rep, load.cproj$police_zone)
+}
+load.cproj$police_zone <- gsub("\\|", ", ", load.cproj$police_zone)
+# Clean Council
+for (i in 1:length(levels(load311$COUNCIL_DISTRICT))) {
+  rep <- as.character(levels(load311$COUNCIL_DISTRICT)[i])
+  load.cproj$council_district <- gsub(as.character(i), rep, load.cproj$council_district)
+}
+load.cproj$council_district <- gsub("\\|", ", ", load.cproj$council_district)
+# Clean DPW
+for (i in 1:length(levels(load311$PUBLIC_WORKS_DIVISION))) {
+  rep <- as.character(levels(load311$PUBLIC_WORKS_DIVISION)[i])
+  load.cproj$public_works_division <- gsub(as.character(i), rep, load.cproj$public_works_division)
+}
+load.cproj$public_works_division <- gsub("\\|", ", ", load.cproj$public_works_division)
 
-load.cproj <- cleanGeo(load.cproj)
+# Formatting
+load.cproj$cost_to_date <- dollarsComma(load.cproj$cost_to_date)
+load.cproj$budgeted_amount <- dollarsComma(load.cproj$budgeted_amount)
 
-load.cproj <- transform(load.cproj, icon = as.factor(mapvalues(CapitalProjectFunctionalAreaField, c("Administration/Sub-Award", "Engineering and Construction", "Facility Improvement", "Neighborhood and Community Development", "Public Safety","Vehicles and Equipment"), c("administration", "engineering_construction", "facility_improvement", "neighborhood_development", "public_safety", "vehicles_equipment"))))
+load.cproj <- transform(load.cproj, icon = as.factor(mapvalues(area, c("Administration/Sub-Award", "Engineering and Construction", "Facility Improvement", "Neighborhood and Community Development", "Public Safety","Vehicles and Equipment"), c("administration", "engineering_construction", "facility_improvement", "neighborhood_development", "public_safety", "vehicles_equipment"))))
 
 icons_cproj <- iconList(
   administration = makeIcon("./icons/omb/administration.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
@@ -787,7 +802,7 @@ server <- shinyServer(function(input, output, session) {
                     HTML('<font color="#009FE1">'),
                     checkboxInput("togglePermits",
                                   label = "Building Permits",
-                                  value = FALSE),
+                                  value = TRUE),
                     HTML('</font>'),
                     selectInput("permit_select",
                                 label = NULL,
@@ -916,7 +931,7 @@ server <- shinyServer(function(input, output, session) {
                      HTML('<font color="#009FE1">'),
                      checkboxInput("togglePermits",
                                    label = "Building Permits",
-                                   value = FALSE),
+                                   value = TRUE),
                      HTML('</font>'),
                      selectInput("permit_select",
                                  label = NULL,
@@ -1356,13 +1371,13 @@ server <- shinyServer(function(input, output, session) {
     }
     
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
-      violations <- violations[violations$police_zone %in% input$zone_select,]
+      violations <- violations[violations$POLICE_ZONE %in% input$zone_select,]
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
-      violations <- violations[violations$neighborhood %in% input$hood_select,]
+      violations <- violations[violations$NEIGHBORHOOD %in% input$hood_select,]
     } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
-      violations <- violations[violations$public_works_division %in% input$DPW_select,]
+      violations <- violations[violations$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
-      violations <-violations[violations$council_district %in% input$council_select,]
+      violations <-violations[violations$COUNCIL_DISTRICT %in% input$council_select,]
     }
     
     # Search Filter
@@ -1483,21 +1498,53 @@ server <- shinyServer(function(input, output, session) {
     cproj <- load.cproj
     
     # Year filter
-    cproj <- subset(cproj, year >= this_year)
+    cproj <- subset(cproj, fiscal_year >= this_year)
     
     if (length(input$funcarea_select) > 0) {
-      cproj <- cproj[cproj$CapitalProjectFunctionalAreaField %in% input$funcarea_select,]
+      cproj <- cproj[cproj$area %in% input$funcarea_select,]
     }
     
     # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
-      cproj <- cproj[cproj$police_zone %in% input$zone_select,]
+      for (i in 1:length(input$zone_select)) {
+        if (i == 1) {
+          cproj.temp <- cproj[grepl(input$zone_select[i], cproj$police_zone), ]
+        } else {
+          temp <- cproj[grepl(input$zone_select[i], cproj$police_zone), ]
+          cproj.temp <- rbind(cproj.temp, temp)
+        }
+      }
+      croj <- unique(cproj.temp)
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
-      cproj <- cproj[cproj$neighborhood %in% input$hood_select,]
+      for (i in 1:length(input$hood_select)) {
+        if (i == 1) {
+          cproj.temp <- cproj[grepl(input$hood_select[i], cproj$neighborhood), ]
+        } else {
+          temp <- cproj[grepl(input$hood_select[i], cproj$neighborhood), ]
+          cproj.temp <- rbind(cproj.temp, temp)
+        }
+      }
+      croj <- unique(cproj.temp)
     } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
-      cproj <- cproj[cproj$public_works_division %in% input$DPW_select,]
+      for (i in 1:length(input$DPW_select)) {
+        if (i == 1) {
+          cproj.temp <- cproj[grepl(input$DPW_select[i], cproj$public_works_division), ]
+        } else {
+          temp <- cproj[grepl(input$DPW_select[i], cproj$public_works_division), ]
+          cproj.temp <- rbind(cproj.temp, temp)
+        }
+      }
+      croj <- unique(cproj.temp)
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
-      cproj <- cproj[cproj$council_district %in% input$council_select,]
+      for (i in 1:length(input$council_select)) {
+        if (i == 1) {
+          cproj.temp <- cproj[grepl(input$council_select[i], cproj$council_district), ]
+        } else {
+          temp <- cproj[grepl(input$council_select[i], cproj$council_district), ]
+          cproj.temp <- rbind(cproj.temp, temp)
+        }
+      }
+      croj <- unique(cproj.temp)
     } 
     
     # Search Filter
@@ -1558,7 +1605,7 @@ server <- shinyServer(function(input, output, session) {
     } else if (input$report_select == "Code Violations"){
       violations <- violationsInput()
       
-      violations <- subset(violations, select = c(VIOLATION, INSPECTION_RESULT, INSPECTION_DATE, full_address, neighborhood, council_district, police_zone, public_works_division, CASE_NUMBER, url))
+      violations <- subset(violations, select = c(VIOLATION, INSPECTION_RESULT, INSPECTION_DATE, full_address, NEIGHBORHOOD, COUNCIL_DISTRICT, POLICE_ZONE, PUBLIC_WORKS_DIVISION, CASE_NUMBER, url))
       
       colnames(violations) <- c("Violation", "Result", "Inspection Date", "Address", "Neighborhood", "Council District", "Police Zone", "Public Works Division", "Case #", "Parcel ID")
       report <- violations
@@ -1573,9 +1620,9 @@ server <- shinyServer(function(input, output, session) {
     } else if (input$report_select == "Capital Projects") {
       cproj <- cprojInput()
       
-      cproj <- subset(cproj, select = c(CapitalProjectFunctionalAreaField, CapitalProjectNameField, StatusField, BudgetedAmountField, TotalCostActualField, cgAssetandIDField, StartDateField, StopDateField, TaskDescriptionField, neighborhood, council_district, public_works_division, police_zone))
+      cproj <- subset(cproj, select = c(name, asset_id, task_description, area, status, budgeted_amount, cost_to_date, fiscal_year, neighborhood, council_district, public_works_division, police_zone))
       
-      colnames(cproj) <- c("Functional Area", "Name", "Status", "Amount Budgeted", "Amount Spent", "Asset", "Start Date", "Stop Date", "Description", "Neighborhood", "Council", "Public Works Division", "Police Zone")
+      colnames(cproj) <- c("Project Name", "Asset", "Description", "Status", "Budegted Amount", "Cost to Date", "Fiscal Year", "Neighborhood", "Council", "Public Works Division", "Police Zone")
       
       report <- cproj
     }
@@ -1864,10 +1911,10 @@ server <- shinyServer(function(input, output, session) {
                                         "<br><b>Date Inspected:</b>", violations$date,
                                         "<br><b>Corrective Action(s):</b>", violations$CORRECTIVE_ACTION,
                                         "<br><b>Address:</b>", violations$FullAddress,
-                                        "<br><b>Neighborhood:</b>", violations$neighborhood,
-                                        "<br><b>Council District:</b>", violations$council_district,
-                                        "<br><b>Public Works Division:</b>", violations$public_works_division,
-                                        "<br><b>Police Zone:</b>", violations$police_zone,
+                                        "<br><b>Neighborhood:</b>", violations$NEIGHBORHOOD,
+                                        "<br><b>Council District:</b>", violations$COUNCIL_DISTRICT,
+                                        "<br><b>Public Works Division:</b>", violations$PUBLIC_WORKS_DIVISION,
+                                        "<br><b>Police Zone:</b>", violations$POLICE_ZONE,
                                         "<br><b>Parcel ID:</b>", violations$url,
                                         "<br><b>Case #:</b>", violations$CASE_NUMBER,
                                         '<br><center><a href="https://pittsburghpa.buildingeye.com/enforcement" target="_blank">Search Violations on Building Eye!</a></center></font>'))
@@ -1912,9 +1959,9 @@ server <- shinyServer(function(input, output, session) {
     if (input$toggleCproj) {
       cproj <- cprojInput()
       # Remove unmappables
-      cproj <- cproj[!(is.na(cproj$Lng)),]
-      cproj <- cproj[!(is.na(cproj$Lat)),]
-      cproj <- subset(cproj, Lng > -80.242767 & Lng < -79.660492 & Lat < 40.591014 & Lat > 40.266428)
+      cproj <- cproj[!(is.na(cproj$longitude)),]
+      cproj <- cproj[!(is.na(cproj$latitude)),]
+      cproj <- subset(cproj, longitude > -80.242767 & longitude < -79.660492 & latitude < 40.591014 & latitude > 40.266428)
       if (nrow(cproj) > 0) {
         layerCount <- layerCount + 1
         map <- addMarkers(map, data=cproj,
@@ -1928,16 +1975,15 @@ server <- shinyServer(function(input, output, session) {
                                                                                       c = 'rgba(184, 165, 192, 0.95);'  
                                                                                       }    
                                                                                       return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-      }")), ~Lng, ~Lat, icon = ~icons_cproj[icon],
-                 popup = ~(paste("<font color='black'><br><b>Name:</b>", cproj$CapitalProjectNameField,
-                                 "<br><b>Asset:</b>", cproj$cgAssetandIDField,
-                                 "<br><b>Description:</b>", cproj$TaskDescriptionField,
-                                 "<br><b>Functional Area:</b>", cproj$CapitalProjectFunctionalAreaField, 
-                                 "<br><b>Status:</b>",  cproj$StatusField,
-                                 "<br><b>Amount Budgeted:</b>", cproj$BudgetedAmountField,
-                                 "<br><b>Amount Spent:</b>", cproj$TotalCostActualField,
-                                 "<br><b>Start Date:</b>", cproj$StartDateField,
-                                 "<br><b>Stop Date:</b>", cproj$StopDateField,
+      }")), ~longitude, ~latitude, icon = ~icons_cproj[icon],
+                 popup = ~(paste("<font color='black'><b>Name:</b>", cproj$name,
+                                 "<br><b>Asset:</b>", cproj$asset_id,
+                                 "<br><b>Description:</b>", cproj$task_description,
+                                 "<br><b>Functional Area:</b>", cproj$area, 
+                                 "<br><b>Status:</b>",  cproj$status,
+                                 "<br><b>Amount Budgeted:</b>", cproj$budgeted_amount,
+                                 "<br><b>Amount Spent:</b>", cproj$cost_to_date,
+                                 "<br><b>Fiscal Year:</b>", cproj$fiscal_year,
                                  "<br><b>Neighborhood:</b>", cproj$neighborhood,
                                  "<br><b>Council District:</b>", cproj$council_district,
                                  "<br><b>Public Works Division:</b>", cproj$public_works_division,
