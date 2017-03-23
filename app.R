@@ -66,28 +66,46 @@ ckanQuery  <- function(id, days, column) {
 }
 
 # Council Clean
-cleanCouncil <- function(data) {
-  data <- transform(data, COUNCIL_DISTRICT = as.factor(mapvalues(COUNCIL_DISTRICT, c(0:9),
+cleanCouncil <- function(data, upper) {
+  upper <- ifelse(missing(upper), FALSE, upper)
+  if (upper) {
+    data <- transform(data, COUNCIL_DISTRICT = as.factor(mapvalues(COUNCIL_DISTRICT, c(0:9),
                                                                    c(NA, "1: Harris", "2: Kail-Smith", "3: Kraus", "4: Rudiak", "5: O'Connor", "6: Lavelle", "7: Gross", "8: Gilman", "9: Burgess"))))
+  } else {
+    data <- transform(data, council_district = as.factor(mapvalues(council_district, c(0:9),
+                                                                   c(NA, "1: Harris", "2: Kail-Smith", "3: Kraus", "4: Rudiak", "5: O'Connor", "6: Lavelle", "7: Gross", "8: Gilman", "9: Burgess"))))
+  }
   return(data)
 }
 # DPW Clean
-cleanDPW <-function(data) {
-  data <- transform(data, PUBLIC_WORKS_DIVISION = as.factor(mapvalues(PUBLIC_WORKS_DIVISION, c(0:6), 
-                                                                      c( NA, "1: North Side", "2: East End (North)", "3: The Hill, East End (South) & South Side", "4: South Side", "5: West End & South Hills", "6: Downtown, Strip & North Shore"))))
+cleanDPW <-function(data, upper) {
+  upper <- ifelse(missing(upper), FALSE, upper)
+  if (upper) {
+    data <- transform(data, PUBLIC_WORKS_DIVISION = as.factor(mapvalues(PUBLIC_WORKS_DIVISION, c(0:6),
+                                                                        c( NA, "1: North Side", "2: East End (North)", "3: The Hill, East End (South) & South Side", "4: South Side", "5: West End & South Hills", "6: Downtown, Strip & North Shore"))))
+  } else {
+    data <- transform(data, public_works_division = as.factor(mapvalues(public_works_division, c(0:6),
+                                                                        c( NA, "1: North Side", "2: East End (North)", "3: The Hill, East End (South) & South Side", "4: South Side", "5: West End & South Hills", "6: Downtown, Strip & North Shore"))))
+  }
   return(data)
 }
 # Police Zone Clean
-cleanZone <- function(data) {
-  data <- transform(data, POLICE_ZONE = as.factor(mapvalues(POLICE_ZONE, c(append( c("OSC"), 0:6)), 
-                                                            c(NA, NA, "1: North Side", "2: Downtown, Hill & Strip", "3: South Side", "4: East End (South) & South Side", "5: East End (North)", "6: West End & South Hills"))))
+cleanZone <- function(data, upper) {
+  upper <- ifelse(missing(upper), FALSE, upper)
+  if (upper) {
+    data <- transform(data, POLICE_ZONE = as.factor(mapvalues(POLICE_ZONE, c(append( c("OSC"), 0:6)),
+                                                              c(NA, NA, "1: North Side", "2: Downtown, Hill & Strip", "3: South Side", "4: East End (South) & South Side", "5: East End (North)", "6: West End & South Hills"))))
+  } else {
+    data <- transform(data, police_zone = as.factor(mapvalues(police_zone, c(append( c("OSC"), 0:6)),
+                                                              c(NA, NA, "1: North Side", "2: Downtown, Hill & Strip", "3: South Side", "4: East End (South) & South Side", "5: East End (North)", "6: West End & South Hills"))))
+  }
   return(data)
 }
 # Function to clean all Geographies
-cleanGeo <- function(data) {
-  data <- cleanCouncil(data)
-  data <- cleanDPW(data)
-  data <- cleanZone(data)
+cleanGeo <- function(data, upper) {
+  data <- cleanCouncil(data, upper)
+  data <- cleanDPW(data, upper)
+  data <- cleanZone(data, upper)
   return(data)
 }
 
@@ -97,15 +115,15 @@ load.hoods <- readShapeSpatial("boundaries/Pittsburgh_Neighborhoods/Pittsburgh_N
 # Council
 load.council <- readShapeSpatial("boundaries/Pittsburgh_City_Council_Districts/Pittsburgh_City_Council_Districts.shp")
 load.council$COUNCIL_DISTRICT <- load.council$council
-load.council@data <- cleanCouncil(load.council@data)
+load.council@data <- cleanCouncil(load.council@data, TRUE)
 # DPW
 load.dpw <- readShapeSpatial("boundaries/Pittsburgh_DPW_Divisions/Pittsburgh_DPW_Divisions.shp")
 load.dpw$PUBLIC_WORKS_DIVISION <- load.dpw$division
-load.dpw@data <- cleanDPW(load.dpw@data)
+load.dpw@data <- cleanDPW(load.dpw@data, TRUE)
 # Zone
 load.zones <- readShapeSpatial("boundaries/Pittsburgh_Police_Zones/Pittsburgh_Police_Zones.shp")
 load.zones$POLICE_ZONE <- load.zones$zone
-load.zones@data <- cleanZone(load.zones@data)
+load.zones@data <- cleanZone(load.zones@data, TRUE)
 
 # Load Marker Files
 # Load 311 Requests
@@ -113,7 +131,7 @@ load311 <- ckanQuery("40776043-ad00-40f5-9dc8-1fde865ff571", 365, "CREATED_ON")
 load311$CREATED_ON <- as.POSIXct(load311$CREATED_ON, format = '%Y-%m-%dT%H:%M:%S')
 # Clean Geographies
 load311 <- subset(load311, select = -REQUEST_ID)
-load311 <- cleanGeo(load311)
+load311 <- cleanGeo(load311, TRUE)
 load311$date <- as.Date(load311$CREATED_ON)
 load311$CREATED_ON <- as.POSIXct(load311$CREATED_ON, tz = "EST")
 load311$icon <- as.character(load311$REQUEST_TYPE)
@@ -178,9 +196,6 @@ load.facilities <- ckan("07bf416f-9df2-4d70-b48d-682f608f9a6b")
 # Remove Inactive Facilities
 load.facilities <- subset(load.facilities, inactive == "False")
 # Clean Geographies
-names(load.facilities)[names(load.facilities)=="police_zone"] <- "POLICE_ZONE"
-names(load.facilities)[names(load.facilities)=="council_district"] <- "COUNCIL_DISTRICT"
-names(load.facilities)[names(load.facilities)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
 load.facilities <- cleanGeo(load.facilities)
 # Create Adress Column (checks to see if Address No. is valid, to add number and add space between street name)
 load.facilities$address <- paste0(ifelse(is.na(load.facilities$address_number), "", paste0(load.facilities$address_number, " ")), ifelse(is.na(load.facilities$street), "", load.facilities$street))
@@ -200,7 +215,7 @@ load.facilities$url <- ifelse(load.facilities$usage %in% c("Shelter", "Community
 
 attr(load.facilities, "spec") <- NULL
 
-load.facilities <- subset(load.facilities, select = c(usage, name, primary_user, address, neighborhood, COUNCIL_DISTRICT, PUBLIC_WORKS_DIVISION, POLICE_ZONE, url, icon, latitude, longitude))
+load.facilities <- subset(load.facilities, select = c(usage, name, primary_user, address, neighborhood, council_district, public_works_division, POLICE_ZONE, url, icon, latitude, longitude))
 
 # Load Water Features
 load.wf <- ckan("1b74a658-0465-456a-929e-ff4057220274")
@@ -217,9 +232,6 @@ load.wf$url<- ""
 load.wf <- transform(load.wf, icon = as.factor(mapvalues(usage, c("Decorative", "Drinking Fountain", "Spray"), c("DECORATIVE", "DRINKING_FOUNTAIN", "SPRAY"))))
 
 # Clean Geographies
-names(load.wf)[names(load.wf)=="police_zone"] <- "POLICE_ZONE"
-names(load.wf)[names(load.wf)=="council_district"] <- "COUNCIL_DISTRICT"
-names(load.wf)[names(load.wf)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
 load.wf <- cleanGeo(load.wf)
 
 # Subset for rBind
@@ -237,9 +249,6 @@ load.si$name <- paste(ifelse(is.na(load.si$operation_type), "", load.si$operatio
 load.si$url<- ""
 
 # Clean Geographies
-names(load.si)[names(load.si)=="police_zone"] <- "POLICE_ZONE"
-names(load.si)[names(load.si)=="council_district"] <- "COUNCIL_DISTRICT"
-names(load.si)[names(load.si)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
 load.si <- cleanGeo(load.si)
 
 # Subset for rBind
@@ -302,9 +311,6 @@ load.permits$url <-  paste0('<a href="http://www2.county.allegheny.pa.us/RealEst
 load.permits <- transform(load.permits, icon = as.factor(mapvalues(primary_type, c("Board of Appeals Application", "Building Permit", "Communication Tower", "Demolition Permit", "Electrical Permit", "Fire Alarm Permit", "HVAC Permit", "Land Operations Permit", "Occupancy Only", "Occupant Load Placard", "Sign Permit", "Sprinkler Permit", "Temporary Occupancy", "Temporary Occupancy Commercial"),
                                                                    c('appeals', 'building_permit', 'communication_tower', 'demolition_permit', 'electrical_permit', 'fire_alarm', 'HVAC_permit', 'land_operations', 'occupancy', 'occupant_load_placard', 'sign_permit', 'sprinkler_permit', 'temp_occupancy', 'temp_occupancy'))))
 # Clean Geograhies
-names(load.permits)[names(load.permits)=="police_zone"] <- "POLICE_ZONE"
-names(load.permits)[names(load.permits)=="council_district"] <- "COUNCIL_DISTRICT"
-names(load.permits)[names(load.permits)=="public_works_division"] <- "PUBLIC_WORKS_DIVISION"
 load.permits <- cleanGeo(load.permits)
 
 # Icons for Permit
@@ -411,7 +417,7 @@ load.blotter <- transform(load.blotter, icon = as.factor(mapvalues(HIERARCHY, c(
 # Clean Geographies
 load.blotter$HIERARCHY <- as.factor(load.blotter$HIERARCHY)
 names(load.blotter)[names(load.blotter)=="INCIDENTZONE"] <- "POLICE_ZONE"
-load.blotter <- cleanGeo(load.blotter)
+load.blotter <- cleanGeo(load.blotter, TRUE)
 # Clean Flag
 load.blotter$CLEAREDFLAG <- ifelse(load.blotter$CLEAREDFLAG == "Y", "Yes", "No")
 
@@ -553,7 +559,7 @@ load.citations <- transform(load.citations, NEIGHBORHOOD = as.factor(mapvalues(N
                                                                                c("Central Business District", "Central North Side", "Mount Oliver", "Troy Hill"))))
 # Clean Geographies
 names(load.citations)[names(load.citations)=="ZONE"] <- "POLICE_ZONE"
-load.citations <- cleanGeo(load.citations)
+load.citations <- cleanGeo(load.citations, TRUE)
 
 # Offenses Columns
 incidents2 <- as.data.frame(do.call(rbind, strsplit(load.citations$OFFENSES, " / ", fixed = FALSE)))
@@ -574,7 +580,7 @@ load.arrests <- transform(load.arrests, INCIDENTNEIGHBORHOOD = as.factor(mapvalu
                                                                                    c("Central Business District", "Central North Side", "Mount Oliver", "Troy Hill"))))
 # Clean Geographies
 names(load.arrests)[names(load.arrests)=="INCIDENTZONE"] <- "POLICE_ZONE"
-load.arrests <- cleanGeo(load.arrests)
+load.arrests <- cleanGeo(load.arrests, TRUE)
 
 # Offenses Columns
 incidents2 <- as.data.frame(do.call(rbind, strsplit(load.arrests$OFFENSES, " / ", fixed = FALSE)))
@@ -1350,13 +1356,13 @@ server <- shinyServer(function(input, output, session) {
     }
     
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
-      violations <- violations[violations$POLICE_ZONE %in% input$zone_select,]
+      violations <- violations[violations$police_zone %in% input$zone_select,]
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
-      violations <- violations[violations$NEIGHBORHOOD %in% input$hood_select,]
+      violations <- violations[violations$neighborhood %in% input$hood_select,]
     } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
-      violations <- violations[violations$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
+      violations <- violations[violations$public_works_division %in% input$DPW_select,]
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
-      violations <-violations[violations$COUNCIL_DISTRICT %in% input$council_select,]
+      violations <-violations[violations$council_district %in% input$council_select,]
     }
     
     # Search Filter
@@ -1389,13 +1395,13 @@ server <- shinyServer(function(input, output, session) {
     
     # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
-      permits <- permits[permits$POLICE_ZONE %in% input$zone_select,]
+      permits <- permits[permits$police_zone %in% input$zone_select,]
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
       permits <- permits[permits$neighborhood %in% input$hood_select,]
     } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
-      permits <- permits[permits$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
+      permits <- permits[permits$public_works_division %in% input$DPW_select,]
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
-      permits <-permits[permits$COUNCIL_DISTRICT %in% input$council_select,]
+      permits <-permits[permits$council_district %in% input$council_select,]
     }
     
     # Search Filter
@@ -1456,13 +1462,13 @@ server <- shinyServer(function(input, output, session) {
     
     # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
-      assets <- assets[assets$POLICE_ZONE %in% input$zone_select,]
+      assets <- assets[assets$police_zone %in% input$zone_select,]
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
       assets <- assets[assets$neighborhood %in% input$hood_select,]
     } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
-      assets <- assets[assets$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
+      assets <- assets[assets$public_works_division %in% input$DPW_select,]
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
-      assets <- assets[assets$COUNCIL_DISTRICT %in% input$council_select,]
+      assets <- assets[assets$council_district %in% input$council_select,]
     } 
     
     # Search Filter
@@ -1485,13 +1491,13 @@ server <- shinyServer(function(input, output, session) {
     
     # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
-      cproj <- cproj[cproj$POLICE_ZONE %in% input$zone_select,]
+      cproj <- cproj[cproj$police_zone %in% input$zone_select,]
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
-      cproj <- cproj[cproj$NEIGHBORHOOD %in% input$hood_select,]
+      cproj <- cproj[cproj$neighborhood %in% input$hood_select,]
     } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
-      cproj <- cproj[cproj$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
+      cproj <- cproj[cproj$public_works_division %in% input$DPW_select,]
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
-      cproj <- cproj[cproj$COUNCIL_DISTRICT %in% input$council_select,]
+      cproj <- cproj[cproj$council_district %in% input$council_select,]
     } 
     
     # Search Filter
@@ -1544,7 +1550,7 @@ server <- shinyServer(function(input, output, session) {
     } else if (input$report_select == "Building Permits") {
       permits <- permitsInput()
       
-      permits <- subset(permits, select = c(permit_type, current_status, intake_date, issued_date, full_address, neighborhood, COUNCIL_DISTRICT, POLICE_ZONE, PUBLIC_WORKS_DIVISION, permit_id, url))
+      permits <- subset(permits, select = c(permit_type, current_status, intake_date, issued_date, full_address, neighborhood, COUNCIL_DISTRICT, police_zone, public_works_division, permit_id, url))
       
       colnames(permits) <- c("Type",  "Status", "Intake Date",  "Issued Date", "Address", "Neighborhood", "Council District", "Police Zone", "Public Works Division", "Permit ID", "Parcel ID")
       
@@ -1552,14 +1558,14 @@ server <- shinyServer(function(input, output, session) {
     } else if (input$report_select == "Code Violations"){
       violations <- violationsInput()
       
-      violations <- subset(violations, select = c(VIOLATION, INSPECTION_RESULT, INSPECTION_DATE, full_address, NEIGHBORHOOD, COUNCIL_DISTRICT, POLICE_ZONE, PUBLIC_WORKS_DIVISION, CASE_NUMBER, url))
+      violations <- subset(violations, select = c(VIOLATION, INSPECTION_RESULT, INSPECTION_DATE, full_address, neighborhood, council_district, police_zone, public_works_division, CASE_NUMBER, url))
       
       colnames(violations) <- c("Violation", "Result", "Inspection Date", "Address", "Neighborhood", "Council District", "Police Zone", "Public Works Division", "Case #", "Parcel ID")
       report <- violations
     } else if (input$report_select == "City Assets") {
       assets <- assetsInput()
       
-      assets <- subset(assets, select = c(usage, name, primary_user, address, neighborhood, COUNCIL_DISTRICT, PUBLIC_WORKS_DIVISION, POLICE_ZONE))
+      assets <- subset(assets, select = c(usage, name, primary_user, address, neighborhood, council_district, public_works_division, police_zone))
       
       colnames(assets) <- c("Usage", "Description", "Dept", "Location", "Neighborhood", "Council", "Public Works Division", "Police Zone")
       
@@ -1567,7 +1573,7 @@ server <- shinyServer(function(input, output, session) {
     } else if (input$report_select == "Capital Projects") {
       cproj <- cprojInput()
       
-      cproj <- subset(cproj, select = c(CapitalProjectFunctionalAreaField, CapitalProjectNameField, StatusField, BudgetedAmountField, TotalCostActualField, cgAssetandIDField, StartDateField, StopDateField, TaskDescriptionField, NEIGHBORHOOD, COUNCIL_DISTRICT, PUBLIC_WORKS_DIVISION, POLICE_ZONE))
+      cproj <- subset(cproj, select = c(CapitalProjectFunctionalAreaField, CapitalProjectNameField, StatusField, BudgetedAmountField, TotalCostActualField, cgAssetandIDField, StartDateField, StopDateField, TaskDescriptionField, neighborhood, council_district, public_works_division, police_zone))
       
       colnames(cproj) <- c("Functional Area", "Name", "Status", "Amount Budgeted", "Amount Spent", "Asset", "Start Date", "Stop Date", "Description", "Neighborhood", "Council", "Public Works Division", "Police Zone")
       
@@ -1821,9 +1827,9 @@ server <- shinyServer(function(input, output, session) {
                                "<br><b>Status:</b>", permits$current_status,
                                "<br><b>Address:</b>", permits$full_address,
                                "<br><b>Neighborhood:</b>", permits$neighborhood,
-                               "<br><b>Council District:</b>", permits$COUNCIL_DISTRICT,
-                               "<br><b>Police Zone:</b>", permits$POLICE_ZONE,
-                               "<br><b>Public Works Division:</b>", permits$PUBLIC_WORKS_DIVISION,
+                               "<br><b>Council District:</b>", permits$council_district,
+                               "<br><b>Police Zone:</b>", permits$police_zone,
+                               "<br><b>Public Works Division:</b>", permits$public_works_division,
                                "<br><b>Parcel ID:</b>", permits$url,
                                "<br><b>Permit ID:</b>", permits$permit_id,
                                permits$tt,
@@ -1858,10 +1864,10 @@ server <- shinyServer(function(input, output, session) {
                                         "<br><b>Date Inspected:</b>", violations$date,
                                         "<br><b>Corrective Action(s):</b>", violations$CORRECTIVE_ACTION,
                                         "<br><b>Address:</b>", violations$FullAddress,
-                                        "<br><b>Neighborhood:</b>", violations$NEIGHBORHOOD,
-                                        "<br><b>Council District:</b>", violations$COUNCIL_DISTRICT,
-                                        "<br><b>Public Works Division:</b>", violations$PUBLIC_WORKS_DIVISION,
-                                        "<br><b>Police Zone:</b>", violations$POLICE_ZONE,
+                                        "<br><b>Neighborhood:</b>", violations$neighborhood,
+                                        "<br><b>Council District:</b>", violations$council_district,
+                                        "<br><b>Public Works Division:</b>", violations$public_works_division,
+                                        "<br><b>Police Zone:</b>", violations$police_zone,
                                         "<br><b>Parcel ID:</b>", violations$url,
                                         "<br><b>Case #:</b>", violations$CASE_NUMBER,
                                         '<br><center><a href="https://pittsburghpa.buildingeye.com/enforcement" target="_blank">Search Violations on Building Eye!</a></center></font>'))
@@ -1894,9 +1900,9 @@ server <- shinyServer(function(input, output, session) {
                                  "<br><b>Dept:</b>", assets$primary_user,
                                  "<br><b>Location:</b>", assets$address,
                                  "<br><b>Neighborhood:</b>", assets$neighborhood,
-                                 "<br><b>Council District:</b>", assets$COUNCIL_DISTRICT,
-                                 "<br><b>Public Works Division:</b>", assets$PUBLIC_WORKS_DIVISION,
-                                 "<br><b>Police Zone:</b>", assets$POLICE_ZONE, 
+                                 "<br><b>Council District:</b>", assets$council_district,
+                                 "<br><b>Public Works Division:</b>", assets$public_works_division,
+                                 "<br><b>Police Zone:</b>", assets$police_zone, 
                                  assets$url, "</font>"))
         )
         recs <- recs + nrow(assets)
@@ -1932,10 +1938,10 @@ server <- shinyServer(function(input, output, session) {
                                  "<br><b>Amount Spent:</b>", cproj$TotalCostActualField,
                                  "<br><b>Start Date:</b>", cproj$StartDateField,
                                  "<br><b>Stop Date:</b>", cproj$StopDateField,
-                                 "<br><b>Neighborhood:</b>", cproj$NEIGHBORHOOD,
-                                 "<br><b>Council District:</b>", cproj$COUNCIL_DISTRICT,
-                                 "<br><b>Public Works Division:</b>", cproj$PUBLIC_WORKS_DIVISION,
-                                 "<br><b>Police Zone:</b>", cproj$POLICE_ZONE
+                                 "<br><b>Neighborhood:</b>", cproj$neighborhood,
+                                 "<br><b>Council District:</b>", cproj$council_district,
+                                 "<br><b>Public Works Division:</b>", cproj$public_works_division,
+                                 "<br><b>Police Zone:</b>", cproj$police_zone
                           ))
         )
         recs <- recs + nrow(cproj)
