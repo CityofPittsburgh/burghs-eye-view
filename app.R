@@ -8,17 +8,21 @@
 library(shiny)
 library(shinythemes)
 library(xml2)
+
 #"Dogfooding" Packages
 library(httr)
 library(jsonlite)
 library(readr)
 library(curl)
+
 # Visuals Libraries
 library(leaflet)
 library(DT)
 library(maptools)
 library(htmltools)
+library(htmlwidgets)
 library(rgeos)
+
 # Data Transform
 library(plyr)
 library(zoo)
@@ -832,7 +836,7 @@ server <- shinyServer(function(input, output, session) {
                     HTML('</font>'),
                     selectInput("funcarea_select",
                                 label = NULL,
-                                c(`Functional Area`='', levels(load.cproj$CapitalProjectFunctionalAreaField)),
+                                c(`Functional Area`='', levels(load.cproj$area)),
                                 multiple = TRUE,
                                 selectize=TRUE),
                     HTML('<font color="#474545">'),
@@ -961,7 +965,7 @@ server <- shinyServer(function(input, output, session) {
                      HTML('</font>'),
                      selectInput("funcarea_select",
                                  label = NULL,
-                                 c(`Functional Area`='', levels(load.cproj$CapitalProjectFunctionalAreaField)),
+                                 c(`Functional Area`='', levels(load.cproj$area)),
                                  multiple = TRUE,
                                  selectize=TRUE),
                      HTML('<font color="#474545">'),
@@ -1508,23 +1512,23 @@ server <- shinyServer(function(input, output, session) {
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
       for (i in 1:length(input$zone_select)) {
         if (i == 1) {
-          cproj.temp <- cproj[grepl(input$zone_select[i], cproj$police_zone), ]
+          cproj.temp <- cproj[grepl(as.character(input$zone_select[i]), cproj$police_zone), ]
         } else {
           temp <- cproj[grepl(input$zone_select[i], cproj$police_zone), ]
           cproj.temp <- rbind(cproj.temp, temp)
         }
       }
-      croj <- unique(cproj.temp)
+      cproj <- unique(cproj.temp)
     } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
       for (i in 1:length(input$hood_select)) {
         if (i == 1) {
-          cproj.temp <- cproj[grepl(input$hood_select[i], cproj$neighborhood), ]
+          cproj.temp <- cproj[grepl(as.character(input$hood_select[i]), cproj$neighborhood), ]
         } else {
-          temp <- cproj[grepl(input$hood_select[i], cproj$neighborhood), ]
+          temp <- cproj[grepl(as.character(input$hood_select[i]), cproj$neighborhood), ]
           cproj.temp <- rbind(cproj.temp, temp)
         }
       }
-      croj <- unique(cproj.temp)
+      cproj <- unique(cproj.temp)
     } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
       for (i in 1:length(input$DPW_select)) {
         if (i == 1) {
@@ -1534,7 +1538,7 @@ server <- shinyServer(function(input, output, session) {
           cproj.temp <- rbind(cproj.temp, temp)
         }
       }
-      croj <- unique(cproj.temp)
+      cproj <- unique(cproj.temp)
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
       for (i in 1:length(input$council_select)) {
         if (i == 1) {
@@ -1544,7 +1548,7 @@ server <- shinyServer(function(input, output, session) {
           cproj.temp <- rbind(cproj.temp, temp)
         }
       }
-      croj <- unique(cproj.temp)
+      cproj <- unique(cproj.temp)
     } 
     
     # Search Filter
@@ -1657,7 +1661,10 @@ server <- shinyServer(function(input, output, session) {
     recs <- 0
     layerCount <- 0
     map <- leaflet() %>% 
-      addProviderTiles("OpenStreetMap.HOT", options = providerTileOptions(noWrap = TRUE))
+      addProviderTiles("OpenStreetMap.HOT", options = providerTileOptions(noWrap = TRUE)) %>%
+      addEasyButton(easyButton(
+        icon="fa-crosshairs", title="Locate Me",
+        onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
     # Boundary Layers
     # Neighborhoods
     if (input$filter_select == "Neighborhood") {
