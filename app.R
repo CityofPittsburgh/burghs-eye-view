@@ -485,7 +485,7 @@ for (i in 1:length(levels(load311$PUBLIC_WORKS_DIVISION))) {
 load.cproj$public_works_division <- gsub("\\|", ", ", load.cproj$public_works_division)
 
 # Formatting
-load.cproj$cost_to_date <- dollarsComma(load.cproj$cost_to_date)
+load.cproj$budgeted_amount <- dollarsComma(load.cproj$budgeted_amount)
 load.cproj$asset_id[is.na(load.cproj$asset_tt)] <- ""
 load.cproj$asset_tt <- ifelse(load.cproj$asset_id == "", "",paste("<br><b>Asset:</b>", load.cproj$asset_id)) 
 
@@ -1625,9 +1625,9 @@ server <- shinyServer(function(input, output, session) {
     } else if (input$report_select == "Capital Projects") {
       cproj <- cprojInput()
       
-      cproj <- subset(cproj, select = c(name, asset_id, task_description, area, status, cost_to_date, fiscal_year, neighborhood, council_district, public_works_division, police_zone))
+      cproj <- subset(cproj, select = c(name, asset_id, task_description, area, status, budgeted_amount, fiscal_year, neighborhood, council_district, public_works_division, police_zone))
       
-      colnames(cproj) <- c("Project Name", "Asset", "Description", "Status", "Cost to Date", "Fiscal Year", "Neighborhood", "Council", "Public Works Division", "Police Zone")
+      colnames(cproj) <- c("Project Name", "Asset", "Description", "Status", "Budgeted Amount", "Fiscal Year", "Neighborhood", "Council", "Public Works Division", "Police Zone")
       
       report <- cproj
     }
@@ -1989,7 +1989,7 @@ server <- shinyServer(function(input, output, session) {
                                  "<br><b>Description:</b>", cproj$task_description,
                                  "<br><b>Functional Area:</b>", cproj$area, 
                                  "<br><b>Status:</b>",  cproj$status,
-                                 "<br><b>Amount Spent:</b>", cproj$cost_to_date,
+                                 "<br><b>Budgeted Amount:</b>", cproj$budgeted_amount,
                                  "<br><b>Fiscal Year:</b>", cproj$fiscal_year,
                                  "<br><b>Neighborhood:</b>", cproj$neighborhood,
                                  "<br><b>Council District:</b>", cproj$council_district,
