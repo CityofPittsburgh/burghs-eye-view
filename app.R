@@ -226,14 +226,13 @@ load.wf <- ckan("1b74a658-0465-456a-929e-ff4057220274")
 # Remove Inactive Water Features
 load.wf <- subset(load.wf, inactive == "False")
 # Prepare for Merge to Facilities
-names(load.wf)[names(load.wf)=="feature_type"] <- "usage"
-load.wf$usage <- as.factor(load.wf$usage)
+load.wf <- transform(load.wf, usage = as.factor(mapvalues(feature_type, c("Spray", "Decorative", "Drinking Fountain"), c("Spray Park", "Decorative Water Fountain", "Drinking Fountain"))))
 names(load.wf)[names(load.wf)=="name"] <- "address"
 load.wf$name <- paste0(ifelse(is.na(load.wf$control_type), "", load.wf$control_type), ifelse(is.na(load.wf$make), "",paste0(" (", load.wf$make, ")")))
 load.wf$primary_user <- "DEPARTMENT OF PUBLIC WORKS"
 load.wf$url<- ""
 
-load.wf <- transform(load.wf, icon = as.factor(mapvalues(usage, c("Decorative", "Drinking Fountain", "Spray"), c("DECORATIVE", "DRINKING_FOUNTAIN", "SPRAY"))))
+load.wf <- transform(load.wf, icon = as.factor(mapvalues(usage, c("Decorative Water Fountain", "Drinking Fountain", "Spray Park"), c("DECORATIVE", "DRINKING_FOUNTAIN", "SPRAY"))))
 
 # Clean Geographies
 load.wf <- cleanGeo(load.wf)
@@ -259,6 +258,7 @@ load.si <- cleanGeo(load.si)
 load.si <- subset(load.si, select = colnames(load.assets))
 # rBind Assets and Water Features
 load.assets <- rbind(load.assets, load.si)
+load.assets$usage <- as.character(load.assets$usage)
 load.assets$usage <- as.factor(load.assets$usage)
 
 # Icons for Assets
@@ -845,7 +845,7 @@ server <- shinyServer(function(input, output, session) {
                     HTML('</font>'),
                     selectInput("usage_select",
                                 label = NULL,
-                                c(`Facility Usage`='', levels(load.assets$usage)),
+                                c(`Asset Usage`='', levels(load.assets$usage)),
                                 multiple = TRUE,
                                 selectize = TRUE),
                     selectInput("filter_select",
@@ -974,7 +974,7 @@ server <- shinyServer(function(input, output, session) {
                      HTML('</font>'),
                      selectInput("usage_select",
                                  label = NULL,
-                                 c(`Facility Usage`='', levels(load.assets$usage)),
+                                 c(`Asset Usage`='', levels(load.assets$usage)),
                                  multiple = TRUE,
                                  selectize=TRUE),
                      uiOutput("filter_UI"),
