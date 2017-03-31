@@ -486,6 +486,8 @@ load.cproj$public_works_division <- gsub("\\|", ", ", load.cproj$public_works_di
 
 # Formatting
 load.cproj$cost_to_date <- dollarsComma(load.cproj$cost_to_date)
+load.cproj$asset_id[is.na(load.cproj$asset_tt)] <- ""
+load.cproj$asset_tt <- ifelse(load.cproj$asset_id == "", "",paste("<br><b>Asset:</b>", load.cproj$asset_id)) 
 
 load.cproj <- transform(load.cproj, icon = as.factor(mapvalues(area, c("Administration/Sub-Award", "Engineering and Construction", "Facility Improvement", "Neighborhood and Community Development", "Public Safety","Vehicles and Equipment"), c("administration", "engineering_construction", "facility_improvement", "neighborhood_development", "public_safety", "vehicles_equipment"))))
 
@@ -1983,7 +1985,7 @@ server <- shinyServer(function(input, output, session) {
                                                                                       return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
       }")), ~longitude, ~latitude, icon = ~icons_cproj[icon],
                  popup = ~(paste("<font color='black'><b>Name:</b>", cproj$name,
-                                 "<br><b>Asset:</b>", cproj$asset_id,
+                                 cproj$asset_tt,
                                  "<br><b>Description:</b>", cproj$task_description,
                                  "<br><b>Functional Area:</b>", cproj$area, 
                                  "<br><b>Status:</b>",  cproj$status,
