@@ -486,8 +486,8 @@ load.cproj$public_works_division <- gsub("\\|", ", ", load.cproj$public_works_di
 
 # Formatting
 load.cproj$budgeted_amount <- dollarsComma(load.cproj$budgeted_amount)
-load.cproj$asset_id[is.na(load.cproj$asset_tt)] <- ""
-load.cproj$asset_tt <- ifelse(load.cproj$asset_id == "", "",paste("<br><b>Asset:</b>", load.cproj$asset_id)) 
+load.cproj$asset_id[is.na(load.cproj$asset_id)] <- ""
+load.cproj$asset_tt <- ifelse(load.cproj$asset_id == "", "",paste("<br><b>Asset:</b>", load.cproj$asset_id))
 
 load.cproj <- transform(load.cproj, icon = as.factor(mapvalues(area, c("Administration/Sub-Award", "Engineering and Construction", "Facility Improvement", "Neighborhood and Community Development", "Public Safety","Vehicles and Equipment"), c("administration", "engineering_construction", "facility_improvement", "neighborhood_development", "public_safety", "vehicles_equipment"))))
 
@@ -551,6 +551,10 @@ if(Sys.Date() <= as.Date(paste0(this_year,"-10-31")) & Sys.Date() >= as.Date(pas
   load.egg <- data.frame(X,Y,title)
   load.egg$icon <- "patrick"
   load.egg$tt <- "<i>Your search didn't turn up anything, not even my Pot-o-Gold!</i>"
+} else if (Sys.Date() >= as.Date(paste0(this_year,"-04-01")) & Sys.Date() <= as.Date(paste0(this_year,"-04-30"))) {
+  load.egg <- read.csv("boundaries/Parks/parks.csv")
+  load.egg$icon <- "easter_egg"
+  load.egg$tt <- "<i>You couldn't find any results, but maybe you can find my eggs.</i>"
 } else {
   X <- c(-79.9968604, -80.004055)
   Y <- c(40.4381098, 40.440631)
@@ -567,7 +571,8 @@ icons_egg <- iconList(
   snow = makeIcon("./icons/egg/snowboard.png", iconAnchorX = 9, iconAnchorY = 13, popupAnchorX = 0, popupAnchorY = -13),
   new_year = makeIcon("./icons/egg/new_year.png", iconAnchorX = 9, iconAnchorY = 13.5, popupAnchorX = 0, popupAnchorY = -13.5),
   valentine = makeIcon("./icons/egg/valentine.png", iconAnchorX = 40, iconAnchorY = 32, popupAnchorX = 0, popupAnchorY = -13.5),
-  patrick = makeIcon("./icons/egg/patrick.png", iconAnchorX = 40, iconAnchorY = 32, popupAnchorX = 0, popupAnchorY = -13.5)
+  patrick = makeIcon("./icons/egg/patrick.png", iconAnchorX = 40, iconAnchorY = 32, popupAnchorX = 0, popupAnchorY = -13.5),
+  easter_egg = makeIcon("./icons/egg/easter.png", iconAnchorX = 45, iconAnchorY = 32, popupAnchorX = 0, popupAnchorY = -13.5)
 )
 
 # Non-Traffic Citations
@@ -668,7 +673,7 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                           inputPanel(
                             selectInput("report_select", 
                                         tagList(shiny::icon("map-marker"), "Select Layer:"),
-                                        choices = c("311 Requests", "Arrests", "Blotter", "Building Permits", "Capital Projects", "City Assets", "Code Violations", "Non-Traffic Citations"), #
+                                        choices = c("311 Requests", "Arrests", "Blotter", "Building Permits", "Capital Projects", "City Assets", "Code Violations", "Non-Traffic Citations"), # 
                                         selected= "311 Requests"),
                             # Define Button Position
                             uiOutput("buttonStyle")
@@ -1867,13 +1872,13 @@ server <- shinyServer(function(input, output, session) {
       if (nrow(permits) > 0) {
         layerCount <- layerCount + 1
         map <- addMarkers(map, data=permits,
-                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
-                                                                                      var childCount = cluster.getChildCount();  
-                                                                                      if (childCount < 10) {  
+                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
+                                                                                      var childCount = cluster.getChildCount();
+                                                                                      if (childCount < 10) {
                                                                                       c = 'rgba(207, 242, 252, 0.95);'
-                                                                                      } else if (childCount < 100) {  
-                                                                                      c = 'rgba(117, 214, 247, 0.95);'  
-                                                                                      } else { 
+                                                                                      } else if (childCount < 100) {
+                                                                                      c = 'rgba(117, 214, 247, 0.95);'
+                                                                                      } else {
                                                                                       c = 'rgba(0, 150, 219, 0.95);'
                                                                                       }
                                                                                       return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
@@ -1973,21 +1978,21 @@ server <- shinyServer(function(input, output, session) {
       if (nrow(cproj) > 0) {
         layerCount <- layerCount + 1
         map <- addMarkers(map, data=cproj,
-                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
-                                                                                      var childCount = cluster.getChildCount();  
-                                                                                      if (childCount < 10) {  
+                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
+                                                                                      var childCount = cluster.getChildCount();
+                                                                                      if (childCount < 10) {
                                                                                       c = 'rgba(220, 210, 224, 0.95);'
-                                                                                      } else if (childCount < 100) {  
-                                                                                      c = 'rgba(208, 195, 213, 0.95);'  
-                                                                                      } else { 
-                                                                                      c = 'rgba(184, 165, 192, 0.95);'  
-                                                                                      }    
+                                                                                      } else if (childCount < 100) {
+                                                                                      c = 'rgba(208, 195, 213, 0.95);'
+                                                                                      } else {
+                                                                                      c = 'rgba(184, 165, 192, 0.95);'
+                                                                                      }
                                                                                       return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
       }")), ~longitude, ~latitude, icon = ~icons_cproj[icon],
                  popup = ~(paste("<font color='black'><b>Name:</b>", cproj$name,
                                  cproj$asset_tt,
                                  "<br><b>Description:</b>", cproj$task_description,
-                                 "<br><b>Functional Area:</b>", cproj$area, 
+                                 "<br><b>Functional Area:</b>", cproj$area,
                                  "<br><b>Status:</b>",  cproj$status,
                                  "<br><b>Budgeted Amount:</b>", cproj$budgeted_amount,
                                  "<br><b>Fiscal Year:</b>", cproj$fiscal_year,
@@ -2007,8 +2012,8 @@ server <- shinyServer(function(input, output, session) {
       } else {
         egg <- load.egg[sample(1:nrow(load.egg),1),]
       }
-      map <-addMarkers(map, data=egg, ~X, ~Y, icon = ~icons_egg[icon], popup = ~tt) %>% 
-        setView(-79.9959, 40.4406, zoom = 10)
+      map <- addMarkers(map, data=egg, ~X, ~Y, icon = ~icons_egg[icon], popup = ~tt) %>% 
+          setView(-79.9959, 40.4406, zoom = 10)
     }
     map
     })
