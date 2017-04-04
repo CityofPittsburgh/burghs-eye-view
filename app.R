@@ -215,7 +215,7 @@ load.facilities <- transform(load.facilities, usage = as.factor(mapvalues(facili
 load.facilities <- transform(load.facilities, icon = as.factor(mapvalues(facility_type, c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC STATION", "OFFICE", "POLICE", "POOL", "POOL CLOSED", "POOL/REC", "REC", "RECYCLING", "RESTROOMS", "SALT DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT"),
                                                                          c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC_STATION", "OFFICE", "POLICE", "POOL", "POOL_CLOSED", "POOL_REC", "REC", "RECYCLING", "RESTROOMS", "SALT_DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT"))))
 
-load.facilities$url <- ifelse(load.facilities$usage %in% c("Shelter", "Community", "Senior Center", "Activity"), '<br><center><a href="https://registerparks.pittsburghpa.gov/" target="_blank">Rent this facility</a></center>', "")
+load.facilities$url <- ifelse(load.facilities$rentable , '<br><center><a href="https://registerparks.pittsburghpa.gov/" target="_blank">Rent this facility</a></center>', "")
 
 attr(load.facilities, "spec") <- NULL
 
