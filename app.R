@@ -215,7 +215,7 @@ load.facilities <- transform(load.facilities, usage = as.factor(mapvalues(facili
 load.facilities <- transform(load.facilities, icon = as.factor(mapvalues(facility_type, c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC STATION", "OFFICE", "POLICE", "POOL", "POOL CLOSED", "POOL/REC", "REC", "RECYCLING", "RESTROOMS", "SALT DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT"),
                                                                          c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC_STATION", "OFFICE", "POLICE", "POOL", "POOL_CLOSED", "POOL_REC", "REC", "RECYCLING", "RESTROOMS", "SALT_DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT"))))
 
-load.facilities$url <- ifelse(load.facilities$rentable , '<br><center><a href="https://registerparks.pittsburghpa.gov/" target="_blank">Rent this facility</a></center>', "")
+load.facilities$url <- ifelse(load.facilities$rentable, '<br><center><a href="https://registerparks.pittsburghpa.gov/" target="_blank">Rent this facility</a></center>', "")
 
 attr(load.facilities, "spec") <- NULL
 
@@ -1666,11 +1666,33 @@ server <- shinyServer(function(input, output, session) {
   output$map <- renderLeaflet({
     recs <- 0
     layerCount <- 0
-    map <- leaflet() %>% 
-      addProviderTiles("OpenStreetMap.HOT", options = providerTileOptions(noWrap = TRUE)) %>%
-      addEasyButton(easyButton(
-        icon="fa-crosshairs", title="Locate Me",
-        onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
+    if (Sys.Date() == as.Date(paste0(this_year,"-07-06")) | Sys.Date() == as.Date(paste0(this_year,"-08-31"))) {
+      map <- leaflet() %>% 
+        addProviderTiles("Thunderforest.Pioneer",
+                         options = providerTileOptions(noWrap = TRUE), group = "Pioneer") %>%
+        addProviderTiles("OpenStreetMap.HOT",
+                         options = providerTileOptions(noWrap = TRUE), group = "Huamitarian (OSM)") %>%
+        addTiles(options = providerTileOptions(noWrap = TRUE), group = "Mapnik (OSM)") %>%
+        addProviderTiles("OpenStreetMap.France",
+                         options = providerTileOptions(noWrap = TRUE), group = "France (OSM)") %>%
+        addLayersControl(
+          baseGroups = c("Pioneer", "Huamitarian (OSM)", "Mapnik (OSM)", "France (OSM)")) %>%
+        addEasyButton(easyButton(
+          icon="fa-crosshairs", title="Locate Me",
+          onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
+    } else {
+      map <- leaflet() %>% 
+        addProviderTiles("OpenStreetMap.HOT",
+                         options = providerTileOptions(noWrap = TRUE), group = "Huamitarian (OSM)") %>%
+        addTiles(options = providerTileOptions(noWrap = TRUE), group = "Mapnik (OSM)") %>%
+        addProviderTiles("OpenStreetMap.France",
+                         options = providerTileOptions(noWrap = TRUE), group = "France (OSM)") %>%
+        addLayersControl(
+          baseGroups = c("Huamitarian (OSM)", "Mapnik (OSM)", "France (OSM)")) %>%
+        addEasyButton(easyButton(
+          icon="fa-crosshairs", title="Locate Me",
+          onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
+    }
     # Boundary Layers
     # Neighborhoods
     if (input$filter_select == "Neighborhood") {
