@@ -1632,7 +1632,7 @@ server <- shinyServer(function(input, output, session) {
       
       cproj <- subset(cproj, select = c(name, asset_id, task_description, area, status, budgeted_amount, fiscal_year, neighborhood, council_district, public_works_division, police_zone))
       
-      colnames(cproj) <- c("Project Name", "Asset", "Description", "Status", "Budgeted Amount", "Fiscal Year", "Neighborhood", "Council", "Public Works Division", "Police Zone")
+      colnames(cproj) <- c("Project Name", "Asset", "Description", "Functional Area", "Status", "Budgeted Amount", "Fiscal Year", "Neighborhood", "Council", "Public Works Division", "Police Zone")
       
       report <- cproj
     }
