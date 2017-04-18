@@ -202,102 +202,82 @@ icons_311 <- iconList(
   weeds_debris = makeIcon("./icons/311/weeds_debris.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
 
+# Load Special Regions
+# Load Greenways
+greenways <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/dcef4d943c1b44129b967d97def9e8c4_0.geojson", what = "sp")
+greenways$layer <- "Greenway"
+greenways@data <- subset(greenways@data, select = c(name, layer))
+# Load Flood Zones
+floodzones <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/fb45ed8f9e0d463aadfab95620ffa303_0.geojson", what = "sp")
+floodzones$name <- NA
+floodzones$layer <- "Flood Zone"
+floodzones@data <- subset(floodzones@data, select = c(name, layer))
+# Load Landslide Prone
+landslide <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/c5b8bed5963746d4844dcfea7c2053e7_0.geojson", what = "sp")
+landslide$name <- NA
+landslide$layer <- "Landslide Prone"
+landslide@data <- subset(landslide@data, select = c(name, layer))
+# Load URA Main St
+mainst <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/ab9b192ab4ba46d88144bacf5a0252e0_0.geojson", what = "sp", disambiguateFIDs= TRUE)
+mainst$name <- as.character(mainst$name)
+mainst$name <- ifelse(mainst$name == "", NA, mainst$name)
+mainst$layer <- "URA Main St"
+mainst@data <- subset(mainst@data, select = c(name, layer))
+# Load Undermined Areas
+undermined <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/a065e686e9144110ac6ccfe7bb43fd98_0.geojson", what = "sp")
+undermined$layer <- "Undermined Area"
+undermined$name <- NA
+undermined@data <- subset(undermined@data, select = c(name, layer))
+# Load Historic Districts
+histdist <-  geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/71df883dcf184292b69d5721df39b5dd_0.geojson", what = "sp")
+histdist$layer <- "Historic District"
+histdist$name <- histdist$NAME
+histdist@data <- subset(histdist@data, select = c(name, layer))
+
+# Merge & Clean Regions
+load.regions <- rbind(greenways, floodzones, landslide, mainst, undermined, histdist, makeUniqueIDs = TRUE)  
+load.regions$layer <- as.factor(load.regions$layer)
+
 # Load facilities
-load.facilities <- ckan("07bf416f-9df2-4d70-b48d-682f608f9a6b")
+load.facilities_images <- ckan("07bf416f-9df2-4d70-b48d-682f608f9a6b")
+attr(load.facilities_images, "spec") <- NULL
 # Remove Inactive Facilities
-load.facilities <- subset(load.facilities, inactive == "False")
-# Clean Geographies
-load.facilities <- cleanGeo(load.facilities)
+load.facilities <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/b9c387d024944503ad27549e196d7260_0.geojson", what = "sp")
+load.facilities@data <- merge(load.facilities@data, load.facilities_images, all.x = TRUE, by = "name", sort = FALSE)
 # Create Adress Column (checks to see if Address No. is valid, to add number and add space between street name)
-load.facilities$address <- paste0(ifelse(is.na(load.facilities$address_number), "", paste0(load.facilities$address_number, " ")), ifelse(is.na(load.facilities$street), "", load.facilities$street))
+load.facilities@data$address <- paste0(ifelse(is.na(load.facilities@data$address_number), "", paste0(load.facilities@data$address_number, " ")), ifelse(is.na(load.facilities@data$street), "", load.facilities@data$street))
 # Clean NA's in Facility Type
-load.facilities$facility_type <- ifelse(load.facilities$name == "Southsnamee Park Third Base Dugout" | load.facilities$name == "Josh Gibson  1 Third Base Dugout", "DUGOUT",load.facilities$facility_type)
-load.facilities$facility_type <- ifelse(load.facilities$name =="Herschel Upper  Building", "DUGOUT", load.facilities$facility_type)
-load.facilities$facility_type <- ifelse(load.facilities$name =="Martin Luther King Field Field House" | load.facilities$name =="Frick Park Entrance Gate", "ACTIVITY", load.facilities$facility_type)
-load.facilities$facility_type <- as.factor(load.facilities$facility_type)
+load.facilities@data$facility_type <- ifelse(load.facilities@data$name == "Southsnamee Park Third Base Dugout" | load.facilities@data$name == "Josh Gibson  1 Third Base Dugout", "DUGOUT",load.facilities@data$facility_type)
+load.facilities@data$facility_type <- ifelse(load.facilities@data$name =="Herschel Upper  Building", "DUGOUT", load.facilities@data$facility_type)
+load.facilities@data$facility_type <- ifelse(load.facilities@data$name =="Martin Luther King Field Field House" | load.facilities@data$name =="Frick Park Entrance Gate", "ACTIVITY", load.facilities@data$facility_type)
+load.facilities@data$facility_type <- as.factor(load.facilities@data$facility_type)
 # Clean Facility Type for humans
-load.facilities <- transform(load.facilities, usage = as.factor(mapvalues(facility_type, c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC STATION", "OFFICE", "POLICE", "POOL", "POOL CLOSED", "POOL/REC", "REC", "RECYCLING", "RESTROOMS", "SALT DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT", NA),
+load.facilities@data <- transform(load.facilities@data, usage = as.factor(mapvalues(facility_type, c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC STATION", "OFFICE", "POLICE", "POOL", "POOL CLOSED", "POOL/REC", "REC", "RECYCLING", "RESTROOMS", "SALT DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT", NA),
                                                                           c("Activity", "Cabin", "Community", "Concession", "Dugout", "Firehouse", "Medic Station", "Office", "Police", "Pool", "Pool - Closed", "Pool/Recreation", "Recreation", "Recycling", "Restrooms", "Salt Dome", "Senior Center", "Service", "Shelter", "Storage", "Training", "Utility", "Vacant", "STORAGE"))))
-# Create Icon set
-load.facilities <- transform(load.facilities, icon = as.factor(mapvalues(facility_type, c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC STATION", "OFFICE", "POLICE", "POOL", "POOL CLOSED", "POOL/REC", "REC", "RECYCLING", "RESTROOMS", "SALT DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT"),
-                                                                         c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC_STATION", "OFFICE", "POLICE", "POOL", "POOL_CLOSED", "POOL_REC", "REC", "RECYCLING", "RESTROOMS", "SALT_DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT"))))
+# Create Tooltip
+load.facilities@data$rentable <- as.factor(load.facilities@data$rentable)
+load.facilities@data$url <- ifelse(load.facilities@data$rentable == "True", '<br><center><a href="https://registerparks.pittsburghpa.gov/" target="_blank">Rent this facility</a></center>', "")
 
-load.facilities$url <- ifelse(load.facilities$rentable, '<br><center><a href="https://registerparks.pittsburghpa.gov/" target="_blank">Rent this facility</a></center>', "")
-
-attr(load.facilities, "spec") <- NULL
-
-load.facilities <- subset(load.facilities, select = c(usage, name, primary_user, address, neighborhood, council_district, public_works_division, police_zone, url, icon, latitude, longitude))
+load.facilities <- load.facilities[load.facilities$inactive == "False",]
 
 # Load Water Features
 load.wf <- ckan("1b74a658-0465-456a-929e-ff4057220274")
 # Remove Inactive Water Features
 load.wf <- subset(load.wf, inactive == "False")
 # Prepare for Merge to Facilities
-load.wf <- transform(load.wf, usage = as.factor(mapvalues(feature_type, c("Spray", "Decorative", "Drinking Fountain"), c("Spray Park", "Decorative Water Fountain", "Drinking Fountain"))))
-names(load.wf)[names(load.wf)=="name"] <- "address"
-load.wf$name <- paste0(ifelse(is.na(load.wf$control_type), "", load.wf$control_type), ifelse(is.na(load.wf$make), "",paste0(" (", load.wf$make, ")")))
-load.wf$primary_user <- "DEPARTMENT OF PUBLIC WORKS"
-load.wf$url<- ""
-
-load.wf <- transform(load.wf, icon = as.factor(mapvalues(usage, c("Decorative Water Fountain", "Drinking Fountain", "Spray Park"), c("DECORATIVE", "DRINKING_FOUNTAIN", "SPRAY"))))
-
+load.wf <- transform(load.wf, feature_type = as.factor(mapvalues(feature_type, c("Spray", "Decorative", "Drinking Fountain"), c("Spray Park", "Decorative Water Fountain", "Drinking Fountain"))))
 # Clean Geographies
-load.wf <- cleanGeo(load.wf)
 
-# Subset for rBind
-load.wf <- subset(load.wf, select = colnames(load.facilities))
-# rBind Facilities and Water Features
-load.assets <- rbind(load.facilities, load.wf)
 
 # Load Signalized Intersections
 load.si <- ckan("c864e31e-e2f4-4a1e-946c-50006537e73d")
-load.si$usage <- "Signalized Intersection"
-load.si$icon <- "SIGNALIZED_INTERSECTION"
-names(load.si)[names(load.si)=="description"] <- "address"
-load.si$primary_user <- "DEPARTMENT OF PUBLIC WORKS"
-load.si$name <- paste(ifelse(is.na(load.si$operation_type), "", load.si$operation_type), ifelse(is.na(load.si$operation_type) & is.na(load.si$flash_time), "", "-"), ifelse(is.na(load.si$flash_time), "", load.si$flash_time))
-load.si$url<- ""
+load.si$operation_type <- as.factor(load.si$operation_type)
+load.si$flash_time <- as.factor(load.si$flash_time)
 
-# Clean Geographies
-load.si <- cleanGeo(load.si)
-
-# Subset for rBind
-load.si <- subset(load.si, select = colnames(load.assets))
-# rBind Assets and Water Features
-load.assets <- rbind(load.assets, load.si)
-load.assets$usage <- as.character(load.assets$usage)
-load.assets$usage <- as.factor(load.assets$usage)
-
-# Icons for Assets
-icons_assets <- iconList(
-  ACTIVITY = makeIcon("./icons/assets/activity.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  CABIN = makeIcon("./icons/assets/cabin.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  COMMUNITY = makeIcon("./icons/assets/community.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  CONCESSION = makeIcon("./icons/assets/concession.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  DUGOUT = makeIcon("./icons/assets/dugout.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  DECORATIVE = makeIcon("./icons/assets/decorative.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  DRINKING_FOUNTAIN = makeIcon("./icons/assets/drinking_fountain.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  FIREHOUSE = makeIcon("./icons/assets/firehouse.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  MEDIC_STATION = makeIcon("./icons/assets/medic_station.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  OFFICE = makeIcon("./icons/assets/office.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  POLICE = makeIcon("./icons/assets/police.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  POOL = makeIcon("./icons/assets/pool.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  POOL_CLOSED = makeIcon("./icons/assets/pool_closed.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  POOL_REC = makeIcon("./icons/assets/pool_recreation.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  REC = makeIcon("./icons/assets/recreation.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  RECYCLING = makeIcon("./icons/assets/recycling.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  RESTROOMS = makeIcon("./icons/assets/restrooms.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  SALT_DOME= makeIcon("./icons/assets/salt_dome.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  SENIOR = makeIcon("./icons/assets/healthy_living.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  SERVICE = makeIcon("./icons/assets/service.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  SHELTER = makeIcon("./icons/assets/shelter.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  SIGNALIZED_INTERSECTION = makeIcon("./icons/assets/signalized_intersection.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  SPRAY = makeIcon("./icons/assets/spray_park.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  STORAGE = makeIcon("./icons/assets/storage.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  TRAINING = makeIcon("./icons/assets/training.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  UTILITY = makeIcon("./icons/assets/utility.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  VACANT = makeIcon("./icons/assets/vacant.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
-)
+# Load City Steps
+load.steps <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/742fd30a7df24dc4af257f721cbb72ba_0.geojson", what = "sp")
+load.steps@data$num_steps_1 <- as.character(load.steps@data$num_steps_1)
+load.steps@data$num_steps_1 <- as.numeric(load.steps@data$num_steps_1)
 
 # Load Permit Layer
 load.permits <- ckan("95d69895-e58d-44de-a370-fec6ad2b332e")
@@ -559,7 +539,7 @@ if(Sys.Date() <= as.Date(paste0(this_year,"-10-31")) & Sys.Date() >= as.Date(pas
   load.egg$icon <- "patrick"
   load.egg$tt <- "<i>Your search didn't turn up anything, not even my Pot-o-Gold!</i>"
 } else if (Sys.Date() >= as.Date(paste0(this_year,"-04-01")) & Sys.Date() <= as.Date(paste0(this_year,"-04-30"))) {
-  load.egg <- read.csv("boundaries/Parks/parks.csv")
+  load.egg <- read.csv("parks.csv")
   load.egg$icon <- "easter_egg"
   load.egg$tt <- "<i>You couldn't find any results, but maybe you can find my eggs.</i>"
 } else {
@@ -631,7 +611,7 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                  theme = shinytheme("flatly"),
                  title = HTML('<img src="burghs_eyeview_logo_small.png" alt="Burghs Eye View" height="85%">'),
                  position = "static-top",
-                 tabPanel('Map', class = "Map",
+                 tabPanel('Events', class = "Map",
                           # Run script to determine if user is loading from a mobile device
                           tags$script(getWidth),
                           # Google Tag Manager Script to Head
@@ -675,6 +655,9 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                           # Generate search & layer panel & Map (checks for mobile devices)
                           uiOutput("mapPanel")
                           ),
+                 tabPanel('Assets', class = "City",
+                          uiOutput("cityPanel")
+                 ),
                  tabPanel('Data', class = "Data",
                           # Select Dataset for Export
                           inputPanel(
@@ -852,16 +835,6 @@ server <- shinyServer(function(input, output, session) {
                                 c(`Functional Area`='', levels(load.cproj$area)),
                                 multiple = TRUE,
                                 selectize=TRUE),
-                    HTML('<font color="#474545">'),
-                    checkboxInput("toggleAssets",
-                                  label = "City Assets",
-                                  value = TRUE),
-                    HTML('</font>'),
-                    selectInput("usage_select",
-                                label = NULL,
-                                c(`Asset Usage`='', levels(load.assets$usage)),
-                                multiple = TRUE,
-                                selectize = TRUE),
                     selectInput("filter_select",
                                 "Filter by Area",
                                 c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Public Works Division")),
@@ -981,16 +954,6 @@ server <- shinyServer(function(input, output, session) {
                                  c(`Functional Area`='', levels(load.cproj$area)),
                                  multiple = TRUE,
                                  selectize=TRUE),
-                     HTML('<font color="#474545">'),
-                     checkboxInput("toggleAssets",
-                                   label = "City Assets",
-                                   value = TRUE),
-                     HTML('</font>'),
-                     selectInput("usage_select",
-                                 label = NULL,
-                                 c(`Asset Usage`='', levels(load.assets$usage)),
-                                 multiple = TRUE,
-                                 selectize=TRUE),
                      uiOutput("filter_UI"),
                      selectInput("filter_select",
                                  "Filter by Area",
@@ -1001,13 +964,13 @@ server <- shinyServer(function(input, output, session) {
                      HTML('</div>')
                      ),
                   # Generate Map
-                  div(class="mapBack", style="position: absolute;
+                  div(class="cityBack", style="position: absolute;
                                               width: 100%;z-index: -1;
                                               left: 0px;
                                               top: 55px;", leafletOutput("map")),
                   # Set map to style for Mobile
-                  tags$style(type = "text/css", "#map {height: calc(100vh - 115px) !important;}"),
-                  tags$head(tags$style(type="text/css", '.mapBack {
+                  tags$style(type = "text/css", "#city_map {height: calc(100vh - 115px) !important;}"),
+                  tags$head(tags$style(type="text/css", '.cityBack {
                                              background-image: url("loading.png");
                                              background-repeat: no-repeat;
                                              background-position: center;
@@ -1015,7 +978,175 @@ server <- shinyServer(function(input, output, session) {
         )
       )
   }
-})
+  })
+  # City Map UI
+  output$cityPanel <- renderUI({
+    # UI for Desktop Users
+    if (as.numeric(input$GetScreenWidth) > 800) {
+      tagList(
+        # Generate Map
+        leafletOutput("city_map"),
+        # Map size for Desktop CSS
+        tags$style(type = "text/css", "#city_map {height: calc(100vh - 60px) !important;}"),
+        absolutePanel(
+          # Input panel for Desktops (alpha'd)
+          top = 70, left = 50, width = '300px',
+          wellPanel(id = "tPanel", style = "overflow-y:auto; max-height: calc(100vh - 85px) !important;",
+                    textInput("city_search",
+                              value = "",
+                              label = NULL, 
+                              placeholder = "Search"),
+                    HTML('<font color="#ff7f00">'),
+                    checkboxInput("toggleFacilities",
+                                  label = "City Facilities",
+                                  value = TRUE),
+                    HTML('</font>'),
+                    selectInput("usage_select",
+                                label = NULL,
+                                c(`Facility Usage`='', levels(load.facilities$usage)),
+                                multiple = TRUE,
+                                selectize = TRUE),
+                    selectInput("rentable_select",
+                                label= NULL,
+                                c(`Rentable` = '', levels(load.facilities$rentable)),
+                                selectize = TRUE),
+                    HTML('<font color="#a65628">'),
+                    checkboxInput("toggleSteps",
+                                  label = "City Steps",
+                                  value = TRUE),
+                    HTML('</font>'),
+                    sliderInput("steps_select",
+                                label = "Step count",
+                                min = min(load.steps$num_steps_1, na.rm = TRUE),
+                                max = max(load.steps$num_steps_1, na.rm = TRUE),
+                                value = c(min(load.steps$num_steps_1, na.rm = TRUE),max(load.steps$num_steps_1, na.rm = TRUE)),
+                                step = 1),
+                    HTML('<font color="#377eb8">'),
+                    checkboxInput("toggleWf",
+                                  label = "Water Features",
+                                  value = TRUE),
+                    HTML('</font>'),
+                    selectInput("feature_select",
+                                label = NULL,
+                                c(`Feature Type`='', levels(load.wf$feature_type)),
+                                multiple = TRUE,
+                                selectize = TRUE),
+                    HTML('<font color="#e41a1c">'),
+                    checkboxInput("toggleTraffic",
+                                  label = "Traffic Lights",
+                                  value = TRUE),
+                    HTML('</font>'),
+                    selectInput("operation_select",
+                                label = NULL,
+                                c(`Operation Type` ='', levels(load.si$operation_type)),
+                                multiple = TRUE,
+                                selectize = TRUE),
+                    selectInput("flash_select",
+                                label = NULL,
+                                c(`Flash Time` ='', levels(load.si$flash_time)),
+                                multiple = TRUE,
+                                selectize = TRUE)
+          ), style = "opacity: 0.88"
+        )
+      )
+    } else {
+      tagList(
+        # Input panel for Mobile (stationary at top)
+        absolutePanel(top = 65, left = 0, width = '100%' ,
+                      wellPanel(id = "tPanel", style ="padding-left: 5px; padding-right: 5px;",
+                                # Remove padding from Search Bar
+                                tags$style(type= "text/css", "#tPanel {margin-bottom:0px; padding:0px; overflow-y:scroll; max-height: calc(100vh - 60px); !important; min-height: 55px;}"),
+                                # Set background color to match panels
+                                tags$style(type = "text/css", "body {background-color: #ecf0f1}"),
+                                tags$style(type= "text/css", "{width:100%;
+                                           margin-bottom:5px;
+                                           text-align: center;}
+                                           .inner
+                                           {display: inline-block;}"),
+                                # Div for Search Bar and Expansion
+                                HTML('<div id="outer" style="position:absolute;z-index: 9; background-color:#ecf0f1; width:100%;">'),
+                                # Set Searchvar width optimal for device
+                                tags$style(type = "text/css", paste0('#city_search {width: ', input$GetScreenWidth - 84, 'px; margin-left:10px;}')),
+                                # Inputs
+                                div(style="display:inline-block;", 
+                                    textInput("city_search", 
+                                              value =  "",
+                                              label = NULL, 
+                                              placeholder = "Search")),
+                                tags$style(style="text/css", chartr0('#cityPanel button .fa:before { content: "\\f056";  }
+                                                                     #cityPanel button.collapsed .fa:before { content: "\\f055";  }')),
+                                HTML('<button class="btn collapsed" data-toggle="collapse" data-target="#mobile"><i class="fa fa-search-plus" aria-hidden="true"></i></button></div>
+                                     <div id="mobile" class="collapse" style="margin-top:55px;">'),
+                                HTML('<font color="#ff7f00">'),
+                                checkboxInput("toggleFacilities",
+                                              label = "City Facilities",
+                                              value = TRUE),
+                                HTML('</font>'),
+                                selectInput("usage_select",
+                                            label = NULL,
+                                            c(`Facility Usage`='', levels(load.facilities$usage)),
+                                            multiple = TRUE,
+                                            selectize = TRUE),
+                                selectInput("rentable_select",
+                                            label= NULL,
+                                            c(`Rentable` = '', levels(load.facilities$rentable)),
+                                            selectize = TRUE),
+                                HTML('<font color="#a65628">'),
+                                checkboxInput("toggleSteps",
+                                              label = "City Steps",
+                                              value = TRUE),
+                                HTML('</font>'),
+                                sliderInput("steps_select",
+                                            label = "Steps",
+                                            min = min(load.steps$num_steps_1, na.rm = TRUE),
+                                            max = max(load.steps$num_steps_1, na.rm = TRUE),
+                                            value = c(min(load.steps$num_steps_1, na.rm = TRUE),max(load.steps$num_steps_1, na.rm = TRUE)),
+                                            step = 1),
+                                HTML('<font color="#377eb8">'),
+                                checkboxInput("toggleWf",
+                                              label = "Water Features",
+                                              value = TRUE),
+                                HTML('</font>'),
+                                selectInput("feature_select",
+                                            label = NULL,
+                                            c(`Feature Type`='', levels(load.wf$feature_type)),
+                                            multiple = TRUE,
+                                            selectize = TRUE),
+                                HTML('<font color="#e41a1c">'),
+                                checkboxInput("toggleTraffic",
+                                              label = "Traffic Lights",
+                                              value = TRUE),
+                                HTML('</font>'),
+                                selectInput("operation_select",
+                                            label = NULL,
+                                            c(`Operation Type` ='', levels(load.si$operation_type)),
+                                            multiple = TRUE,
+                                            selectize = TRUE),
+                                selectInput("flash_select",
+                                            label = NULL,
+                                            c(`Flash Time` ='', levels(load.si$flash_time)),
+                                            multiple = TRUE,
+                                            selectize = TRUE),
+                                HTML('</div>')
+                      ),
+                      # Generate Map
+                      div(class="cityBack", style="position: absolute;
+                          width: 100%;z-index: -1;
+                          left: 0px;
+                          top: 55px;", leafletOutput("city_map")),
+                      # Set map to style for Mobile
+                      tags$style(type = "text/css", "#city_map {height: calc(100vh - 115px) !important;}"),
+                      tags$head(tags$style(type="text/css", '.cityBack {
+                                           background-image: url("loading.png");
+                                           background-repeat: no-repeat;
+                                           background-position: center;
+                                           background-size: contain;}'))
+                      )
+                    )
+                                
+                                     
+    }
+  })
   # Filter by Area Display Options
   output$filter_UI <- renderUI({
     if (input$filter_select == "Neighborhood"){
@@ -1483,32 +1614,74 @@ server <- shinyServer(function(input, output, session) {
     
     return(permits)
   })
-  # City Assets data with filters
-  assetsInput <- reactive({
-    assets <- load.assets
+  # Water Features Data with filters
+  wfInput <- reactive({
+    wf <- load.wf
+    
+    # Feature Filter
+    if (length(input$feature_select) > 0) {
+      wf <- wf[wf$usage %in% input$feature_select,]
+    }
+    
+    # Search Filter
+    if (!is.null(input$city_search) & input$city_search != "") {
+      wf <- wf[apply(wf, 1, function(row){any(grepl(input$city_search, row, ignore.case = TRUE))}), ]
+    }
+    
+    return(wf)
+  })
+  # Signalized Intersections Data with filters
+  siInput <- reactive({
+    si <- load.si
+    
+    # Operation Type Filter
+    if (length(input$operation_select) > 0) {
+      si <- si[si$operation_type %in% input$operation_select,]
+    }
+    # Flash Time Filter
+    if (length(input$flash_select) > 0) {
+      si <- si[si$flash_time %in% input$flash_select,]
+    }
+    
+    # Search Filter
+    if (!is.null(input$city_search) & input$city_search != "") {
+      si <- si[apply(si, 1, function(row){any(grepl(input$city_search, row, ignore.case = TRUE))}), ]
+    }
+    
+    return(si)
+  })
+  # City Steps data with filters
+  stepsInput <- reactive({
+    steps <- load.steps
+    
+    steps <- subset(steps, num_steps_1 <= input$steps_select[1] & num_steps_1 >= input$steps_select[2] | is.na(num_steps_1))
+    
+    # Search Filter
+    if (!is.null(input$city_search) & input$city_search != "") {
+      steps <- steps[apply(steps, 1, function(row){any(grepl(input$city_search, row, ignore.case = TRUE))}), ]
+    }
+    
+    return(steps)
+  })
+  # City Facilities data with filters
+  facilitiesInput <- reactive({
+    facilities <- load.facilities
     
     # Usage Filter
     if (length(input$usage_select) > 0) {
-      assets <- assets[assets$usage %in% input$usage_select,]
+      facilities <- facilities[facilities$usage %in% input$usage_select,]
     }
-    
-    # Geographic Filters
-    if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
-      assets <- assets[assets$police_zone %in% input$zone_select,]
-    } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
-      assets <- assets[assets$neighborhood %in% input$hood_select,]
-    } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
-      assets <- assets[assets$public_works_division %in% input$DPW_select,]
-    } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
-      assets <- assets[assets$council_district %in% input$council_select,]
-    } 
+    # Usage Filter
+    if (!is.null(input$rentable_select)) {
+      facilities <- facilities[facilities$rentable %in% input$rentable_select,]
+    }
     
     # Search Filter
-    if (!is.null(input$search) && input$search != "") {
-      assets <- assets[apply(assets, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
+    if (!is.null(input$city_search) & input$city_search != "") {
+      facilities <- facilities[apply(facilities, 1, function(row){any(grepl(input$city_search, row, ignore.case = TRUE))}), ]
     }
     
-    return(assets)
+    return(facilities)
   })
   # Capital Projects data with filters
   cprojInput <- reactive({
@@ -1627,13 +1800,13 @@ server <- shinyServer(function(input, output, session) {
       colnames(violations) <- c("Violation", "Result", "Inspection Date", "Address", "Neighborhood", "Council District", "Police Zone", "Public Works Division", "Case #", "Parcel ID")
       report <- violations
     } else if (input$report_select == "City Assets") {
-      assets <- assetsInput()
+      facilities <- facilitiesInput()
       
-      assets <- subset(assets, select = c(usage, name, primary_user, address, neighborhood, council_district, public_works_division, police_zone))
+      facilities <- subset(facilities, select = c(usage, name, primary_user, address, neighborhood, council_district, public_works_division, police_zone))
       
-      colnames(assets) <- c("Usage", "Description", "Dept", "Location", "Neighborhood", "Council", "Public Works Division", "Police Zone")
+      colnames(facilities) <- c("Usage", "Description", "Dept", "Location", "Neighborhood", "Council", "Public Works Division", "Police Zone")
       
-      report <- assets
+      report <- facilities
     } else if (input$report_select == "Capital Projects") {
       cproj <- cprojInput()
       
@@ -1964,39 +2137,6 @@ server <- shinyServer(function(input, output, session) {
         recs <- recs + nrow(violations)
         }
       }
-    # City Assets Layer
-    if (input$toggleAssets) {
-      assets <- assetsInput()
-      # Remove unmappables
-      assets <- assets[!(is.na(assets$longitude)),]
-      assets <- assets[!(is.na(assets$latitude)),]
-      if (nrow(assets) > 0) {
-        layerCount <- layerCount + 1
-        map <- addMarkers(map, data=assets,
-                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
-                                                                                      var childCount = cluster.getChildCount();  
-                                                                                      if (childCount < 10) {  
-                                                                                      c = 'rgba(217, 217, 224, 0.95);'
-                                                                                      } else if (childCount < 100) {  
-                                                                                      c = 'rgba(171, 171, 182, 0.95);'  
-                                                                                      } else { 
-                                                                                      c = 'rgba(150, 150, 163, 0.95);'  
-                                                                                      }    
-                                                                                      return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-      }")), ~longitude, ~latitude, icon = ~icons_assets[icon],
-                 popup = ~(paste("<font color='black'><b>Usage:</b>", assets$usage,
-                                 "<br><b>Description:</b>", assets$name,
-                                 "<br><b>Dept:</b>", assets$primary_user,
-                                 "<br><b>Location:</b>", assets$address,
-                                 "<br><b>Neighborhood:</b>", assets$neighborhood,
-                                 "<br><b>Council District:</b>", assets$council_district,
-                                 "<br><b>Public Works Division:</b>", assets$public_works_division,
-                                 "<br><b>Police Zone:</b>", assets$police_zone, 
-                                 assets$url, "</font>"))
-        )
-        recs <- recs + nrow(assets)
-      }
-    }
     # Capital Projects Layer
     if (input$toggleCproj) {
       cproj <- cprojInput()
@@ -2046,7 +2186,84 @@ server <- shinyServer(function(input, output, session) {
     }
     map
     })
+  # Build City Map
+  output$city_map <- renderLeaflet({
+    if (Sys.Date() == as.Date(paste0(this_year,"-07-06")) | Sys.Date() == as.Date(paste0(this_year,"-08-31"))) {
+      city_map <- leaflet() %>% 
+        addProviderTiles("Thunderforest.Pioneer",
+                         options = providerTileOptions(noWrap = TRUE), group = "Pioneer") %>%
+        addProviderTiles("OpenStreetMap.HOT",
+                         options = providerTileOptions(noWrap = TRUE), group = "Huamitarian (OSM)") %>%
+        addTiles(options = providerTileOptions(noWrap = TRUE), group = "Mapnik (OSM)") %>%
+        addProviderTiles("OpenStreetMap.France",
+                         options = providerTileOptions(noWrap = TRUE), group = "France (OSM)") %>%
+        addLayersControl(
+          baseGroups = c("Pioneer", "Huamitarian (OSM)", "Mapnik (OSM)", "France (OSM)")) %>%
+        addEasyButton(easyButton(
+          icon="fa-crosshairs", title="Locate Me",
+          onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
+    } else {
+      city_map <- leaflet() %>% 
+        addProviderTiles("OpenStreetMap.HOT",
+                         options = providerTileOptions(noWrap = TRUE), group = "Huamitarian (OSM)") %>%
+        addTiles(options = providerTileOptions(noWrap = TRUE), group = "Mapnik (OSM)") %>%
+        addProviderTiles("OpenStreetMap.France",
+                         options = providerTileOptions(noWrap = TRUE), group = "France (OSM)") %>%
+        addLayersControl(
+          baseGroups = c("Huamitarian (OSM)", "Mapnik (OSM)", "France (OSM)")) %>%
+        addEasyButton(easyButton(
+          icon="fa-crosshairs", title="Locate Me",
+          onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
+    }
+    # City Assets Layer
+    if (input$toggleFacilities) {
+      facilities <- facilitiesInput()
+      if (nrow(facilities) > 0) {
+        city_map <- addPolygons(city_map, data=facilities, color = "#ff7f00", fillColor = "#ff7f00", fillOpacity = .5,
+                           popup = ~(paste(paste0('<center><img id="imgPicture" src="', facilities$image_url,'" style="width:250px;"></center>'),
+                                          "<font color='black'><b>Location:</b>", facilities$address,
+                                          "<br><b>Description:</b>", facilities$name,
+                                          "<br><b>Usage:</b>", facilities$usage,
+                                          "<br><b>Dept:</b>", facilities$primary_user,
+                                          facilities$url, "</font>"))
+        )
+      }
+    }
+    if (input$toggleWf) {
+      wf <- wfInput()
+      if (nrow(wf) > 0) {
+        city_map <- addCircleMarkers(city_map, data=wf, color = "#377eb8", fillColor = "#377eb8", fillOpacity = .5, lat = ~latitude, lng = ~longitude, radius = 2,
+                                popup = ~(paste("<font color='black'><b>Location:</b>", wf$name,
+                                                "<br><b>Feature Type:</b>", wf$feature_type,
+                                                ifelse(is.na(wf$make), "", paste("<br><b>Make:</b>", wf$make)),
+                                                ifelse(is.na(wf$control_type), "", paste("<br><b>Control:</b>", wf$control_type)),"</font>"))
+        )
+      }
+    }
+    if (input$toggleWf) {
+      si <- siInput()
+      if (nrow(si) > 0) {
+        city_map <- addCircleMarkers(city_map, data=si, color = "#e41a1c", fillColor = "#e41a1c", fillOpacity = .5, lat = ~latitude, lng = ~longitude, radius = 2,
+                                     popup = ~(paste("<font color='black'><b>Location:</b>", si$description,
+                                                     ifelse(is.na(si$operation_type), "", paste("<br><b>Operation Type:</b>", si$operation_type)),
+                                                     ifelse(is.na(si$flash_time), "", paste("<br><b>Flash Time:</b>", si$flash_time)),
+                                                     ifelse(is.na(si$flash_yellow), "", paste("<br><b>Flash Yellow:</b>", si$flash_yellow)),"</font>"))
+        )
+      }
+    }
+    if (input$toggleSteps) {
+      steps <- stepsInput()
+      if (nrow(steps) > 0) {
+        city_map <- addPolylines(city_map, data=steps, color = "#a65628",
+                                popup = ~(paste("<font color='black'><b>Location:</b>", steps$cartegraph_id,
+                                                ifelse(is.na(steps$num_steps_1), "<br><b>Steps:</b> Uncounted", paste("<br><b>Steps:</b>", steps$num_steps_1)),
+                                                ifelse(is.na(steps$year_1), "<br><b>Year:</b> Unknown", paste("<br><b>Year:</b>", steps$year_1)),
+                                                '<br><center><a href="http://pittsburghpa.gov/dcp/steps" target="_blank">Volunteer to Survey City Steps!</a></center></font>'))
+        )
+      }
+    }
+    city_map
   })
-
+})
 # Run the application 
 shinyApp(ui = ui, server = server, enableBookmarking = "url")
