@@ -71,7 +71,7 @@ ckanQuery  <- function(id, days, column) {
 }
 
 # Council
-load.council <- geojsonio::geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/677930d13af94fd8b70c693c1a6660d0_0.geojson", what = "sp")
+load.council <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/677930d13af94fd8b70c693c1a6660d0_0.geojson", what = "sp")
 
 # List for Clean Function
 council_list <- paste0(load.council$council, ": ", load.council$councilman)
@@ -123,16 +123,16 @@ cleanGeo <- function(data, upper) {
 
 # Load Boundary Files
 # Neighborhoods
-load.hoods <- geojsonio::geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/87a7e06c5d8440f280ce4b1e4f75cc84_0.geojson", what = "sp")
+load.hoods <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/87a7e06c5d8440f280ce4b1e4f75cc84_0.geojson", what = "sp")
 # Council Cont.
 load.council$COUNCIL_DISTRICT <- load.council$council
 load.council@data <- cleanCouncil(load.council@data, TRUE)
 # DPW
-load.dpw <- geojsonio::geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/2d2c30d9633647ddab2f918afc38c35b_0.geojson", what = "sp")
+load.dpw <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/2d2c30d9633647ddab2f918afc38c35b_0.geojson", what = "sp")
 load.dpw$PUBLIC_WORKS_DIVISION <- load.dpw$division
 load.dpw@data <- cleanDPW(load.dpw@data, TRUE)
 # Zone
-load.zones <- geojsonio::geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/7e95f0914283472e83e8000c0af33110_0.geojson", what = "sp")
+load.zones <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/7e95f0914283472e83e8000c0af33110_0.geojson", what = "sp")
 load.zones$POLICE_ZONE <- load.zones$zone
 load.zones@data <- cleanZone(load.zones@data, TRUE)
 
