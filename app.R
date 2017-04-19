@@ -28,6 +28,7 @@ library(geojsonio)
 library(plyr)
 library(zoo)
 library(lubridate)
+library(tools)
 
 # Turn off Scientific Notation
 options(scipen = 999)
@@ -255,7 +256,7 @@ load.facilities@data$facility_type <- ifelse(load.facilities@data$name =="Martin
 load.facilities@data$facility_type <- as.factor(load.facilities@data$facility_type)
 # Clean Facility Type for humans
 load.facilities@data <- transform(load.facilities@data, usage = as.factor(mapvalues(facility_type, c("ACTIVITY", "CABIN", "COMMUNITY", "CONCESSION", "DUGOUT", "FIREHOUSE" , "MEDIC STATION", "OFFICE", "POLICE", "POOL", "POOL CLOSED", "POOL/REC", "REC", "RECYCLING", "RESTROOMS", "SALT DOME", "SENIOR", "SERVICE", "SHELTER", "STORAGE", "TRAINING", "UTILITY", "VACANT", NA),
-                                                                          c("Activity", "Cabin", "Community", "Concession", "Dugout", "Firehouse", "Medic Station", "Office", "Police", "Pool", "Pool - Closed", "Pool/Recreation", "Recreation", "Recycling", "Restrooms", "Salt Dome", "Senior Center", "Service", "Shelter", "Storage", "Training", "Utility", "Vacant", "STORAGE"))))
+                                                                          c("Activity", "Cabin", "Community", "Concession", "Dugout", "Firehouse", "Medic Station", "Office", "Police", "Pool", "Pool - Closed", "Pool/Recreation", "Recreation", "Recycling", "Restrooms", "Salt Dome", "Senior Center", "Service", "Shelter", "Storage", "Training", "Utility", "Vacant", "Storage"))))
 # Create Tooltip
 load.facilities@data$rentable <- as.factor(load.facilities@data$rentable)
 load.facilities@data$url <- ifelse(load.facilities@data$rentable == "True", '<br><center><a href="https://registerparks.pittsburghpa.gov/" target="_blank">Rent this facility</a></center>', "")
@@ -268,11 +269,13 @@ load.wf <- ckan("1b74a658-0465-456a-929e-ff4057220274")
 load.wf <- subset(load.wf, inactive == "False")
 # Prepare for Merge to Facilities
 load.wf <- transform(load.wf, feature_type = as.factor(mapvalues(feature_type, c("Spray", "Decorative", "Drinking Fountain"), c("Spray Park", "Decorative Water Fountain", "Drinking Fountain"))))
-# Clean Geographies
-
 
 # Load Signalized Intersections
 load.si <- ckan("c864e31e-e2f4-4a1e-946c-50006537e73d")
+load.si$description <- gsub("_", " ", load.si$description)
+load.si$description <- toTitleCase(tolower(load.si$description))
+load.si$description <- gsub("Osm", "OSM", load.si$description, ignore.case = TRUE)
+load.si$flash_yellow <- toTitleCase(tolower(load.si$flash_yellow))
 load.si$operation_type <- as.factor(load.si$operation_type)
 load.si$flash_time <- as.factor(load.si$flash_time)
 
@@ -474,6 +477,7 @@ for (i in 1:length(levels(load311$PUBLIC_WORKS_DIVISION))) {
 load.cproj$public_works_division <- gsub("\\|", ", ", load.cproj$public_works_division)
 
 # Formatting
+load.cproj$name <- toTitleCase(tolower(load.cproj$name))
 load.cproj$budgeted_amount <- dollarsComma(load.cproj$budgeted_amount)
 load.cproj$asset_id[is.na(load.cproj$asset_id)] <- ""
 load.cproj$asset_tt <- ifelse(load.cproj$asset_id == "", "",paste("<br><b>Asset:</b>", load.cproj$asset_id))
@@ -607,13 +611,14 @@ icons_arrests <- iconList(
 )
 
 # UI for application
-ui <- navbarPage(windowTitle = "Burgh's Eye View", 
+ui <- navbarPage(id = "mapPage",
+                 windowTitle = "Burgh's Eye View", 
                  collapsible = TRUE,
                  fluid = TRUE,
                  theme = shinytheme("flatly"),
                  title = HTML('<img src="burghs_eyeview_logo_small.png" alt="Burghs Eye View" height="85%">'),
                  position = "static-top",
-                 tabPanel('Events', class = "Map",
+                 tabPanel('Events', id = "Events",
                           # Run script to determine if user is loading from a mobile device
                           tags$script(getWidth),
                           # Google Tag Manager Script to Head
@@ -657,10 +662,10 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                           # Generate search & layer panel & Map (checks for mobile devices)
                           uiOutput("mapPanel")
                           ),
-                 tabPanel('Assets', class = "City",
+                 tabPanel('Assets', id = "Assets",
                           uiOutput("cityPanel")
                  ),
-                 tabPanel('Data', class = "Data",
+                 tabPanel('Data', id = "Data",
                           # Select Dataset for Export
                           inputPanel(
                             selectInput("report_select", 
@@ -750,7 +755,7 @@ server <- shinyServer(function(input, output, session) {
                               label = NULL, 
                               placeholder = "Search"),
                     # Add background image
-                    tags$head(tags$style(type="text/css", '.Map {
+                    tags$head(tags$style(type="text/css", '.Events {
                                                background-image: url("loading.png");
                                                background-repeat: no-repeat;
                                                background-position: center;
@@ -966,13 +971,13 @@ server <- shinyServer(function(input, output, session) {
                      HTML('</div>')
                      ),
                   # Generate Map
-                  div(class="mapBack", style="position: absolute;
+                  div(class="eventsBack", style="position: absolute;
                                               width: 100%;z-index: -1;
                                               left: 0px;
                                               top: 55px;", leafletOutput("map")),
                   # Set map to style for Mobile
                   tags$style(type = "text/css", "#city_map {height: calc(100vh - 115px) !important;}"),
-                  tags$head(tags$style(type="text/css", '.mapBack {
+                  tags$head(tags$style(type="text/css", '#eventsBack {
                                              background-image: url("loading.png");
                                              background-repeat: no-repeat;
                                              background-position: center;
@@ -991,7 +996,7 @@ server <- shinyServer(function(input, output, session) {
         # Map size for Desktop CSS
         tags$style(type = "text/css", "#city_map {height: calc(100vh - 60px) !important;}"),
         # Add background image
-        tags$head(tags$style(type="text/css", '.City {
+        tags$head(tags$style(type="text/css", '#Assets {
                              background-image: url("loading.png");
                              background-repeat: no-repeat;
                              background-position: center;
@@ -1028,7 +1033,7 @@ server <- shinyServer(function(input, output, session) {
                                 label = "Step count",
                                 min = min(load.steps$num_steps_1, na.rm = TRUE),
                                 max = max(load.steps$num_steps_1, na.rm = TRUE),
-                                value = c(min(load.steps$num_steps_1, na.rm = TRUE),max(load.steps$num_steps_1, na.rm = TRUE)),
+                                value = c(min(load.steps$num_steps_1, na.rm = TRUE), max(load.steps$num_steps_1, na.rm = TRUE)),
                                 step = 1),
                     HTML('<font color="#377eb8">'),
                     checkboxInput("toggleWf",
