@@ -122,6 +122,8 @@ cleanGeo <- function(data, upper) {
 }
 
 # Load Boundary Files
+# City Boundary
+city.boundary <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/a99f25fffb7b41c8a4adf9ea676a3a0b_0.geojson", what = "sp")
 # Neighborhoods
 load.hoods <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/87a7e06c5d8440f280ce4b1e4f75cc84_0.geojson", what = "sp")
 # Council Cont.
@@ -1045,6 +1047,16 @@ server <- shinyServer(function(input, output, session) {
                                 label = NULL,
                                 c(`Flash Time` ='', levels(load.si$flash_time)),
                                 multiple = TRUE,
+                                selectize = TRUE),
+                    HTML('<font color="#984ea3">'),
+                    checkboxInput("toggleRegions",
+                                  label = "Special Regions",
+                                  value = FALSE),
+                    HTML('</font>'),
+                    selectInput("region_select",
+                                label = NULL,
+                                c(`Region Type` ='', levels(load.regions$layer)),
+                                multiple = TRUE,
                                 selectize = TRUE)
           ), style = "opacity: 0.88"
         )
@@ -1125,6 +1137,16 @@ server <- shinyServer(function(input, output, session) {
                                 selectInput("flash_select",
                                             label = NULL,
                                             c(`Flash Time` ='', levels(load.si$flash_time)),
+                                            multiple = TRUE,
+                                            selectize = TRUE),
+                                HTML('<font color="#984ea3">'),
+                                checkboxInput("toggleRegions",
+                                              label = "Special Regions",
+                                              value = FALSE),
+                                HTML('</font>'),
+                                selectInput("region_select",
+                                            label = NULL,
+                                            c(`Region Type` ='', levels(load.regions$layer)),
                                             multiple = TRUE,
                                             selectize = TRUE),
                                 HTML('</div>')
@@ -1856,7 +1878,7 @@ server <- shinyServer(function(input, output, session) {
         addProviderTiles("OpenStreetMap.France",
                          options = providerTileOptions(noWrap = TRUE), group = "France (OSM)") %>%
         addLayersControl(
-          baseGroups = c("Pioneer", "Huamitarian (OSM)", "Mapnik (OSM)", "France (OSM)")) %>%
+          baseGroups = c("Pioneer", "Mapnik (OSM)", "Huamitarian (OSM)", "France (OSM)")) %>%
         addEasyButton(easyButton(
           icon="fa-crosshairs", title="Locate Me",
           onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
@@ -1868,7 +1890,7 @@ server <- shinyServer(function(input, output, session) {
         addProviderTiles("OpenStreetMap.France",
                          options = providerTileOptions(noWrap = TRUE), group = "France (OSM)") %>%
         addLayersControl(
-          baseGroups = c("Huamitarian (OSM)", "Mapnik (OSM)", "France (OSM)")) %>%
+          baseGroups = c("Mapnik (OSM)", "Huamitarian (OSM)", "France (OSM)")) %>%
         addEasyButton(easyButton(
           icon="fa-crosshairs", title="Locate Me",
           onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
@@ -2198,7 +2220,7 @@ server <- shinyServer(function(input, output, session) {
         addProviderTiles("OpenStreetMap.France",
                          options = providerTileOptions(noWrap = TRUE), group = "France (OSM)") %>%
         addLayersControl(
-          baseGroups = c("Pioneer", "Huamitarian (OSM)", "Mapnik (OSM)", "France (OSM)")) %>%
+          baseGroups = c("Pioneer", "Mapnik (OSM)", "Huamitarian (OSM)", "France (OSM)")) %>%
         addEasyButton(easyButton(
           icon="fa-crosshairs", title="Locate Me",
           onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
@@ -2210,7 +2232,7 @@ server <- shinyServer(function(input, output, session) {
         addProviderTiles("OpenStreetMap.France",
                          options = providerTileOptions(noWrap = TRUE), group = "France (OSM)") %>%
         addLayersControl(
-          baseGroups = c("Huamitarian (OSM)", "Mapnik (OSM)", "France (OSM)")) %>%
+          baseGroups = c("Mapnik (OSM)", "Huamitarian (OSM)", "France (OSM)")) %>%
         addEasyButton(easyButton(
           icon="fa-crosshairs", title="Locate Me",
           onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
