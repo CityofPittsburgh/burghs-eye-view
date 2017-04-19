@@ -966,13 +966,13 @@ server <- shinyServer(function(input, output, session) {
                      HTML('</div>')
                      ),
                   # Generate Map
-                  div(class="cityBack", style="position: absolute;
+                  div(class="mapBack", style="position: absolute;
                                               width: 100%;z-index: -1;
                                               left: 0px;
                                               top: 55px;", leafletOutput("map")),
                   # Set map to style for Mobile
                   tags$style(type = "text/css", "#city_map {height: calc(100vh - 115px) !important;}"),
-                  tags$head(tags$style(type="text/css", '.cityBack {
+                  tags$head(tags$style(type="text/css", '.mapBack {
                                              background-image: url("loading.png");
                                              background-repeat: no-repeat;
                                              background-position: center;
@@ -990,6 +990,13 @@ server <- shinyServer(function(input, output, session) {
         leafletOutput("city_map"),
         # Map size for Desktop CSS
         tags$style(type = "text/css", "#city_map {height: calc(100vh - 60px) !important;}"),
+        # Add background image
+        tags$head(tags$style(type="text/css", '.City {
+                             background-image: url("loading.png");
+                             background-repeat: no-repeat;
+                             background-position: center;
+                             background-size: contain;
+                             }')),
         absolutePanel(
           # Input panel for Desktops (alpha'd)
           top = 70, left = 50, width = '300px',
@@ -1685,6 +1692,21 @@ server <- shinyServer(function(input, output, session) {
     
     return(steps)
   })
+  regionsInput <- reactive({
+    regions <- load.regions
+    
+    # Usage Filter
+    if (length(input$region_select) > 0) {
+      regions <- regions[regions$layer %in% input$region_select,]
+    }
+    
+    # Search Filter
+    if (!is.null(input$city_search) & input$city_search != "") {
+      regions <- regions[apply(regions, 1, function(row){any(grepl(input$city_search, row, ignore.case = TRUE))}), ]
+    }
+    
+    return(regions)
+  })
   # City Facilities data with filters
   facilitiesInput <- reactive({
     facilities <- load.facilities
@@ -1694,7 +1716,7 @@ server <- shinyServer(function(input, output, session) {
       facilities <- facilities[facilities$usage %in% input$usage_select,]
     }
     # Usage Filter
-    if (!is.null(input$rentable_select)) {
+    if (input$rentable_select != "") {
       facilities <- facilities[facilities$rentable %in% input$rentable_select,]
     }
     
@@ -2223,7 +2245,9 @@ server <- shinyServer(function(input, output, session) {
           baseGroups = c("Pioneer", "Mapnik (OSM)", "Huamitarian (OSM)", "France (OSM)")) %>%
         addEasyButton(easyButton(
           icon="fa-crosshairs", title="Locate Me",
-          onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
+          onClick=JS("function(btn, map){ map.locate({setView: true}); }"))) %>%
+        addPolygons(data = city.boundary, stroke = TRUE, smoothFactor = 0, weight = 2, color = "#000000", opacity = 0.6,
+                    fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0)
     } else {
       city_map <- leaflet() %>% 
         addProviderTiles("OpenStreetMap.HOT",
@@ -2235,7 +2259,9 @@ server <- shinyServer(function(input, output, session) {
           baseGroups = c("Mapnik (OSM)", "Huamitarian (OSM)", "France (OSM)")) %>%
         addEasyButton(easyButton(
           icon="fa-crosshairs", title="Locate Me",
-          onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
+          onClick=JS("function(btn, map){ map.locate({setView: true}); }"))) %>%
+        addPolygons(data = city.boundary, stroke = TRUE, smoothFactor = 0, weight = 2, color = "#000000", opacity = 0.6,
+                    fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0)
     }
     # City Assets Layer
     if (input$toggleFacilities) {
@@ -2243,8 +2269,8 @@ server <- shinyServer(function(input, output, session) {
       if (nrow(facilities) > 0) {
         city_map <- addPolygons(city_map, data=facilities, color = "#ff7f00", fillColor = "#ff7f00", fillOpacity = .5,
                            popup = ~(paste(paste0('<center><img id="imgPicture" src="', facilities$image_url,'" style="width:250px;"></center>'),
-                                          "<font color='black'><b>Location:</b>", facilities$address,
-                                          "<br><b>Description:</b>", facilities$name,
+                                          "<font color='black'><b>Name:</b>", facilities$name,
+                                          "<br><b>Location:</b>", facilities$address,
                                           "<br><b>Usage:</b>", facilities$usage,
                                           "<br><b>Dept:</b>", facilities$primary_user,
                                           facilities$url, "</font>"))
@@ -2262,7 +2288,7 @@ server <- shinyServer(function(input, output, session) {
         )
       }
     }
-    if (input$toggleWf) {
+    if (input$toggleTraffic) {
       si <- siInput()
       if (nrow(si) > 0) {
         city_map <- addCircleMarkers(city_map, data=si, color = "#e41a1c", fillColor = "#e41a1c", fillOpacity = .5, lat = ~latitude, lng = ~longitude, radius = 2,
@@ -2278,9 +2304,19 @@ server <- shinyServer(function(input, output, session) {
       if (nrow(steps) > 0) {
         city_map <- addPolylines(city_map, data=steps, color = "#a65628",
                                 popup = ~(paste("<font color='black'><b>Location:</b>", steps$cartegraph_id,
-                                                ifelse(is.na(steps$num_steps_1), "<br><b>Steps:</b> Uncounted", paste("<br><b>Steps:</b>", steps$num_steps_1)),
-                                                ifelse(is.na(steps$year_1), "<br><b>Year:</b> Unknown", paste("<br><b>Year:</b>", steps$year_1)),
+                                                ifelse(is.na(steps$num_steps_1) | steps$num_steps_1 == 0, "<br><b>Steps:</b> Uncounted", paste("<br><b>Steps:</b>", steps$num_steps_1)),
+                                                ifelse(is.na(steps$year_1) | steps$year_1 == 0, "<br><b>Year:</b> Unknown", paste("<br><b>Year:</b>", steps$year_1)),
                                                 '<br><center><a href="http://pittsburghpa.gov/dcp/steps" target="_blank">Volunteer to Survey City Steps!</a></center></font>'))
+        )
+      }
+    }
+    if (input$toggleRegions) {
+      regions <- regionsInput()
+      if (nrow(regions) > 0) {
+        city_map <- addPolygons(city_map, data=regions, color = "#984ea3", fillColor = "#984ea3", fillOpacity = .5,
+                                 popup = ~(paste("<font color='black'><b>Region:</b>", regions$layer,
+                                                 ifelse(is.na(regions$name), "", paste("<br><b>Name:</b>", regions$name)),
+                                                 '</font>'))
         )
       }
     }
