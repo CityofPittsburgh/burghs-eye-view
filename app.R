@@ -275,7 +275,7 @@ load.si <- ckan("c864e31e-e2f4-4a1e-946c-50006537e73d")
 load.si$description <- gsub("_", " ", load.si$description)
 load.si$description <- toTitleCase(tolower(load.si$description))
 load.si$description <- gsub("Osm", "OSM", load.si$description, ignore.case = TRUE)
-load.si$flash_yellow <- toTitleCase(tolower(load.si$flash_yellow))
+load.si$flash_yellow <- ifelse(is.na(load.si$flash_yellow), NA, toTitleCase(tolower(load.si$flash_yellow)))
 load.si$operation_type <- as.factor(load.si$operation_type)
 load.si$flash_time <- as.factor(load.si$flash_time)
 
@@ -618,7 +618,7 @@ ui <- navbarPage(id = "mapPage",
                  theme = shinytheme("flatly"),
                  title = HTML('<img src="burghs_eyeview_logo_small.png" alt="Burghs Eye View" height="85%">'),
                  position = "static-top",
-                 tabPanel('Events', id = "Events",
+                 tabPanel('Events', id = "Events", value = "Events",
                           # Run script to determine if user is loading from a mobile device
                           tags$script(getWidth),
                           # Google Tag Manager Script to Head
@@ -662,10 +662,10 @@ ui <- navbarPage(id = "mapPage",
                           # Generate search & layer panel & Map (checks for mobile devices)
                           uiOutput("mapPanel")
                           ),
-                 tabPanel('Assets', id = "Assets",
+                 tabPanel('Assets', id = "Assets", value = "Assets",
                           uiOutput("cityPanel")
                  ),
-                 tabPanel('Data', id = "Data",
+                 tabPanel('Data', id = "Data", value = "Data",
                           # Select Dataset for Export
                           inputPanel(
                             selectInput("report_select", 
@@ -681,7 +681,7 @@ ui <- navbarPage(id = "mapPage",
                           tags$style(type = "text/css", ".dataTables_filter {margin-right: 5px;}"),
                           dataTableOutput("report.table")
                  ),
-                 tabPanel('About', class = "About",
+                 tabPanel('About', id = "About", value = "About",
                           includeHTML('about.html'),
                           # Twitter Button
                           tags$script(HTML("var header = $('.navbar > .container-fluid > .navbar-collapse');
@@ -755,7 +755,7 @@ server <- shinyServer(function(input, output, session) {
                               label = NULL, 
                               placeholder = "Search"),
                     # Add background image
-                    tags$head(tags$style(type="text/css", '.Events {
+                    tags$head(tags$style(type="text/css", '#Events {
                                                background-image: url("loading.png");
                                                background-repeat: no-repeat;
                                                background-position: center;
@@ -971,12 +971,12 @@ server <- shinyServer(function(input, output, session) {
                      HTML('</div>')
                      ),
                   # Generate Map
-                  div(class="eventsBack", style="position: absolute;
+                  div(id="eventsBack", style="position: absolute;
                                               width: 100%;z-index: -1;
                                               left: 0px;
                                               top: 55px;", leafletOutput("map")),
                   # Set map to style for Mobile
-                  tags$style(type = "text/css", "#city_map {height: calc(100vh - 115px) !important;}"),
+                  tags$style(type = "text/css", "#assets_map {height: calc(100vh - 115px) !important;}"),
                   tags$head(tags$style(type="text/css", '#eventsBack {
                                              background-image: url("loading.png");
                                              background-repeat: no-repeat;
@@ -992,9 +992,9 @@ server <- shinyServer(function(input, output, session) {
     if (as.numeric(input$GetScreenWidth) > 800) {
       tagList(
         # Generate Map
-        leafletOutput("city_map"),
+        leafletOutput("assets_map"),
         # Map size for Desktop CSS
-        tags$style(type = "text/css", "#city_map {height: calc(100vh - 60px) !important;}"),
+        tags$style(type = "text/css", "#assets_map {height: calc(100vh - 60px) !important;}"),
         # Add background image
         tags$head(tags$style(type="text/css", '#Assets {
                              background-image: url("loading.png");
@@ -1033,7 +1033,7 @@ server <- shinyServer(function(input, output, session) {
                                 label = "Step count",
                                 min = min(load.steps$num_steps_1, na.rm = TRUE),
                                 max = max(load.steps$num_steps_1, na.rm = TRUE),
-                                value = c(min(load.steps$num_steps_1, na.rm = TRUE), max(load.steps$num_steps_1, na.rm = TRUE)),
+                                value = c(min(load.steps$num_steps_1, na.rm = TRUE),max(load.steps$num_steps_1, na.rm = TRUE)),
                                 step = 1),
                     HTML('<font color="#377eb8">'),
                     checkboxInput("toggleWf",
@@ -1164,21 +1164,19 @@ server <- shinyServer(function(input, output, session) {
                                 HTML('</div>')
                       ),
                       # Generate Map
-                      div(class="cityBack", style="position: absolute;
+                      div(id="assetsBack", style="position: absolute;
                           width: 100%;z-index: -1;
                           left: 0px;
-                          top: 55px;", leafletOutput("city_map")),
+                          top: 55px;", leafletOutput("assets_map")),
                       # Set map to style for Mobile
-                      tags$style(type = "text/css", "#city_map {height: calc(100vh - 115px) !important;}"),
-                      tags$head(tags$style(type="text/css", '.cityBack {
+                      tags$style(type = "text/css", "#assets_map {height: calc(100vh - 115px) !important;}"),
+                      tags$head(tags$style(type="text/css", '#assetsBack {
                                            background-image: url("loading.png");
                                            background-repeat: no-repeat;
                                            background-position: center;
                                            background-size: contain;}'))
                       )
                     )
-                                
-                                     
     }
   })
   # Filter by Area Display Options
@@ -1692,7 +1690,7 @@ server <- shinyServer(function(input, output, session) {
     
     # Search Filter
     if (!is.null(input$city_search) & input$city_search != "") {
-      steps <- steps[apply(steps, 1, function(row){any(grepl(input$city_search, row, ignore.case = TRUE))}), ]
+      steps <- steps[apply(steps@data, 1, function(row){any(grepl(input$city_search, row, ignore.case = TRUE))}), ]
     }
     
     return(steps)
@@ -1707,7 +1705,7 @@ server <- shinyServer(function(input, output, session) {
     
     # Search Filter
     if (!is.null(input$city_search) & input$city_search != "") {
-      regions <- regions[apply(regions, 1, function(row){any(grepl(input$city_search, row, ignore.case = TRUE))}), ]
+      regions <- regions[apply(regions@data, 1, function(row){any(grepl(input$city_search, row, ignore.case = TRUE))}), ]
     }
     
     return(regions)
@@ -1727,7 +1725,7 @@ server <- shinyServer(function(input, output, session) {
     
     # Search Filter
     if (!is.null(input$city_search) & input$city_search != "") {
-      facilities <- facilities[apply(facilities, 1, function(row){any(grepl(input$city_search, row, ignore.case = TRUE))}), ]
+      facilities <- facilities[apply(facilities@data, 1, function(row){any(grepl(input$city_search, row, ignore.case = TRUE))}), ]
     }
     
     return(facilities)
@@ -1848,7 +1846,7 @@ server <- shinyServer(function(input, output, session) {
       
       colnames(violations) <- c("Violation", "Result", "Inspection Date", "Address", "Neighborhood", "Council District", "Police Zone", "Public Works Division", "Case #", "Parcel ID")
       report <- violations
-    } else if (input$report_select == "City Assets") {
+    } else if (input$report_select == "City Facilities") {
       facilities <- facilitiesInput()
       
       facilities <- subset(facilities, select = c(usage, name, primary_user, address, neighborhood, council_district, public_works_division, police_zone))
@@ -2236,9 +2234,10 @@ server <- shinyServer(function(input, output, session) {
     map
     })
   # Build City Map
-  output$city_map <- renderLeaflet({
+  output$assets_map <- renderLeaflet({
+    assetsCount <- 0
     if (Sys.Date() == as.Date(paste0(this_year,"-07-06")) | Sys.Date() == as.Date(paste0(this_year,"-08-31"))) {
-      city_map <- leaflet() %>% 
+      assets_map <- leaflet() %>% 
         addProviderTiles("Thunderforest.Pioneer",
                          options = providerTileOptions(noWrap = TRUE), group = "Pioneer") %>%
         addProviderTiles("OpenStreetMap.HOT",
@@ -2254,7 +2253,7 @@ server <- shinyServer(function(input, output, session) {
         addPolygons(data = city.boundary, stroke = TRUE, smoothFactor = 0, weight = 2, color = "#000000", opacity = 0.6,
                     fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0)
     } else {
-      city_map <- leaflet() %>% 
+      assets_map <- leaflet() %>% 
         addProviderTiles("OpenStreetMap.HOT",
                          options = providerTileOptions(noWrap = TRUE), group = "Huamitarian (OSM)") %>%
         addTiles(options = providerTileOptions(noWrap = TRUE), group = "Mapnik (OSM)") %>%
@@ -2272,7 +2271,8 @@ server <- shinyServer(function(input, output, session) {
     if (input$toggleFacilities) {
       facilities <- facilitiesInput()
       if (nrow(facilities) > 0) {
-        city_map <- addPolygons(city_map, data=facilities, color = "#ff7f00", fillColor = "#ff7f00", fillOpacity = .5,
+        assetsCount <- assetsCount + 1
+        assets_map <- addPolygons(assets_map, data=facilities, color = "#ff7f00", fillColor = "#ff7f00", fillOpacity = .5,
                            popup = ~(paste(paste0('<center><img id="imgPicture" src="', facilities$image_url,'" style="width:250px;"></center>'),
                                           "<font color='black'><b>Name:</b>", facilities$name,
                                           "<br><b>Location:</b>", facilities$address,
@@ -2285,7 +2285,8 @@ server <- shinyServer(function(input, output, session) {
     if (input$toggleWf) {
       wf <- wfInput()
       if (nrow(wf) > 0) {
-        city_map <- addCircleMarkers(city_map, data=wf, color = "#377eb8", fillColor = "#377eb8", fillOpacity = .5, lat = ~latitude, lng = ~longitude, radius = 2,
+        assetsCount <- assetsCount + 1
+        assets_map <- addCircleMarkers(assets_map, data=wf, color = "#377eb8", fillColor = "#377eb8", fillOpacity = .5, lat = ~latitude, lng = ~longitude, radius = 2,
                                 popup = ~(paste("<font color='black'><b>Location:</b>", wf$name,
                                                 "<br><b>Feature Type:</b>", wf$feature_type,
                                                 ifelse(is.na(wf$make), "", paste("<br><b>Make:</b>", wf$make)),
@@ -2296,7 +2297,8 @@ server <- shinyServer(function(input, output, session) {
     if (input$toggleTraffic) {
       si <- siInput()
       if (nrow(si) > 0) {
-        city_map <- addCircleMarkers(city_map, data=si, color = "#e41a1c", fillColor = "#e41a1c", fillOpacity = .5, lat = ~latitude, lng = ~longitude, radius = 2,
+        assetsCount <- assetsCount + 1
+        assets_map <- addCircleMarkers(assets_map, data=si, color = "#e41a1c", fillColor = "#e41a1c", fillOpacity = .5, lat = ~latitude, lng = ~longitude, radius = 2,
                                      popup = ~(paste("<font color='black'><b>Location:</b>", si$description,
                                                      ifelse(is.na(si$operation_type), "", paste("<br><b>Operation Type:</b>", si$operation_type)),
                                                      ifelse(is.na(si$flash_time), "", paste("<br><b>Flash Time:</b>", si$flash_time)),
@@ -2305,9 +2307,10 @@ server <- shinyServer(function(input, output, session) {
       }
     }
     if (input$toggleSteps) {
+      assetsCount <- assetsCount + 1
       steps <- stepsInput()
       if (nrow(steps) > 0) {
-        city_map <- addPolylines(city_map, data=steps, color = "#a65628",
+        assets_map <- addPolylines(assets_map, data=steps, color = "#a65628",
                                 popup = ~(paste("<font color='black'><b>Location:</b>", steps$cartegraph_id,
                                                 ifelse(is.na(steps$num_steps_1) | steps$num_steps_1 == 0, "<br><b>Steps:</b> Uncounted", paste("<br><b>Steps:</b>", steps$num_steps_1)),
                                                 ifelse(is.na(steps$year_1) | steps$year_1 == 0, "<br><b>Year:</b> Unknown", paste("<br><b>Year:</b>", steps$year_1)),
@@ -2318,14 +2321,24 @@ server <- shinyServer(function(input, output, session) {
     if (input$toggleRegions) {
       regions <- regionsInput()
       if (nrow(regions) > 0) {
-        city_map <- addPolygons(city_map, data=regions, color = "#984ea3", fillColor = "#984ea3", fillOpacity = .5,
+        assetsCount <- assetsCount + 1
+        assets_map <- addPolygons(assets_map, data=regions, color = "#984ea3", fillColor = "#984ea3", fillOpacity = .5,
                                  popup = ~(paste("<font color='black'><b>Region:</b>", regions$layer,
                                                  ifelse(is.na(regions$name), "", paste("<br><b>Name:</b>", regions$name)),
                                                  '</font>'))
         )
       }
     }
-    city_map
+    if (assetsCount < 1) {
+      if (Sys.Date() >= as.Date(paste0(this_year,"-11-01")) & Sys.Date() <= as.Date(paste0(this_year,"-11-08"))) {
+        egg <- load.egg
+      } else {
+        egg <- load.egg[sample(1:nrow(load.egg),1),]
+      }
+      assets_map <- addMarkers(assets_map, data=egg, ~X, ~Y, icon = ~icons_egg[icon], popup = ~tt) %>% 
+        setView(-79.9959, 40.4406, zoom = 10)
+    }
+    assets_map
   })
 })
 # Run the application 
