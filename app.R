@@ -22,6 +22,7 @@ library(maptools)
 library(htmltools)
 library(htmlwidgets)
 library(rgeos)
+library(geojsonio)
 
 # Data Transform
 library(plyr)
@@ -69,15 +70,22 @@ ckanQuery  <- function(id, days, column) {
   jsonlite::fromJSON(json)$result$records
 }
 
+# Council
+load.council <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/677930d13af94fd8b70c693c1a6660d0_0.geojson", what = "sp")
+
+# List for Clean Function
+council_list <- paste0(load.council$council, ": ", load.council$councilman)
+council_list <- sort(council_list)
+
 # Council Clean
 cleanCouncil <- function(data, upper) {
   upper <- ifelse(missing(upper), FALSE, upper)
   if (upper) {
     data <- transform(data, COUNCIL_DISTRICT = as.factor(mapvalues(COUNCIL_DISTRICT, c(0:9),
-                                                                   c(NA, "1: Harris", "2: Kail-Smith", "3: Kraus", "4: Rudiak", "5: O'Connor", "6: Lavelle", "7: Gross", "8: Gilman", "9: Burgess"))))
+                                                                   c(NA, council_list))))
   } else {
     data <- transform(data, council_district = as.factor(mapvalues(council_district, c(0:9),
-                                                                   c(NA, "1: Harris", "2: Kail-Smith", "3: Kraus", "4: Rudiak", "5: O'Connor", "6: Lavelle", "7: Gross", "8: Gilman", "9: Burgess"))))
+                                                                   c(NA, council_list))))
   }
   return(data)
 }
@@ -114,18 +122,19 @@ cleanGeo <- function(data, upper) {
 }
 
 # Load Boundary Files
+# City Boundary
+city.boundary <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/a99f25fffb7b41c8a4adf9ea676a3a0b_0.geojson", what = "sp")
 # Neighborhoods
-load.hoods <- readShapeSpatial("boundaries/Pittsburgh_Neighborhoods/Pittsburgh_Neighborhoods.shp")
-# Council
-load.council <- readShapeSpatial("boundaries/Pittsburgh_City_Council_Districts/Pittsburgh_City_Council_Districts.shp")
+load.hoods <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/87a7e06c5d8440f280ce4b1e4f75cc84_0.geojson", what = "sp")
+# Council Cont.
 load.council$COUNCIL_DISTRICT <- load.council$council
 load.council@data <- cleanCouncil(load.council@data, TRUE)
 # DPW
-load.dpw <- readShapeSpatial("boundaries/Pittsburgh_DPW_Divisions/Pittsburgh_DPW_Divisions.shp")
+load.dpw <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/2d2c30d9633647ddab2f918afc38c35b_0.geojson", what = "sp")
 load.dpw$PUBLIC_WORKS_DIVISION <- load.dpw$division
 load.dpw@data <- cleanDPW(load.dpw@data, TRUE)
 # Zone
-load.zones <- readShapeSpatial("boundaries/Pittsburgh_Police_Zones/Pittsburgh_Police_Zones.shp")
+load.zones <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/7e95f0914283472e83e8000c0af33110_0.geojson", what = "sp")
 load.zones$POLICE_ZONE <- load.zones$zone
 load.zones@data <- cleanZone(load.zones@data, TRUE)
 
@@ -624,7 +633,7 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                  theme = shinytheme("flatly"),
                  title = HTML('<img src="burghs_eyeview_logo_small.png" alt="Burghs Eye View" height="85%">'),
                  position = "static-top",
-                 tabPanel('Map', class = "Map",
+                 tabPanel('Points', class = "Points", value = "Points",
                           # Run script to determine if user is loading from a mobile device
                           tags$script(getWidth),
                           # Google Tag Manager Script to Head
@@ -668,7 +677,7 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                           # Generate search & layer panel & Map (checks for mobile devices)
                           uiOutput("mapPanel")
                           ),
-                 tabPanel('Data', class = "Data",
+                 tabPanel('Data', class = "Data", value = "Data",
                           # Select Dataset for Export
                           inputPanel(
                             selectInput("report_select", 
@@ -684,7 +693,7 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                           tags$style(type = "text/css", ".dataTables_filter {margin-right: 5px;}"),
                           dataTableOutput("report.table")
                  ),
-                 tabPanel('About', class = "About",
+                 tabPanel('About', class = "About", value = "About",
                           includeHTML('about.html'),
                           # Twitter Button
                           tags$script(HTML("var header = $('.navbar > .container-fluid > .navbar-collapse');
@@ -711,7 +720,7 @@ ui <- navbarPage(windowTitle = "Burgh's Eye View",
                 tags$script(HTML('header.append(\'<div class="fb-share-button" style="float:right;margin-top: 15px;margin-right: 5px;" data-href="http://pittsburghpa.shinyapps.io/BurghsEyeView/?utm_source=facebook_button&amp;utm_campaign=facebook_button&amp;utm_medium=facebook%2Fsocial\" data-layout="button" data-size="large" data-mobile-iframe="true"><a class="fb-xfbml-parse-ignore" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Fpittsburghpa.shinyapps.io%2FBurghsEyeView%2F%23utm_source%3Dfacebook_button%26utm_campaign%3Dfacebook_button%26utm_medium%3Dfacebook%252Fsocial&amp;src=sdkpreparse">Share</a></div>\');
                                  console.log(header)'))
                 )
-                 )
+             )
 
 # Define server
 server <- shinyServer(function(input, output, session) {
