@@ -762,6 +762,10 @@ server <- shinyServer(function(input, output, session) {
                                 c(`Functional Area`='', levels(load.cproj$area)),
                                 multiple = TRUE,
                                 selectize=TRUE),
+                    selectInput("basemap_select",
+                                label = "Basemap",
+                                choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Esri Satellite` = "Esri.WorldImagery", `Stamen Toner` = "Stamen.Toner", Esri = "Esri.WorldStreetMap", Pioneer = "Thunderforest.Pioneer"),
+                                selected = ifelse(Sys.Date() == as.Date(paste0(this_year,"-07-06")) | Sys.Date() == as.Date(paste0(this_year,"-08-31")), "Thunderforest.Pioneer", "OpenStreetMap.Mapnik")),
                     selectInput("filter_select",
                                 "Filter by Area",
                                 c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Public Works Division")),
@@ -881,6 +885,10 @@ server <- shinyServer(function(input, output, session) {
                                  c(`Functional Area`='', levels(load.cproj$area)),
                                  multiple = TRUE,
                                  selectize=TRUE),
+                     selectInput("basemap_select",
+                                 label = "Basemap",
+                                 choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Esri Satellite` = "Esri.WorldImagery", `Stamen Toner` = "Stamen.Toner", Esri = "Esri.WorldStreetMap", Pioneer = "Thunderforest.Pioneer"),
+                                 selected = ifelse(Sys.Date() == as.Date(paste0(this_year,"-07-06")) | Sys.Date() == as.Date(paste0(this_year,"-08-31")), "Thunderforest.Pioneer", "OpenStreetMap.Mapnik")),
                      uiOutput("filter_UI"),
                      selectInput("filter_select",
                                  "Filter by Area",
@@ -1528,33 +1536,12 @@ server <- shinyServer(function(input, output, session) {
   output$map <- renderLeaflet({
     recs <- 0
     layerCount <- 0
-    if (Sys.Date() == as.Date(paste0(this_year,"-07-06")) | Sys.Date() == as.Date(paste0(this_year,"-08-31"))) {
-      map <- leaflet() %>% 
-        addProviderTiles("Thunderforest.Pioneer",
-                         options = providerTileOptions(noWrap = TRUE), group = "Pioneer") %>%
-        addProviderTiles("OpenStreetMap.HOT",
-                         options = providerTileOptions(noWrap = TRUE), group = "Huamitarian (OSM)") %>%
-        addTiles(options = providerTileOptions(noWrap = TRUE), group = "Mapnik (OSM)") %>%
-        addProviderTiles("OpenStreetMap.France",
-                         options = providerTileOptions(noWrap = TRUE), group = "France (OSM)") %>%
-        addLayersControl(
-          baseGroups = c("Pioneer", "Huamitarian (OSM)", "Mapnik (OSM)", "France (OSM)")) %>%
-        addEasyButton(easyButton(
-          icon="fa-crosshairs", title="Locate Me",
-          onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
-    } else {
-      map <- leaflet() %>% 
-        addProviderTiles("OpenStreetMap.HOT",
-                         options = providerTileOptions(noWrap = TRUE), group = "Huamitarian (OSM)") %>%
-        addTiles(options = providerTileOptions(noWrap = TRUE), group = "Mapnik (OSM)") %>%
-        addProviderTiles("OpenStreetMap.France",
-                         options = providerTileOptions(noWrap = TRUE), group = "France (OSM)") %>%
-        addLayersControl(
-          baseGroups = c("Huamitarian (OSM)", "Mapnik (OSM)", "France (OSM)")) %>%
-        addEasyButton(easyButton(
-          icon="fa-crosshairs", title="Locate Me",
-          onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
-    }
+    map <- leaflet() %>% 
+      addProviderTiles(input$basemap_select,
+                       options = providerTileOptions(noWrap = TRUE)) %>%
+      addEasyButton(easyButton(
+        icon="fa-crosshairs", title="Locate Me",
+        onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
     # Boundary Layers
     # Neighborhoods
     if (input$filter_select == "Neighborhood") {
