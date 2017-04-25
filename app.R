@@ -531,7 +531,7 @@ icons_arrests <- iconList(
 
 # UI for application
 ui <- navbarPage(id = "navTab",
-                 windowTitle = "Burgh's Eye View",
+                 windowTitle = "Burgh's Eye View Points",
                  selected = "Points",
                  collapsible = TRUE,
                  fluid = TRUE,
@@ -669,13 +669,13 @@ server <- shinyServer(function(input, output, session) {
         absolutePanel(
           # Input panel for Desktops (alpha'd)
           top = 70, left = 50, width = '300px',
-          wellPanel(id = "tPanel", style = "overflow-y:auto; max-height: calc(100vh - 85px) !important;",
+          wellPanel(id = "tPanel", style = "overflow-y:auto; max-height: calc(100vh - 90px) !important;",
                     textInput("search",
                               value = ifelse(Sys.Date() == as.Date(paste0(this_year,"-11-08")), "Election Day!", ""),
                               label = NULL, 
                               placeholder = "Search"),
                     # Add background image
-                    tags$head(tags$style(type="text/css", '.Map {
+                    tags$head(tags$style(type="text/css", '.Points {
                                                background-image: url("loading.png");
                                                background-repeat: no-repeat;
                                                background-position: center;
@@ -764,7 +764,7 @@ server <- shinyServer(function(input, output, session) {
                                 selectize=TRUE),
                     selectInput("basemap_select",
                                 label = "Basemap",
-                                choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Esri Satellite` = "Esri.WorldImagery", `Stamen Toner` = "Stamen.Toner", Esri = "Esri.WorldStreetMap", Pioneer = "Thunderforest.Pioneer"),
+                                choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", Pioneer = "Thunderforest.Pioneer"),
                                 selected = ifelse(Sys.Date() == as.Date(paste0(this_year,"-07-06")) | Sys.Date() == as.Date(paste0(this_year,"-08-31")), "Thunderforest.Pioneer", "OpenStreetMap.Mapnik")),
                     selectInput("filter_select",
                                 "Filter by Area",
@@ -887,7 +887,7 @@ server <- shinyServer(function(input, output, session) {
                                  selectize=TRUE),
                      selectInput("basemap_select",
                                  label = "Basemap",
-                                 choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Esri Satellite` = "Esri.WorldImagery", `Stamen Toner` = "Stamen.Toner", Esri = "Esri.WorldStreetMap", Pioneer = "Thunderforest.Pioneer"),
+                                 choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", Pioneer = "Thunderforest.Pioneer"),
                                  selected = ifelse(Sys.Date() == as.Date(paste0(this_year,"-07-06")) | Sys.Date() == as.Date(paste0(this_year,"-08-31")), "Thunderforest.Pioneer", "OpenStreetMap.Mapnik")),
                      uiOutput("filter_UI"),
                      selectInput("filter_select",
