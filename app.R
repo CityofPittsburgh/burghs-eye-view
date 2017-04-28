@@ -14,6 +14,7 @@ library(httr)
 library(jsonlite)
 library(readr)
 library(curl)
+library(R4CouchDB)
 
 # Visuals Libraries
 library(leaflet)
@@ -28,11 +29,14 @@ library(geojsonio)
 library(plyr)
 library(zoo)
 library(lubridate)
+library(stringi)
 
 # Turn off Scientific Notation
 options(scipen = 999)
 
 ckan_api <- jsonlite::fromJSON("key.json")$ckan_api
+couchdb_un <- jsonlite::fromJSON("key.json")$couchdb_un
+couchdb_pw <- jsonlite::fromJSON("key.json")$couchdb_pw
 
 # Function to read backslashes correctly
 chartr0 <- function(foo) chartr('\\','\\/',foo)
@@ -412,6 +416,9 @@ icons_cproj <- iconList(
   vehicles_equipment = makeIcon("./icons/omb/vehicles_equipment.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
 
+# CouchDB Connection
+couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
+
 # this_year
 this_year <- format(Sys.Date(), format="%Y")
 
@@ -640,9 +647,20 @@ server <- shinyServer(function(input, output, session) {
       setBookmarkExclude(c("GetScreenWidth", "dates"))
     }
   })
+  sessionStart <- as.numeric(Sys.time())
+  names(sessionStart) <- "sessionStart"
+  sessionID <- paste(stri_rand_strings(1, 5), gsub("\\.", "-", sessionStart) , "points-dev", sep="-")
+  names(sessionID) <- "sessionID"
   observe({
     # Trigger this observer every time an input changes
     reactiveValuesToList(input)
+    # Connect to Couch DB
+    if (length(reactiveValuesToList(input)) > 0) {
+      dateTime <- Sys.time()
+      names(dateTime) <- "dateTime"
+      couchDB$dataList <- c(reactiveValuesToList(input), sessionID, dateTime, sessionStart)
+      cdbAddDoc(couchDB)
+    }
     session$doBookmark()
   })
   # Update page URL
