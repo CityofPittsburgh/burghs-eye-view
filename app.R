@@ -1,4 +1,4 @@
-# Burgh's Eye View Public
+# Burgh's Eye View Points
 # Organization: City of Pittsburgh
 # Dept: Innovation & Performance
 # Team: Analytics & Strategy
@@ -1590,7 +1590,7 @@ server <- shinyServer(function(input, output, session) {
         map <- addPolygons(map, data = dpw,
                            stroke = TRUE, smoothFactor = 0, weight = 1, color = "#000000", opacity = 0.6,
                            fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0, 
-                           popup = ~paste("<font color='black'><b>Zone:</b> ", htmlEscape(PUBLIC_WORKS_DIVISION), "</font>")
+                           popup = ~paste("<font color='black'><b>Division:</b> ", htmlEscape(PUBLIC_WORKS_DIVISION), "</font>")
         )
       }
       # Police Zones
