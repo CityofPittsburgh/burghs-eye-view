@@ -562,7 +562,7 @@ ui <- navbarPage(id = "navTab",
                  theme = shinytheme("flatly"),
                  title = HTML('<img src="burghs_eyeview_logo_small.png" alt="Burghs Eye View" height="85%">'),
                  position = "static-top",
-                 tabPanel('Points', class = "Points", value = "Points",
+                 tabPanel('Points', class = "Points", value = "Points", id = "Points",
                           # Run script to determine if user is loading from a mobile device
                           tags$script(getWidth),
                           # Google Tag Manager Script to Head
@@ -608,8 +608,8 @@ ui <- navbarPage(id = "navTab",
                           ),
                  tabPanel(a("Places", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewPlaces/", style = "padding-top: 0px;
     padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
-                 tabPanel(a("Parcels", href="https://pittsburghpa.shinyapps.io/parcel_viewer/", style = "padding-top: 0px; padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
-                 tabPanel('Data', class = "Data", value = "Data",
+                 tabPanel(a("Parcels", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewParcels/", style = "padding-top: 0px; padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
+                 tabPanel('Data: Points', class = "Data: Points", value = "Data: Points",
                           # Select Dataset for Export
                           inputPanel(
                             selectInput("report_select", 
@@ -710,7 +710,7 @@ server <- shinyServer(function(input, output, session) {
                               label = NULL, 
                               placeholder = "Search"),
                     # Add background image
-                    tags$head(tags$style(type="text/css", '.Points {
+                    tags$head(tags$style(type="text/css", '#Points {
                                                background-image: url("loading.png");
                                                background-repeat: no-repeat;
                                                background-position: center;
@@ -1380,32 +1380,33 @@ server <- shinyServer(function(input, output, session) {
     workflow <- workflow[workflow$permit_id %in% permits$permit_id,]
     workflow$permit_id <- as.factor(workflow$permit_id)
     
-    # Loop which aggregates appropriate Workflows
-    for (i in  levels(workflow$permit_id)){
-      # Isolate Workflows for Permit ID
-      temp <- subset(workflow, permit_id == i)
-      # Sort workflow to correct order
-      temp <- temp[order(temp$history_seq_nbr),]
-      # Isolate only tooltip
-      temp <- temp[,"tool"]
-      # Create DT string from list
-      tt <- paste0('<br><b>Workflow:</b><br><dl style="margin-bottom: 0px; margin-left:10px";>', toString(temp), "</dl>")
-      # Remove Junk characters from unlisting
-      tt <- gsub(",", "", tt)
-      tt <- gsub('" "', "", tt)
-      tt <- gsub('c\\("', "", tt)
-      tt <- gsub('"\\)', "", tt)
-      # Create Columns for bind
-      df <- data.frame(i,tt)
-      # Check for first Workflow
-      if (i == levels(workflow$permit_id)[1]){
-        tt.df <- df
-      # Merge to other tooltips  
-      } else {
-        tt.df <- rbind(tt.df, df)
+    if (nrow(permits) > 0) {
+      # Loop which aggregates appropriate Workflows
+      for (i in  levels(workflow$permit_id)){
+        # Isolate Workflows for Permit ID
+        temp <- subset(workflow, permit_id == i)
+        # Sort workflow to correct order
+        temp <- temp[order(temp$history_seq_nbr),]
+        # Isolate only tooltip
+        temp <- temp[,"tool"]
+        # Create DT string from list
+        tt <- paste0('<br><b>Workflow:</b><br><dl style="margin-bottom: 0px; margin-left:10px";>', toString(temp), "</dl>")
+        # Remove Junk characters from unlisting
+        tt <- gsub(",", "", tt)
+        tt <- gsub('" "', "", tt)
+        tt <- gsub('c\\("', "", tt)
+        tt <- gsub('"\\)', "", tt)
+        # Create Columns for bind
+        df <- data.frame(i,tt)
+        # Check for first Workflow
+        if (i == levels(workflow$permit_id)[1]){
+          tt.df <- df
+        # Merge to other tooltips  
+        } else {
+          tt.df <- rbind(tt.df, df)
+        }
       }
-    }
-    
+      
     # Rename Columns for Merge
     colnames(tt.df) <- c("permit_id", "tt")
     # Merge Workflow Tooltip to Permits
@@ -1413,6 +1414,7 @@ server <- shinyServer(function(input, output, session) {
     # Make Unsuccessful tooltips blank instead of NA
     permits$tt <- as.character(permits$tt)
     permits$tt[is.na(permits$tt)] <- ""
+    }
     
     return(permits)
   })
