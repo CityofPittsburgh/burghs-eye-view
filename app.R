@@ -615,7 +615,7 @@ ui <- navbarPage(id = "navTab",
                             selectInput("report_select", 
                                         tagList(shiny::icon("map-marker"), "Select Layer:"),
                                         choices = c("311 Requests", "Arrests", "Blotter", "Building Permits", "Capital Projects", "Code Violations", "Non-Traffic Citations"), # 
-                                        selected= "311 Requests"),
+                                        selected= "Capital Projects"),
                             # Define Button Position
                             uiOutput("buttonStyle")
                           ),
@@ -698,7 +698,10 @@ server <- shinyServer(function(input, output, session) {
     if (as.numeric(input$GetScreenWidth) > 800) {
       tagList(
         # Generate Map
-        leafletOutput("map"),
+        div(class="mapBack", style="position: absolute;
+                                              width: 100%;z-index: -1;
+            left: 0px;
+            top: 55px;", leafletOutput("map")),
         # Map size for Desktop CSS
         tags$style(type = "text/css", "#map {height: calc(100vh - 60px) !important;}"),
         absolutePanel(
@@ -710,7 +713,7 @@ server <- shinyServer(function(input, output, session) {
                               label = NULL, 
                               placeholder = "Search"),
                     # Add background image
-                    tags$head(tags$style(type="text/css", '#Points {
+                    tags$head(tags$style(type="text/css", '.mapBack {
                                                background-image: url("loading.png");
                                                background-repeat: no-repeat;
                                                background-position: center;
