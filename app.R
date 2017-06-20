@@ -422,6 +422,7 @@ icons_cproj <- iconList(
 )
 
 # CouchDB Connection
+# couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
 couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 # this_year
@@ -608,13 +609,13 @@ ui <- navbarPage(id = "navTab",
                           ),
                  tabPanel(a("Places", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewPlaces/", style = "padding-top: 0px;
     padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
-                 tabPanel(a("Parcels", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewParcels/", style = "padding-top: 0px; padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
+                 # tabPanel(a("Parcels", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewParcels/", style = "padding-top: 0px; padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
                  tabPanel('Data: Points', class = "Data: Points", value = "Data: Points",
                           # Select Dataset for Export
                           inputPanel(
                             selectInput("report_select", 
                                         tagList(shiny::icon("map-marker"), "Select Layer:"),
-                                        choices = c("311 Requests", "Arrests", "Blotter", "Building Permits", "Capital Projects", "Code Violations", "Non-Traffic Citations"), # 
+                                        choices = c("311 Requests", "Arrests", "Blotter", "Capital Projects","Building Permits", "Code Violations", "Non-Traffic Citations"), #  
                                         selected= "Capital Projects"),
                             # Define Button Position
                             uiOutput("buttonStyle")
@@ -1343,24 +1344,24 @@ server <- shinyServer(function(input, output, session) {
   # Building Permits data with filters
   permitsInput <- reactive({
     permits <- load.permits
-    
+
     # Date Filter
     permits <- subset(permits, date >= input$dates[1] &  date <= input$dates[2])
-    
+
     # Sort
     permits <- permits[rev(order(as.Date(permits$date, format="%d/%m/%Y"))),]
-    
+
     # Permit Filters
     if (length(input$permit_select) > 0) {
       permits <- permits[permits$permit_type %in% input$permit_select,]
-    } 
+    }
     if (length(input$status_select) > 0) {
       permits <- permits[permits$current_status %in% input$status_select,]
-    } 
+    }
     if (length(input$category_select) > 0) {
       permits <- permits[permits$record_category %in% input$category_select,]
     }
-    
+
     # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
       permits <- permits[permits$police_zone %in% input$zone_select,]
@@ -1371,18 +1372,18 @@ server <- shinyServer(function(input, output, session) {
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
       permits <-permits[permits$council_district %in% input$council_select,]
     }
-    
+
     # Search Filter
     if (!is.null(input$search) && input$search != "") {
       permits <- permits[apply(permits, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
-    } 
-    
+    }
+
     # Append Workflows
     workflow <- load.workflow
     # Select Workflows
     workflow <- workflow[workflow$permit_id %in% permits$permit_id,]
     workflow$permit_id <- as.factor(workflow$permit_id)
-    
+
     if (nrow(permits) > 0) {
       # Loop which aggregates appropriate Workflows
       for (i in  levels(workflow$permit_id)){
@@ -1404,12 +1405,12 @@ server <- shinyServer(function(input, output, session) {
         # Check for first Workflow
         if (i == levels(workflow$permit_id)[1]){
           tt.df <- df
-        # Merge to other tooltips  
+        # Merge to other tooltips
         } else {
           tt.df <- rbind(tt.df, df)
         }
       }
-      
+
     # Rename Columns for Merge
     colnames(tt.df) <- c("permit_id", "tt")
     # Merge Workflow Tooltip to Permits
@@ -1418,7 +1419,7 @@ server <- shinyServer(function(input, output, session) {
     permits$tt <- as.character(permits$tt)
     permits$tt[is.na(permits$tt)] <- ""
     }
-    
+
     return(permits)
   })
   # Capital Projects data with filters
@@ -1806,9 +1807,9 @@ server <- shinyServer(function(input, output, session) {
                                permits$tt,
                                '<br><center><a href="https://pittsburghpa.buildingeye.com/building" target="_blank">Search Permits on Building Eye!</a></center></font></font>'))
         )
-        recs <- recs + nrow(permits)
-        }
+      recs <- recs + nrow(permits)
       }
+    }
     # Building Code Violations
     if(input$toggleViolations) {
       violations <- violationsInput()
