@@ -609,13 +609,13 @@ ui <- navbarPage(id = "navTab",
                           ),
                  tabPanel(a("Places", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewPlaces/", style = "padding-top: 0px;
     padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
-                 # tabPanel(a("Parcels", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewParcels/", style = "padding-top: 0px; padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
+                 tabPanel(a("Parcels", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewParcels/", style = "padding-top: 0px; padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
                  tabPanel('Data: Points', class = "Data: Points", value = "Data: Points",
                           # Select Dataset for Export
                           inputPanel(
                             selectInput("report_select", 
                                         tagList(shiny::icon("map-marker"), "Select Layer:"),
-                                        choices = c("311 Requests", "Arrests", "Blotter", "Capital Projects","Building Permits", "Code Violations", "Non-Traffic Citations"), #  
+                                        choices = c("311 Requests", "Arrests", "Blotter", "Building Permits", "Capital Projects", "Code Violations", "Non-Traffic Citations"), #  
                                         selected= "Capital Projects"),
                             # Define Button Position
                             uiOutput("buttonStyle")
@@ -804,7 +804,7 @@ server <- shinyServer(function(input, output, session) {
                     selectInput("basemap_select",
                                 label = "Basemap",
                                 choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", Pioneer = "Thunderforest.Pioneer"),
-                                selected = ifelse(Sys.Date() == as.Date(paste0(this_year,"-07-06")) | Sys.Date() == as.Date(paste0(this_year,"-08-31")), "Thunderforest.Pioneer", "OpenStreetMap.Mapnik")),
+                                selected = ifelse(Sys.Date() == as.Date(paste0(this_year,"-07-15")) | Sys.Date() == as.Date(paste0(this_year,"-08-31")), "Thunderforest.Pioneer", "OpenStreetMap.Mapnik")),
                     selectInput("filter_select",
                                 "Filter by Area",
                                 c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Public Works Division")),
