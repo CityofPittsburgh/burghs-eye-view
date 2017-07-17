@@ -1526,7 +1526,7 @@ server <- shinyServer(function(input, output, session) {
     } else if (input$report_select == "Building Permits") {
       permits <- permitsInput()
       
-      permits <- subset(permits, select = c(permit_type, current_status, intake_date, issued_date, full_address, neighborhood, COUNCIL_DISTRICT, police_zone, public_works_division, permit_id, url))
+      permits <- subset(permits, select = c(permit_type, current_status, intake_date, issued_date, full_address, neighborhood, council_district, police_zone, public_works_division, permit_id, url))
       
       colnames(permits) <- c("Type",  "Status", "Intake Date",  "Issued Date", "Address", "Neighborhood", "Council District", "Police Zone", "Public Works Division", "Permit ID", "Parcel ID")
       
