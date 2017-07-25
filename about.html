@@ -1,7 +1,6 @@
 <!doctype html>
 <html>
 <head>
-	<base href="https://pittsburghpa.shinyapps.io/BurghsEyeView/">
 	<link href="shiny.css" rel="stylesheet" />
 	<script src="shiny.min.js"></script>
 	<link href="font-awesome/css/font-awesome.min.css" rel="stylesheet" />
@@ -74,11 +73,11 @@
 					<dt>Data</dt>
 					<dd>Using these checkboxes, you can turn off datasets to get a clearer view of what you're interested in. Some datasets have specific filters just for them. You can set those filters in the fields below each checkbox.</dd>
 					<dt>311 Requests</dt>
-					<dd>This layer allows you to see 311 requests, which are non-emergency concerns or questions that residents send to the City using the 311 call center, social media, text message, the website, or the myBurgh apps for iOS or Android. As you can imagine, residents have a wide range of concerns and questions. Start typing in the “Request Type” box to select the types of requests you want to see on the map. You can also view requests that are assigned to specific City departments or agencies, and view requests by origin (whether they were submitted as a call, on social media, etc). Click any of the orange icons on the map to learn more about a specific 311 request.</dd>
+					<dd>This layer allows you to see <a target="_blank" href="https://data.wprdc.org/dataset/311-data">311 requests</a>, which are non-emergency concerns or questions that residents send to the City using the 311 call center, <a target="_blank" href="https://twitter.com/Pgh311">social media</a>, text message, <a target="_blank" href="http://pittsburghpa.gov/311/form">the website</a>, or the myBurgh apps for <a target="_blank" href="https://itunes.apple.com/us/app/myburgh/id1021606996?mt=8">iOS</a> or <a target="_blank" href="https://play.google.com/store/apps/details?id=com.qscend.report2gov.myburgh&hl=en">Android</a>. As you can imagine, residents have a wide range of concerns and questions. Start typing in the &ldquo;Request Type&rdquo; box to select the types of requests you want to see on the map. You can also view requests that are assigned to specific City departments or agencies, and view requests by origin (whether they were submitted as a call, on social media, etc). Click any of the orange icons on the map to learn more about a specific 311 request</dd>
 					<dt>Public Safety Information</dt>
-					<dd>These layers allow you to see incidents captured in the 30-day police blotter, the police blotter archive as well as non-identifying information on arrests and non-traffic citations. Use the Hierarchy field to find specific types of crimes. Click on any of the blue, red, or pink icons on the map to learn more about a specific public safety incident.</dd>
+					<dd>These layers allow you to see incidents captured in <a target="_blank" href="https://data.wprdc.org/dataset/police-incident-blotter">the 30-day police blotter</a>, <a target="_blank" href="https://data.wprdc.org/dataset/uniform-crime-reporting-data">the police blotter archive</a> as well as non-identifying information on <a target="_blank" href="https://data.wprdc.org/dataset/arrest-data">arrests</a> and <a target="_blank" href="https://data.wprdc.org/dataset/non-traffic-citations">non-traffic citations</a>. Use the Hierarchy field to find specific types of crimes. Click on any of the blue, red, or pink icons on the map to learn more about a specific public safety incident.</dd>
 					<dt>Building Information</dt>
-					<dd>These layers allow you to see information on violations and city facilities. Select or start typing in the “Violation,” “Inspection Result,” “Next Action,” or “Facility Usage” fields to narrow down or view specific results. Click on any of the blue, green, or gray icons on the map to learn more about a specific permit, violation, or facility.</dd>
+					<dd>These layers allow you to see information on <a target="_blank" href="https://data.wprdc.org/dataset/pittsburgh-pli-violations-report">violations</a> and <a target="_blank" href="https://data.wprdc.org/dataset/city-facilities-centroids">city facilities</a>. Select or start typing in the &ldquo;Violation,&rdquo; &ldquo;Inspection Result,&rdquo; &ldquo;Next Action,&rdquo; or &ldquo;Facility Usage&rdquo; fields to narrow down or view specific results. Click on any of the blue, green, or gray icons on the map to learn more about a specific permit, violation, or facility.</dd>
 					<dt>"Filter by Area"</dt>
 					<dd>Are you interested in looking at information for a particular neighborhood, Council district, Police zone, or Public Works division? Select the type of area you want to see&mdash;the default is Neighborhood&mdash;and then you can set the specific area or areas below that. As with Search, some datasets' locations are generalized and may not react to these filters.</dd>
 				</dl>
@@ -99,7 +98,7 @@
 					<dd>The traffic signals section includes some terms that may be new to our users. “Actuated” means that the timing of a signal is determined by the number of vehicles detected at an intersection. “Actuated ped” means that the pedestrian button must be pushed to activate the signal timing for pedestrians; “fixed per” means that a pedestrian button does not need to be pushed. “Fully actuated” means that the signals are controlled by sensors, cameras, or radar.</dd>
 				</dl>
 				<h4>Parcels</h4>
-				<p>The Parcels map allows you to view, at the neighborhood level, delinquent properties, City-owned properties, and properties in a tax abatement program. You can also view information about any specific parcel, including type of owner, property class, sale information, county land value, and potential liens. Some information, including the owner’s name, is not included in order to protect people's privacy.</p>
+				<p>The Parcels map allows you to view, at the neighborhood level, delinquent properties, City-owned properties, and properties in a tax abatement program. You can also view information about any specific parcel, including type of owner, property class, sale information, county land value, and potential liens. Some information, including the owner’s name, is not included in order to protect people's privacy. While data on properties that are tax delinquent, in a tax abatement program, or city-owned comes from the City of Pittsburgh, all other data on the Parcels maps comes our partners at Allegheny County.</p>
 				<dl>
 					<dt>"Filter by Neighborhood"</dt>
 					<dd>Are you interested in looking at information for a particular neighborhood? Select the neighborhood you want to see—the default is the Central Business District.</dd>
@@ -111,21 +110,6 @@
 			</section>
 		</div>
 		<div class="what">
-			<section>
-				<h3>And what data can I find on it?</h3>
-				<p>You can learn a lot using Burgh&rsquo;s Eye View. So much that we won&rsquo;t list everything&mdash;just to save our breath. But here are some of the things you can find, along with links to the source data and other resources:</p>
-				
-				<h5>311 Requests</h5>
-				<p>This layer allows you to see <a target="_blank" href="https://data.wprdc.org/dataset/311-data">311 requests</a>, which are non-emergency concerns or questions that residents send to the City using the 311 call center, <a target="_blank" href="https://twitter.com/Pgh311">social media</a>, text message, <a target="_blank" href="http://pittsburghpa.gov/311/form">the website</a>, or the myBurgh apps for <a target="_blank" href="https://itunes.apple.com/us/app/myburgh/id1021606996?mt=8">iOS</a> or <a target="_blank" href="https://play.google.com/store/apps/details?id=com.qscend.report2gov.myburgh&hl=en">Android</a>. As you can imagine, residents have a wide range of concerns and questions. Start typing in the &ldquo;Request Type&rdquo; box to select the types of requests you want to see on the map. You can also view requests that are assigned to specific City departments or agencies, and view requests by origin (whether they were submitted as a call, on social media, etc). Click any of the orange icons on the map to learn more about a specific 311 request.</p>
-				
-				<h5>Public Safety Information</h5>
-				<p>These layers allow you to see incidents captured in <a target="_blank" href="https://data.wprdc.org/dataset/police-incident-blotter">the 30-day police blotter</a>, <a target="_blank" href="https://data.wprdc.org/dataset/uniform-crime-reporting-data">the police blotter archive</a> as well as non-identifying information on <a target="_blank" href="https://data.wprdc.org/dataset/arrest-data">arrests</a> and <a target="_blank" href="https://data.wprdc.org/dataset/non-traffic-citations">non-traffic citations</a>. Use the Hierarchy field to find specific types of crimes. Click on any of the blue, red, or pink icons on the map to learn more about a specific public safety incident.</p>
-				
-				<h5>Building Information</h5>
-				<p>These layers allow you to see information on <a target="_blank" href="https://data.wprdc.org/dataset/pittsburgh-pli-violations-report">violations</a> and <a target="_blank" href="https://data.wprdc.org/dataset/city-facilities-centroids">city facilities</a>. Select or start typing in the &ldquo;Violation,&rdquo; &ldquo;Inspection Result,&rdquo; &ldquo;Next Action,&rdquo; or &ldquo;Facility Usage&rdquo; fields to narrow down or view specific results. Click on any of the blue, green, or gray icons on the map to learn more about a specific permit, violation, or facility.</p>
-			</section>
-		</div>
-		<div class="where">
 			<section>
 				<h3>Wait, why are things where they are?</h3>
 				<p>Markers or &ldquo;pins&rdquo; for each dataset show up on the map differently depending on the source. Public Safety pins are geocoded by the block or intersection of the incident or arrest using Allegheny County's geocoder, every night. Code violations are geocoded at the center of their respective parcel, which is determined by Allegheny County. 311 Requests are first geocoded by the City's 311 request tracking system. To maintain citizens' privacy these requests are then specially obfuscated. This process is handled by the <a target="_blank" href="http://www.wprdc.org/">Western Pennsylvania Regional Data Center</a>, and they describe it this way:</p>
