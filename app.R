@@ -676,8 +676,8 @@ server <- shinyServer(function(input, output, session) {
     if (length(reactiveValuesToList(input)) > 0) {
       dateTime <- Sys.time()
       names(dateTime) <- "dateTime"
-      couchDB$dataList <- c(reactiveValuesToList(input), sessionID, dateTime, sessionStart)
-      cdbAddDoc(couchDB)
+      # couchDB$dataList <- c(reactiveValuesToList(input), sessionID, dateTime, sessionStart)
+      # cdbAddDoc(couchDB)
     }
     session$doBookmark()
   })
