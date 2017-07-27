@@ -423,7 +423,7 @@ icons_cproj <- iconList(
 
 # CouchDB Connection
 # couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
+# couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 # this_year
 this_year <- format(Sys.Date(), format="%Y")
@@ -616,7 +616,7 @@ ui <- navbarPage(id = "navTab",
                             selectInput("report_select", 
                                         tagList(shiny::icon("map-marker"), "Select Layer:"),
                                         choices = c("311 Requests", "Arrests", "Blotter", "Building Permits", "Capital Projects", "Code Violations", "Non-Traffic Citations"), #  
-                                        selected= "311 Requests"),
+                                        selected= "Capital Projects"),
                             # Define Button Position
                             uiOutput("buttonStyle")
                           ),
@@ -660,7 +660,7 @@ server <- shinyServer(function(input, output, session) {
   # Observe changes to the dates function, if not default include in bookmark/url
   observeEvent(input$dates,  {
     if (input$dates[1] != Sys.Date()-10 | input$dates[2] != Sys.Date()){
-      setBookmarkExclude(c("GetScreenWidth", "report.table_rows_all", "report.table_rows_current"))
+      setBookmarkExclude("GetScreenWidth", "report.table_rows_all", "report.table_rows_current")
     } else {
       setBookmarkExclude(c("GetScreenWidth", "dates", "report.table_rows_all", "report.table_rows_current"))
     }
