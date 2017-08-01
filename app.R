@@ -32,6 +32,7 @@ library(zoo)
 library(lubridate)
 library(stringi)
 library(stringr)
+library(sp)
 
 # Turn off Scientific Notation
 options(scipen = 999)
@@ -76,7 +77,7 @@ ckanQueryDates  <- function(id, days, column) {
   jsonlite::fromJSON(json)$result$records
 }
 
-ckanQuery2 <- function(id, query, query2, column, column2) {
+ckanQuery2 <- function(id, query, column, query2, column2) {
   url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column,"%22%20=%20%27", query, "%27%20AND%20%22", column2, "%22%20=%20%27", query2, "%27")
   r <- GET(url, add_headers(Authorization = ckan_api))
   c <- content(r, "text")
@@ -433,6 +434,17 @@ icons_cproj <- iconList(
 
 # this_year
 this_year <- format(Sys.Date(), format="%Y")
+last_year<- as.numeric(this_year) -  1
+
+crash_types <- c("Bicycle", "Bus", "Crash", "Hit Deer", "Intoxicated Driver", "Motorcycle", "Hit Fixed Object", "Pedestrian", "Train")
+
+icons_crashes <- iconList(
+  crash = makeIcon("./icons/crashes/crash.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+)
+
+# CouchDB Connection
+# couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
+couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 if(Sys.Date() <= as.Date(paste0(this_year,"-10-31")) & Sys.Date() >= as.Date(paste0(this_year,"-10-01"))) {
   # Egg
@@ -764,6 +776,21 @@ server <- shinyServer(function(input, output, session) {
                                   label = "Non-Traffic Citations",
                                   value = TRUE),
                     HTML('</font>'),
+                    HTML('<font color="#F9C13D">'),
+                    checkboxInput("toggleCrashes",
+                                  label = "Traffic Collisions",
+                                  value = FALSE),
+                    HTML('</font>'),
+                    selectInput("crash_year",
+                                label = NULL,
+                                c(`Collision Year`='', c(2004:last_year)),
+                                selected = last_year,
+                                selectize=TRUE),
+                    selectInput("crash_select",
+                                label = NULL,
+                                c(`Collision Type`='', crash_types),
+                                multiple = TRUE,
+                                selectize=TRUE),
                     HTML('<font color="#009FE1">'),
                     checkboxInput("togglePermits",
                                   label = "Building Permits",
@@ -887,6 +914,21 @@ server <- shinyServer(function(input, output, session) {
                                    label = "Non-Traffic Citations",
                                    value = TRUE),
                      HTML('</font>'),
+                     HTML('<font color="#F9C13D">'),
+                     checkboxInput("toggleCrashes",
+                                   label = "Traffic Collisions",
+                                   value = FALSE),
+                     HTML('</font>'),
+                     selectInput("crash_year",
+                                 label = NULL,
+                                 c(`Crash Year`='', c(2004:last_year)),
+                                 selected = last_year,
+                                 selectize=TRUE),
+                     selectInput("crash_select",
+                                 label = NULL,
+                                 c(`Collision Type`='', crash_types),
+                                 multiple = TRUE,
+                                 selectize=TRUE),
                      HTML('<font color="#009FE1">'),
                      checkboxInput("togglePermits",
                                    label = "Building Permits",
@@ -1127,6 +1169,74 @@ server <- shinyServer(function(input, output, session) {
     zones
   })
   # Point Data
+  # Crash Data
+  crashInput <- reactive({
+    # Load Crashes
+    crashes <- ckanQuery2("2c13021f-74a9-4289-a1e5-fe0472c89881", 2301, "MUNICIPALITY", input$crash_year, "CRASH_YEAR")
+    # Subset
+    crashes <- subset(crashes, !is.na(DEC_LONG) & !is.na(DEC_LAT))
+    # Cleancrashes$BUS_COUNT <- as.numeric(crashes$BUS_COUNT)
+    # Icons
+    crashes$icon <- as.factor(case_when(
+      crashes$BICYCLE == "1" ~ "bike",
+      crashes$BUS_COUNT >= 1 ~ "bus",
+      crashes$MOTORCYCLE == "1" ~ "motorcycle",
+      crashes$PEDESTRIAN == "1" ~ "ped",
+      crashes$ALCOHOL_RELATED == "1" | crashes$DRUGGED_DRIVER == "1" ~ "DUI",
+      crashes$TRAIN_TROLLEY == "1" ~ "train",
+      crashes$HIT_DEER == "1" ~ "deer",
+      crashes$HIT_FIXED_OBJECT == "1" ~ "obj",
+      TRUE ~ "crash"
+    ))
+    crashes <- transform(crashes, type = as.factor(mapvalues(icon, c(levels(crashes$icon)),
+                                                                      crash_types)))
+    # Type Select
+    if (length(input$crash_select) > 0){
+      crashes <- crasheses[crashes$type %in% input$crash_select,]
+    }
+    
+    # Clean
+    crashes$CRASH_MONTH <- str_pad(crashes$CRASH_MONTH, 2, pad = "0")
+    crashes$time <- str_pad(crashes$TIME_OF_DAY, 4, pad = "0")
+    crashes$date <- paste0(crashes$CRASH_YEAR, crashes$CRASH_MONTH, "01")
+    crashes$date_time <- as.POSIXct(paste(crashes$date, crashes$time), format = "%Y%m%d%H%M")
+    crashes$time <- format(crashes$date_time, "%I:%m %p")
+    crashes$date <- format(as.Date(crashes$date, format = "%Y%m%d"), "%B %Y")
+    crashes$day <- as.factor(case_when(
+      crashes$DAY_OF_WEEK == "1" ~ "Sunday",
+      crashes$DAY_OF_WEEK == "2" ~ "Monday",
+      crashes$DAY_OF_WEEK == "3" ~ "Tuesday",
+      crashes$DAY_OF_WEEK == "4" ~ "Wednesday",
+      crashes$DAY_OF_WEEK == "5" ~ "Thursday",
+      crashes$DAY_OF_WEEK == "6" ~ "Friday",
+      crashes$DAY_OF_WEEK == "7" ~ "Saturday"
+    ))
+    # Temp
+    crashes$icon <- "crash"
+    
+    # Spatial
+    coords <- cbind(as.numeric(crashes$DEC_LONG), as.numeric(crashes$DEC_LAT))
+    points <- SpatialPoints(coords)
+    crashes_sp <- SpatialPointsDataFrame(points, crashes)
+    proj4string(crashes_sp) <- CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+    
+    # Geographic Filters
+    if (length(input$zone_select) > 0 & input$filter_select == "Police Zone") {
+      crashes_sp$POLICE_ZONE <- sp::over(crashes_sp, load.zones)$POLICE_ZONE
+      crashes_sp <- crashes_sp[crashes_sp$POLICE_ZONE %in% input$zone_select,]
+    } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
+      crashes_sp$hood <- sp::over(crashes_sp, load.hoods)$hood
+      crashes_sp <- crashes_sp[crashes_sp$hood %in% input$hood_select,]
+    } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
+      crashes_sp$PUBLIC_WORKS_DIVISION <- sp::over(crashes_sp, load.dpw)$PUBLIC_WORKS_DIVISION
+      crashes_sp <- crashes_sp[crashes_sp$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
+    } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
+      crashes_sp$COUNCIL_DISTRICT <- sp::over(crashes_sp, load.dpw)$COUNCIL_DISTRICT
+      crashes_sp <- crashes_sp[crashes_sp$COUNCIL_DISTRICT %in% input$council_select,]
+    }
+    
+    return(crashes_sp)
+  })
   # 311 data with filters
   dat311Input <- reactive({
     dat311 <- load311
@@ -1877,10 +1987,58 @@ server <- shinyServer(function(input, output, session) {
                                  "<br><b>Neighborhood:</b>", cproj$neighborhood,
                                  "<br><b>Council District:</b>", cproj$council_district,
                                  "<br><b>Public Works Division:</b>", cproj$public_works_division,
-                                 "<br><b>Police Zone:</b>", cproj$police_zone
+                                 "<br><b>Police Zone:</b>", cproj$police_zone, '</font>'
                           ))
         )
         recs <- recs + nrow(cproj)
+      }
+    }
+    # Crashes
+    if (input$toggleCrashes) {
+      crashes <- crashInput()
+      if (nrow(crashes@data) > 0) {
+        layerCount <- layerCount + 1
+        map <- addMarkers(map, data=crashes,
+                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
+                                                                                      var childCount = cluster.getChildCount();
+                                                                                      if (childCount < 10) {  
+                                                                                          c = 'rgba(252, 247, 220, 1);'
+                                                                                      } else if (childCount < 100) {  
+                                                                                      c = 'rgba(251, 227, 136, 1);'  
+                                                                                      } else { 
+                                                                                      c = 'rgba(246, 205, 57, 1);'  
+                                                                                      }   
+                                                                                      return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+      }")), icon = ~icons_crashes[icon],
+                 popup = ~(paste("<font color='black'><b>Collision Type:</b>", crashes$type,
+                                 "<br><b>Month:</b>", crashes$date,
+                                 "<br><b>Day:</b>", crashes$day,
+                                 "<br><b>Time:</b>", crashes$time,
+                                 "<br><b>Street:</b>", crashes$STREET_NAME,
+                                 "<br><b>Speed Limit:</b>", crashes$SPEED_LIMIT,
+                                 "<br><b>Vehicles:</b>", crashes$VEHICLE_COUNT,
+                                 "<br><b>People:</b>", crashes$PERSON_COUNT,
+                                 "<br><b>Injuries:</b>", crashes$INJURY_COUNT,
+                                 "<br><b>Deaths:</b>", crashes$FATAL_COUNT,
+                                 "<br><br><b>Special Circumstances:</b><ul>",
+                                  ifelse(crashes$AGGRESSIVE_DRIVING == 1, "<li>Aggressive Driving", ""),
+                                  ifelse(crashes$SPEEDING_RELATED == 1, "<li>Speeding Related", ""),
+                                  ifelse(crashes$UNLICENSED == 1, "<li>Unlicensed", ""),
+                                  ifelse(crashes$WET_ROAD == 1, "<li>Wet Road", ""),
+                                  ifelse(crashes$SNOW_SLUSH_ROAD == 1, "<li>Snow/Slushy Road", ""),
+                                  ifelse(crashes$ICY_ROAD == 1, "<li>Icy Road", ""),
+                                  ifelse(crashes$REAR_END == 1, "<li>Rear Ended", ""),
+                                  ifelse(crashes$OVERTURNED == 1, "<li>Overturned Vehicle", ""),
+                                  ifelse(crashes$CELL_PHONE == 1, "<li>Cellphone Related", ""),
+                                  ifelse(crashes$VEHICLE_TOWED == 1, "<li>Vehicle Towed", ""),
+                                  ifelse(crashes$RUNNING_RED_LT == 1, "<li>Ran Red Light", ""),
+                                  ifelse(crashes$RUNNING_STOP_SIGN == 1, "<li>Ran Stop Sign", ""),
+                                  ifelse(crashes$FATIGUE_ASLEEP == 1, "<li>Fatigued/Asleep", ""),
+                                  ifelse(crashes$WORK_ZONE == 1, "<li>Work Zone", ""),
+                                  ifelse(crashes$DISTRACTED == 1, "<li>Distracted", ""),
+                                  ifelse(crashes$SCH_BUS_IND == 1, "<li>School Bus", ""),
+                                 "</ul>"))
+        )
       }
     }
     print(recs)
