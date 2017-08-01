@@ -776,21 +776,6 @@ server <- shinyServer(function(input, output, session) {
                                   label = "Non-Traffic Citations",
                                   value = TRUE),
                     HTML('</font>'),
-                    HTML('<font color="#F9C13D">'),
-                    checkboxInput("toggleCrashes",
-                                  label = "Traffic Collisions",
-                                  value = FALSE),
-                    HTML('</font>'),
-                    selectInput("crash_year",
-                                label = NULL,
-                                c(`Collision Year`='', c(2004:last_year)),
-                                selected = last_year,
-                                selectize=TRUE),
-                    selectInput("crash_select",
-                                label = NULL,
-                                c(`Collision Type`='', crash_types),
-                                multiple = TRUE,
-                                selectize=TRUE),
                     HTML('<font color="#009FE1">'),
                     checkboxInput("togglePermits",
                                   label = "Building Permits",
@@ -825,6 +810,21 @@ server <- shinyServer(function(input, output, session) {
                     selectInput("funcarea_select",
                                 label = NULL,
                                 c(`Functional Area`='', levels(load.cproj$area)),
+                                multiple = TRUE,
+                                selectize=TRUE),
+                    HTML('<font color="#F9C13D">'),
+                    checkboxInput("toggleCrashes",
+                                  label = "Traffic Collisions",
+                                  value = FALSE),
+                    HTML('</font>'),
+                    selectInput("crash_year",
+                                label = NULL,
+                                c(`Collision Year`='', c(2004:last_year)),
+                                selected = last_year,
+                                selectize=TRUE),
+                    selectInput("crash_select",
+                                label = NULL,
+                                c(`Collision Type`='', crash_types),
                                 multiple = TRUE,
                                 selectize=TRUE),
                     selectInput("basemap_select",
@@ -914,21 +914,6 @@ server <- shinyServer(function(input, output, session) {
                                    label = "Non-Traffic Citations",
                                    value = TRUE),
                      HTML('</font>'),
-                     HTML('<font color="#F9C13D">'),
-                     checkboxInput("toggleCrashes",
-                                   label = "Traffic Collisions",
-                                   value = FALSE),
-                     HTML('</font>'),
-                     selectInput("crash_year",
-                                 label = NULL,
-                                 c(`Crash Year`='', c(2004:last_year)),
-                                 selected = last_year,
-                                 selectize=TRUE),
-                     selectInput("crash_select",
-                                 label = NULL,
-                                 c(`Collision Type`='', crash_types),
-                                 multiple = TRUE,
-                                 selectize=TRUE),
                      HTML('<font color="#009FE1">'),
                      checkboxInput("togglePermits",
                                    label = "Building Permits",
@@ -960,6 +945,21 @@ server <- shinyServer(function(input, output, session) {
                                    label = "Capital Projects",
                                    value = TRUE),
                      HTML('</font>'),
+                     HTML('<font color="#F9C13D">'),
+                     checkboxInput("toggleCrashes",
+                                   label = "Traffic Collisions",
+                                   value = FALSE),
+                     HTML('</font>'),
+                     selectInput("crash_year",
+                                 label = NULL,
+                                 c(`Crash Year`='', c(2004:last_year)),
+                                 selected = last_year,
+                                 selectize=TRUE),
+                     selectInput("crash_select",
+                                 label = NULL,
+                                 c(`Collision Type`='', crash_types),
+                                 multiple = TRUE,
+                                 selectize=TRUE),
                      selectInput("funcarea_select",
                                  label = NULL,
                                  c(`Functional Area`='', levels(load.cproj$area)),
@@ -1188,11 +1188,11 @@ server <- shinyServer(function(input, output, session) {
       crashes$HIT_FIXED_OBJECT == "1" ~ "obj",
       TRUE ~ "crash"
     ))
-    crashes <- transform(crashes, type = as.factor(mapvalues(icon, c(levels(crashes$icon)),
+    crashes <- transform(crashes, type =as.factor(mapvalues(icon, c("bike", "bus", "crash", "deer", "DUI", "motorcycle", "train", "obj", "ped"),
                                                                       crash_types)))
     # Type Select
     if (length(input$crash_select) > 0){
-      crashes <- crasheses[crashes$type %in% input$crash_select,]
+      crashes <- crashes[crashes$type %in% input$crash_select,]
     }
     
     # Clean
@@ -2040,6 +2040,7 @@ server <- shinyServer(function(input, output, session) {
                                  "</ul>"))
         )
       }
+      recs <- recs + nrow(crashes@data)
     }
     print(recs)
     if (layerCount < 1) {
