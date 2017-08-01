@@ -27,9 +27,11 @@ library(geojsonio)
 
 # Data Transform
 library(plyr)
+library(dplyr)
 library(zoo)
 library(lubridate)
 library(stringi)
+library(stringr)
 
 # Turn off Scientific Notation
 options(scipen = 999)
@@ -64,10 +66,18 @@ ckan <- function(id) {
 }
 
 # Function to Query WPRDC Data on Time Frame
-ckanQuery  <- function(id, days, column) {
+ckanQueryDates  <- function(id, days, column) {
   today <- as.character(format(Sys.Date(), "%m-%d-%Y"))
-  query <- as.character(format(Sys.Date() - days, "%m-%d-%Y"))
-  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column,"%22%20%3E=%20%27", query, "%27%20AND%20%22", column, "%22%20%3C=%20%27", today,"%27")
+  year_ago <- as.character(format(Sys.Date() - days, "%m-%d-%Y"))
+  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column,"%22%20%3E=%20%27", year_ago, "%27%20AND%20%22", column, "%22%20%3C=%20%27", today, "%27")
+  r <- GET(url, add_headers(Authorization = ckan_api))
+  c <- content(r, "text")
+  json <- gsub('NaN', '""', c, perl = TRUE)
+  jsonlite::fromJSON(json)$result$records
+}
+
+ckanQuery2 <- function(id, query, query2, column, column2) {
+  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column,"%22%20=%20%27", query, "%27%20AND%20%22", column2, "%22%20=%20%27", query2, "%27")
   r <- GET(url, add_headers(Authorization = ckan_api))
   c <- content(r, "text")
   json <- gsub('NaN', '""', c, perl = TRUE)
@@ -149,7 +159,7 @@ load.zones@data <- cleanZone(load.zones@data, TRUE)
 
 # Load Marker Files
 # Load 311 Requests
-load311 <- ckanQuery("40776043-ad00-40f5-9dc8-1fde865ff571", 365, "CREATED_ON")
+load311 <- ckanQueryDates("40776043-ad00-40f5-9dc8-1fde865ff571", 365, "CREATED_ON")
 load311$CREATED_ON <- as.POSIXct(load311$CREATED_ON, format = '%Y-%m-%dT%H:%M:%S')
 # Clean Geographies
 load311 <- subset(load311, select = -REQUEST_ID)
@@ -288,7 +298,7 @@ icons_violations <- iconList(
 )
 
 # Blotter
-archive <- ckanQuery("044f2016-1dfd-4ab0-bc1e-065da05fca2e", 365, "INCIDENTTIME")
+archive <- ckanQueryDates("044f2016-1dfd-4ab0-bc1e-065da05fca2e", 365, "INCIDENTTIME")
 # Clean for merge
 archive$X <- as.numeric(archive$X)
 archive$Y <- as.numeric(archive$Y)
@@ -420,10 +430,6 @@ icons_cproj <- iconList(
   public_safety = makeIcon("./icons/omb/public_safety.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
   vehicles_equipment = makeIcon("./icons/omb/vehicles_equipment.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
-
-# CouchDB Connection
-# couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-# couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 # this_year
 this_year <- format(Sys.Date(), format="%Y")
@@ -672,13 +678,6 @@ server <- shinyServer(function(input, output, session) {
   observe({
     # Trigger this observer every time an input changes
     reactiveValuesToList(input)
-    # Connect to Couch DB
-    if (length(reactiveValuesToList(input)) > 0) {
-      dateTime <- Sys.time()
-      names(dateTime) <- "dateTime"
-      # couchDB$dataList <- c(reactiveValuesToList(input), sessionID, dateTime, sessionStart)
-      # cdbAddDoc(couchDB)
-    }
     session$doBookmark()
   })
   # Update page URL
@@ -1894,6 +1893,13 @@ server <- shinyServer(function(input, output, session) {
       map <- addMarkers(map, data=egg, ~X, ~Y, icon = ~icons_egg[icon], popup = ~tt) %>% 
           setView(-79.9959, 40.4406, zoom = 10)
     }
+    #Write inputs to Couch
+    dateTime <- Sys.time()
+    names(dateTime) <- "dateTime"
+    inputs <- isolate(reactiveValuesToList(input))
+    couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart)
+    cdbAddDoc(couchDB)
+    #Generate Map
     map
     })
   })
