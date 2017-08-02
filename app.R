@@ -41,6 +41,14 @@ ckan_api <- jsonlite::fromJSON("key.json")$ckan_api
 couchdb_un <- jsonlite::fromJSON("key.json")$couchdb_un
 couchdb_pw <- jsonlite::fromJSON("key.json")$couchdb_pw
 
+selection_conn <- cdbIni(serverName = "webhost.pittsburghpa.gov", port = "5984", uname = couchdb_un, pwd = couchdb_pw, DBName = "bev-inputs")
+
+selectGet <- function(id, conn) {
+  conn$id <- id
+  r <- cdbGetDoc(conn)$res
+  unlist(r)[3:length(r)]
+}
+
 # Function to read backslashes correctly
 chartr0 <- function(foo) chartr('\\','\\/',foo)
 
@@ -67,10 +75,8 @@ ckan <- function(id) {
 }
 
 # Function to Query WPRDC Data on Time Frame
-ckanQueryDates  <- function(id, days, column) {
-  today <- as.character(format(Sys.Date(), "%m-%d-%Y"))
-  year_ago <- as.character(format(Sys.Date() - days, "%m-%d-%Y"))
-  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column,"%22%20%3E=%20%27", year_ago, "%27%20AND%20%22", column, "%22%20%3C=%20%27", today, "%27")
+ckanQueryDates  <- function(id, start, end, column) {
+  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column, "%22%20%3E=%20%27", start, "%27%20AND%20%22", column, "%22%20%3C=%20%27", end, "%27")
   r <- GET(url, add_headers(Authorization = ckan_api))
   c <- content(r, "text")
   json <- gsub('NaN', '""', c, perl = TRUE)
@@ -158,34 +164,15 @@ load.zones <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datas
 load.zones$POLICE_ZONE <- load.zones$zone
 load.zones@data <- cleanZone(load.zones@data, TRUE)
 
-# Load Marker Files
-# Load 311 Requests
-load311 <- ckanQueryDates("40776043-ad00-40f5-9dc8-1fde865ff571", 365, "CREATED_ON")
-load311$CREATED_ON <- as.POSIXct(load311$CREATED_ON, format = '%Y-%m-%dT%H:%M:%S')
-# Clean Geographies
-load311 <- subset(load311, select = -REQUEST_ID)
-load311 <- cleanGeo(load311, TRUE)
-load311$date <- as.Date(load311$CREATED_ON)
-load311$CREATED_ON <- as.POSIXct(load311$CREATED_ON, tz = "EST")
-load311$icon <- as.character(load311$REQUEST_TYPE)
-load311$REQUEST_TYPE <- ifelse(load311$REQUEST_TYPE == "Potholes - 4th Div", "Potholes", load311$REQUEST_TYPE)
-# Prepare for Icons
-requests311 <-c("Abandoned Vehicle (parked on street)", "Building Maintenance", "Building Without a Permit", "Drug Enforcement", "Fire Department", "Fire Lane", "Fire Prevention", "Gang Activity", "Graffiti, Documentation", "Graffiti, Removal", "Hydrant - Fire Admin", "Illegal Dumping", "Illegal Parking", "Litter","Noise", "Missed Pick Up", "Panhandling", "Patrol", "Paving Request", "Potholes", "Pruning (city tree)", "Refuse Violations", "Replace/Repair a Sign", "Request New Sign", "Rodent control", "Sidewalk Obstruction", "Sinkhole", "Smoke detectors", "Snow/Ice removal", "Street Cleaning/Sweeping", "Street Light - Repair", "Traffic", "Traffic or Pedestrian Signal, Repair", "Vacant Building", "Weeds/Debris")
-# Set Icon to Other
-load311$icon <- ifelse(load311$icon %in% requests311, load311$icon, "Other")
-load311$icon <- as.factor(load311$icon)
-load311$REQUEST_TYPE <- as.factor(load311$REQUEST_TYPE)
-load311 <- transform(load311, icon = as.factor(mapvalues(icon, c("Abandoned Vehicle (parked on street)", "Building Maintenance", "Building Without a Permit", "Drug Enforcement", "Fire Department", "Fire Lane", "Fire Prevention", "Gang Activity", "Graffiti, Documentation", "Graffiti, Removal", "Hydrant - Fire Admin", "Illegal Dumping", "Illegal Parking", "Litter","Noise", "Other", "Missed Pick Up", "Panhandling", "Patrol", "Paving Request", "Potholes", "Pruning (city tree)", "Refuse Violations", "Replace/Repair a Sign", "Request New Sign", "Rodent control", "Sidewalk Obstruction", "Sinkhole", "Smoke detectors", "Snow/Ice removal", "Street Cleaning/Sweeping", "Street Light - Repair", "Traffic", "Traffic or Pedestrian Signal, Repair", "Vacant Building", "Weeds/Debris"),
-                                                         c("abandoned_vehicle", "building_maintenance", "building_nopermit", "drug_enforcement", "fire_dept", "fire_lane", "fire_prevention",  "gang_activity", "graffiti", "graffiti", "hydrant", "illegal_dumping", "illegal_parking", "litter", "noise","other311", "missed_pickup","panhandling", "patrol", "paving_request", "pothole", "pruning", "refuse_violation", "replace_sign", "request_sign", "rodent_control", "sidewalk_obstruction", "sinkhole", "smoke_detectors", "snow_removal", "street_sweeper", "streetlight_repair", "traffic", "trafficlight_repair", "vacant_building", "weeds_debris"))))
-# Origin Clean
-load311 <- transform(load311, REQUEST_ORIGIN = as.factor(mapvalues(REQUEST_ORIGIN, c("Report2Gov Android", "Report2Gov iOS", "Report2Gov Website"),
-                                                                   c("myBurgh (Android)", "myBurgh (iOS)", "Website"))))
-load311 <- transform(load311, REQUEST_ORIGIN2 = as.factor(mapvalues(REQUEST_ORIGIN, c("myBurgh (Android)", "myBurgh (iOS)", "Website"),
-                                                                    c('<a href="https://play.google.com/store/apps/details?id=com.qscend.report2gov.myburgh&hl=en" target="_blank">myBurgh (Android)</a>','<a href="https://itunes.apple.com/us/app/myburgh/id1021606996?mt=8" target="_blank">myBurgh (iOS)</a>', '<a href="http://pittsburghpa.gov/311/form" target="_blank">Website</a>'))))
-load311$DEPARTMENT <- ifelse(is.na(load311$DEPARTMENT), "Other", load311$DEPARTMENT)
-load311$DEPARTMENT <- as.factor(load311$DEPARTMENT)
-load311$NEIGHBORHOOD <- as.factor(load311$NEIGHBORHOOD)
+# 311 Input & Icons
+request_types <- selectGet("request_types", selection_conn)
 
+requests311 <-c("Abandoned Vehicle (parked on street)", "Building Maintenance", "Building Without a Permit", "Drug Enforcement", "Fire Department", "Fire Lane", "Fire Prevention", "Gang Activity", "Graffiti, Documentation", "Graffiti, Removal", "Hydrant - Fire Admin", "Illegal Dumping", "Illegal Parking", "Litter","Noise", "Missed Pick Up", "Panhandling", "Patrol", "Paving Request", "Potholes", "Pruning (city tree)", "Refuse Violations", "Replace/Repair a Sign", "Request New Sign", "Rodent control", "Sidewalk Obstruction", "Sinkhole", "Smoke detectors", "Snow/Ice removal", "Street Cleaning/Sweeping", "Street Light - Repair", "Traffic", "Traffic or Pedestrian Signal, Repair", "Vacant Building", "Weeds/Debris")
+
+departments <- selectGet("departments", selection_conn)
+origins <- selectGet("origins", selection_conn)
+
+# 311 Selections
 icons_311 <- iconList(
   abandoned_vehicle = makeIcon("./icons/311/abandoned_vehicle.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
   building_maintenance = makeIcon("./icons/311/building_maintenance.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
@@ -224,30 +211,10 @@ icons_311 <- iconList(
   weeds_debris = makeIcon("./icons/311/weeds_debris.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
 
-# Load Permit Layer
-load.permits <- ckan("95d69895-e58d-44de-a370-fec6ad2b332e")
-load.permits$date <- as.Date(load.permits$intake_date)
-# Full address clean
-load.permits$full_address <- paste0(ifelse(is.na(load.permits$street_address) | is.null(load.permits$street_address), "", paste0(as.character(load.permits$street_address), " ")),
-                                    ifelse(is.na(load.permits$city) | is.null(load.permits$city), "",  paste0(load.permits$city, ", ")),
-                                    ifelse(is.na(load.permits$state) | is.null(load.permits$state), "",  paste0(load.permits$state, " ")),
-                                    ifelse(is.na(load.permits$zip) | is.null(load.permits$zip), "",  paste0(load.permits$zip, " ")))
-types <- as.data.frame(do.call(rbind, strsplit(load.permits$permit_type, " - ", fixed = FALSE)))
-load.permits$primary_type <- types$V1
-load.permits$record_category <- ifelse(is.na(load.permits$record_category), "None", load.permits$record_category)
-load.permits$current_status <- as.factor(load.permits$current_status)
-load.permits$lat <- as.numeric(load.permits$lat)
-load.permits$lon <- as.numeric(load.permits$lon)
-load.permits$permit_type <- as.factor(load.permits$permit_type)
-load.permits$neighborhood <- as.factor(load.permits$neighborhood)
+# Building Permit Input & Icons
+permit_types <- c("Board of Appeals Application", "Building Permit", "Communication Tower", "Demolition Permit", "Electrical Permit", "Fire Alarm Permit", "HVAC Permit", "Land Operations Permit", "Occupancy Only", "Occupant Load Placard", "Sign Permit", "Sprinkler Permit", "Temporary Occupancy", "Temporary Occupancy Commercial")
 
-# Create County Parcel viewer link
-load.permits$url <-  paste0('<a href="http://www2.county.allegheny.pa.us/RealEstate/GeneralInfo.aspx?ParcelID=',load.permits$parcel_id, '" target="_blank">', load.permits$parcel_id, '</a>')
-
-load.permits <- transform(load.permits, icon = as.factor(mapvalues(primary_type, c("Board of Appeals Application", "Building Permit", "Communication Tower", "Demolition Permit", "Electrical Permit", "Fire Alarm Permit", "HVAC Permit", "Land Operations Permit", "Occupancy Only", "Occupant Load Placard", "Sign Permit", "Sprinkler Permit", "Temporary Occupancy", "Temporary Occupancy Commercial"),
-                                                                   c('appeals', 'building_permit', 'communication_tower', 'demolition_permit', 'electrical_permit', 'fire_alarm', 'HVAC_permit', 'land_operations', 'occupancy', 'occupant_load_placard', 'sign_permit', 'sprinkler_permit', 'temp_occupancy', 'temp_occupancy'))))
-# Clean Geograhies
-load.permits <- cleanGeo(load.permits)
+permit_status <- selectGet("permit_status", selection_conn)
 
 # Icons for Permit
 icons_permits <- iconList(
@@ -270,27 +237,9 @@ icons_permits <- iconList(
 load.workflow <- ckan("7e0bf4bf-c7f5-48cd-8177-86f5ce776dfa")
 load.workflow$tool <- paste0("<dt>", load.workflow$status_date, ": ", load.workflow$action_by_dept, "</dt>", "<dd>", load.workflow$task, " - ", load.workflow$status, "</dd>")
 
-# Load Violations
-load.violations <- ckan("4e5374be-1a88-47f7-afee-6a79317019b4")
-load.violations$date <- as.Date(load.violations$INSPECTION_DATE)
-load.violations$INSPECTION_RESULT <- as.factor(load.violations$INSPECTION_RESULT)
-load.violations <- transform(load.violations, icon = as.factor(mapvalues(INSPECTION_RESULT, c('Abated','Violations Found','Voided'),
-                                                                         c('violations_abated', 'violations_found', 'violations_void'))))
-load.violations$FullAddress <- paste(ifelse(is.na(load.violations$STREET_NUM) | is.null(load.violations$STREET_NUM) | load.violations$STREET_NUM == 0, "", load.violations$STREET_NUM) , ifelse(is.na(load.violations$STREET_NAME) | is.null(load.violations$STREET_NAME), "", load.violations$STREET_NAME))
-# Create Parcel URL
-load.violations$full_address <- paste(load.violations$STREET_NUM, load.violations$STREET_NAME)
-load.violations$url <-  paste0('<a href="http://www2.county.allegheny.pa.us/RealEstate/GeneralInfo.aspx?ParcelID=',load.violations$PARCEL, '" target="_blank">', load.violations$PARCEL, '</a>')
-# Prepare 
-violations1 <- ncol(load.violations) + 1
-list <- as.data.frame(do.call(rbind, strsplit(load.violations$VIOLATION, ":: ", fixed = FALSE)))
-load.violations <- cbind(load.violations, list)
-violationsCol <- ncol(load.violations)
-load.violations$VIOLATION <- as.character(load.violations$VIOLATION)
-load.violations$VIOLATION <- gsub("::", "/", load.violations$VIOLATION)
-load.violations$CORRECTIVE_ACTION <- gsub("::", "/", load.violations$CORRECTIVE_ACTION)
+violations <- selectGet("violations", selection_conn)
 
-# Clean Geographies
-load.violations <- cleanGeo(load.violations, TRUE)
+inspect_results <- c('Abated','Violations Found','Voided')
 
 icons_violations <- iconList(
   violations_abated = makeIcon("./icons/PLI/violations_abated.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
@@ -298,70 +247,10 @@ icons_violations <- iconList(
   violations_void = makeIcon("./icons/PLI/violations_void.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
 
-# Blotter
-archive <- ckanQueryDates("044f2016-1dfd-4ab0-bc1e-065da05fca2e", 365, "INCIDENTTIME")
-# Clean for merge
-archive$X <- as.numeric(archive$X)
-archive$Y <- as.numeric(archive$Y)
-archive$INCIDENTTIME <- as.POSIXct(archive$INCIDENTTIME, format = '%Y-%m-%dT%H:%M:%S')
-# Load Thirty Day Blotter
-thirty <- ckan("1797ead8-8262-41cc-9099-cbc8a161924b")
-# Clean for Merge
-thirty <- thirty[,1:ncol(thirty)]
-archive <- archive[,c(colnames(thirty))]
-# Merge
-load.blotter <- rbind(archive, thirty)
-# Prepare for Mapping
-load.blotter$date <- as.Date(load.blotter$INCIDENTTIME)
-# Reform Hierarchy
-load.blotter$HIERARCHY_Num <- load.blotter$HIERARCHY
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 1, "01 Murder", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 2, "02 Rape", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 3, "03 Robbery", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 4, "04 Assault", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 5, "05 Burglary", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 6, "06 Theft", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 7, "07 Vehicle Theft", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 8, "08 Arson", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 9, "09 Forgery", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 10, "10 Simple Assault", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 11, "11 Fraud", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 12, "12 Embezzlement", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 13, "13 Receiving Stolen Prop", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 14, "14 Vandalism", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 15, "15 Carrying Weapon", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 16, "16 Prostitution", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 17, "17 Sex Offense", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 18, "18 Drug Offense", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 19, "19 Gambling", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 20, "20 Endangering Children", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 21, "21 DUI", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 22, "22 Liquor Laws", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 23, "23 Public Drunkenness", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 24, "24 Disorderly Conduct", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 25, "25 Vagrancy", load.blotter$HIERARCHY)
-load.blotter$HIERARCHY <- ifelse(load.blotter$HIERARCHY_Num == 0 | load.blotter$HIERARCHY_Num > 25,	"26 Other", load.blotter$HIERARCHY)
-# Transform to Factors for icons
-load.blotter$HIERARCHY <- as.factor(load.blotter$HIERARCHY)
-load.blotter$HIERARCHY_Num <-as.numeric(load.blotter$HIERARCHY_Num)
-# Unify Neighborhoods
-load.blotter <- transform(load.blotter, INCIDENTNEIGHBORHOOD = as.factor(mapvalues(INCIDENTNEIGHBORHOOD, c("Golden Triangle/Civic Arena", "Central Northside", "Mt. Oliver Neighborhood", "Troy Hill-Herrs Island"),
-                                                                                   c("Central Business District", "Central North Side", "Mount Oliver", "Troy Hill"))))
+# Blotter Input & Icons
+hierarchies <- as.factor(c("08 Arson", "04 Assault", "05 Burglary", "15 Carrying Weapon", "24 Disorderly Conduct", "18 Drug Offense", "21 DUI", "20 Endangering Children", "12 Embezzlement", "09 Forgery", "11 Fraud", "19 Gambling", "22 Liquor Laws", "01 Murder", "26 Other", "16 Prostitution", "23 Public Drunkenness", "02 Rape", "13 Receiving Stolen Prop", "03 Robbery", "17 Sex Offense", "10 Simple Assault", "06 Theft", "14 Vandalism", "14 Vagrancy", "07 Vehicle Theft"))
 
-load.blotter <- transform(load.blotter, icon = as.factor(mapvalues(HIERARCHY, c("08 Arson", "04 Assault", "05 Burglary", "15 Carrying Weapon", "24 Disorderly Conduct", "18 Drug Offense", "21 DUI", "20 Endangering Children", "12 Embezzlement", "09 Forgery", "11 Fraud", "19 Gambling", "22 Liquor Laws", "01 Murder", "26 Other", "16 Prostitution", "23 Public Drunkenness", "02 Rape", "13 Receiving Stolen Prop", "03 Robbery", "17 Sex Offense", "10 Simple Assault", "06 Theft", "14 Vandalism", "14 Vagrancy", "07 Vehicle Theft"), 
-                                                                   c("arson", "assault",  "burglary", "carrying_weapon", "disorderly_conduct", "drug_offense", "DUI", "endangering_children", "embezzlement", "forgery", "fraud", "gambling", "liquor_laws", "murder", "other", "prostitution", "public_drunkenness", "rape", "receiving_stolen_property", "robbery", "sex_offense", "simple_assault", "theft", "vandalism", "vagrancy", "vehicle_theft"))))
-# Clean Geographies
-load.blotter$HIERARCHY <- as.factor(load.blotter$HIERARCHY)
-names(load.blotter)[names(load.blotter)=="INCIDENTZONE"] <- "POLICE_ZONE"
-load.blotter <- cleanGeo(load.blotter, TRUE)
-# Clean Flag
-load.blotter$CLEAREDFLAG <- ifelse(load.blotter$CLEAREDFLAG == "Y", "Yes", "No")
-
-# Offenses Columns
-incidents <- as.data.frame(do.call(rbind, strsplit(load.blotter$OFFENSES, " / ", fixed = FALSE)))
-load.blotter <- cbind(load.blotter, incidents)
-offensesCol <- as.numeric(ncol(load.blotter))
-offenses1 <- as.numeric(which(colnames(load.blotter)=="V1"))
+offenses <- selectGet("offenses", selection_conn)
 
 # Icons for Blotter
 icons_blotter <- iconList(
@@ -393,35 +282,9 @@ icons_blotter <- iconList(
   other = makeIcon("./icons/police/other.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
 
-# Capital Projects
-load.cproj <- ckan("2fb96406-813e-4031-acfe-1a82e78dc33c")
-# Clean Hood
-load.cproj$neighborhood <- gsub("\\|", ", ", load.cproj$neighborhood)
-# Clean Zones
-for (i in 1:length(levels(load311$POLICE_ZONE))) {
-  rep <- as.character(levels(load311$POLICE_ZONE)[i])
-  load.cproj$police_zone <- gsub(as.character(i), rep, load.cproj$police_zone)
-}
-load.cproj$police_zone <- gsub("\\|", ", ", load.cproj$police_zone)
-# Clean Council
-for (i in 1:length(levels(load311$COUNCIL_DISTRICT))) {
-  rep <- as.character(levels(load311$COUNCIL_DISTRICT)[i])
-  load.cproj$council_district <- gsub(as.character(i), rep, load.cproj$council_district)
-}
-load.cproj$council_district <- gsub("\\|", ", ", load.cproj$council_district)
-# Clean DPW
-for (i in 1:length(levels(load311$PUBLIC_WORKS_DIVISION))) {
-  rep <- as.character(levels(load311$PUBLIC_WORKS_DIVISION)[i])
-  load.cproj$public_works_division <- gsub(as.character(i), rep, load.cproj$public_works_division)
-}
-load.cproj$public_works_division <- gsub("\\|", ", ", load.cproj$public_works_division)
+# Capital Projects Inputs & Icons
+functional_areas <- c("Administration/Sub-Award", "Engineering and Construction", "Facility Improvement", "Neighborhood and Community Development", "Public Safety","Vehicles and Equipment")
 
-# Formatting
-load.cproj$budgeted_amount <- dollarsComma(load.cproj$budgeted_amount)
-load.cproj$asset_id[is.na(load.cproj$asset_id)] <- ""
-load.cproj$asset_tt <- ifelse(load.cproj$asset_id == "", "",paste("<br><b>Asset:</b>", load.cproj$asset_id))
-
-load.cproj <- transform(load.cproj, icon = as.factor(mapvalues(area, c("Administration/Sub-Award", "Engineering and Construction", "Facility Improvement", "Neighborhood and Community Development", "Public Safety","Vehicles and Equipment"), c("administration", "engineering_construction", "facility_improvement", "neighborhood_development", "public_safety", "vehicles_equipment"))))
 
 icons_cproj <- iconList(
   administration = makeIcon("./icons/omb/administration.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
@@ -752,7 +615,7 @@ server <- shinyServer(function(input, output, session) {
                                 selectize=TRUE),
                     selectInput("origin_select",
                                 label = NULL,
-                                c(`Request Origin`='', levels(load311$REQUEST_ORIGIN)),
+                                c(`Request Origin`='', levels(origins)),
                                 multiple = TRUE,
                                 selectize=TRUE),
                     HTML('<font color="#3663AD">'),
@@ -762,7 +625,7 @@ server <- shinyServer(function(input, output, session) {
                     HTML('</font>'),
                     selectInput("hier",
                                 label = NULL,
-                                c(`Hierarchy`='', levels(load.blotter$HIERARCHY)),
+                                c(`Hierarchy`='', levels(hierarchies)),
                                 multiple = TRUE,
                                 selectize = TRUE),
                     uiOutput("offense_UI"),
@@ -783,7 +646,7 @@ server <- shinyServer(function(input, output, session) {
                     HTML('</font>'),
                     selectInput("permit_select",
                                 label = NULL,
-                                c(`Permit Type`='', levels(load.permits$permit_type)),
+                                c(`Permit Type`='', permit_types),
                                 multiple = TRUE,
                                 selectize=TRUE),
                     selectInput("status_select",
@@ -1008,25 +871,25 @@ server <- shinyServer(function(input, output, session) {
     if (input$filter_select == "Neighborhood"){
       selectInput("hood_select",
                   label = NULL,
-                  c(`Neighborhood`='', levels(load311$NEIGHBORHOOD)),
+                  c(`Neighborhood`='', levels(load.hoods$hood)),
                   multiple = TRUE,
                   selectize=TRUE)
     } else if (input$filter_select == "Public Works Division") {
       selectInput("DPW_select",
                   label = NULL,
-                  c(`Public Works Division`='', levels(load311$PUBLIC_WORKS_DIVISION)),
+                  c(`Public Works Division`='', levels(load.dpw$PUBLIC_WORKS_DIVISION)),
                   multiple = TRUE,
                   selectize=TRUE)
     } else if (input$filter_select == "Police Zone") {
       selectInput("zone_select",
                   label = NULL,
-                  c(`Police Zone`='', levels(load311$POLICE_ZONE)),
+                  c(`Police Zone`='', levels(load.zones$POLICE_ZONE)),
                   multiple = TRUE,
                   selectize=TRUE)
     } else if (input$filter_select == "Council District") {
       selectInput("council_select",
                   label = NULL,
-                  c(`Council District`='', levels(load311$COUNCIL_DISTRICT)),
+                  c(`Council District`='', levels(load.council$COUNCIL_DISTRICT)),
                   multiple = TRUE,
                   selectize=TRUE)
     }
@@ -1248,8 +1111,30 @@ server <- shinyServer(function(input, output, session) {
   })
   # 311 data with filters
   dat311Input <- reactive({
-    dat311 <- load311
-    
+    # Load 311 Requests
+    load311 <- ckanQueryDates("40776043-ad00-40f5-9dc8-1fde865ff571", input$dates[1], input$dates[2], "CREATED_ON")
+    load311$CREATED_ON <- as.POSIXct(load311$CREATED_ON, format = '%Y-%m-%dT%H:%M:%S')
+    # Clean Geographies
+    load311 <- subset(load311, select = -REQUEST_ID)
+    load311 <- cleanGeo(load311, TRUE)
+    load311$date <- as.Date(load311$CREATED_ON)
+    load311$CREATED_ON <- as.POSIXct(load311$CREATED_ON, tz = "EST")
+    load311$icon <- as.character(load311$REQUEST_TYPE)
+    load311$REQUEST_TYPE <- ifelse(load311$REQUEST_TYPE == "Potholes - 4th Div", "Potholes", load311$REQUEST_TYPE)
+    # Set Icon to Other
+    load311$icon <- ifelse(load311$icon %in% requests311, load311$icon, "Other")
+    load311$icon <- as.factor(load311$icon)
+    load311$REQUEST_TYPE <- as.factor(load311$REQUEST_TYPE)
+    load311 <- transform(load311, icon = as.factor(mapvalues(icon, c("Abandoned Vehicle (parked on street)", "Building Maintenance", "Building Without a Permit", "Drug Enforcement", "Fire Department", "Fire Lane", "Fire Prevention", "Gang Activity", "Graffiti, Documentation", "Graffiti, Removal", "Hydrant - Fire Admin", "Illegal Dumping", "Illegal Parking", "Litter","Noise", "Other", "Missed Pick Up", "Panhandling", "Patrol", "Paving Request", "Potholes", "Pruning (city tree)", "Refuse Violations", "Replace/Repair a Sign", "Request New Sign", "Rodent control", "Sidewalk Obstruction", "Sinkhole", "Smoke detectors", "Snow/Ice removal", "Street Cleaning/Sweeping", "Street Light - Repair", "Traffic", "Traffic or Pedestrian Signal, Repair", "Vacant Building", "Weeds/Debris"),
+                                                             c("abandoned_vehicle", "building_maintenance", "building_nopermit", "drug_enforcement", "fire_dept", "fire_lane", "fire_prevention",  "gang_activity", "graffiti", "graffiti", "hydrant", "illegal_dumping", "illegal_parking", "litter", "noise","other311", "missed_pickup","panhandling", "patrol", "paving_request", "pothole", "pruning", "refuse_violation", "replace_sign", "request_sign", "rodent_control", "sidewalk_obstruction", "sinkhole", "smoke_detectors", "snow_removal", "street_sweeper", "streetlight_repair", "traffic", "trafficlight_repair", "vacant_building", "weeds_debris"))))
+    # Origin Clean
+    load311 <- transform(load311, REQUEST_ORIGIN = as.factor(mapvalues(REQUEST_ORIGIN, c("Report2Gov Android", "Report2Gov iOS", "Report2Gov Website"),
+                                                                       c("myBurgh (Android)", "myBurgh (iOS)", "Website"))))
+    load311 <- transform(load311, REQUEST_ORIGIN2 = as.factor(mapvalues(REQUEST_ORIGIN, c("myBurgh (Android)", "myBurgh (iOS)", "Website"),
+                                                                        c('<a href="https://play.google.com/store/apps/details?id=com.qscend.report2gov.myburgh&hl=en" target="_blank">myBurgh (Android)</a>','<a href="https://itunes.apple.com/us/app/myburgh/id1021606996?mt=8" target="_blank">myBurgh (iOS)</a>', '<a href="http://pittsburghpa.gov/311/form" target="_blank">Website</a>'))))
+    load311$DEPARTMENT <- ifelse(is.na(load311$DEPARTMENT), "Other", load311$DEPARTMENT)
+    load311$DEPARTMENT <- as.factor(load311$DEPARTMENT)
+    load311$NEIGHBORHOOD <- as.factor(load311$NEIGHBORHOOD)
     # Sort
     dat311 <- dat311[rev(order(as.Date(dat311$date, format="%d/%m/%Y"))),]
     
@@ -1288,7 +1173,74 @@ server <- shinyServer(function(input, output, session) {
   })
   # Police Blotter data with filters
   blotterInput <- reactive({
-    blotter <- load.blotter
+    # Blotter
+    archive <- ckanQueryDates("044f2016-1dfd-4ab0-bc1e-065da05fca2e", input$dates[1], input$dates[2], "INCIDENTTIME")
+    # Clean for merge
+    archive$X <- as.numeric(archive$X)
+    archive$Y <- as.numeric(archive$Y)
+    archive$INCIDENTTIME <- as.POSIXct(archive$INCIDENTTIME, format = '%Y-%m-%dT%H:%M:%S')
+    # Load Thirty Day Blotter
+    thirty <- ckanQueryDates("1797ead8-8262-41cc-9099-cbc8a161924b", input$dates[1], input$dates[2], "INCIDENTTIME")
+    # Check for Merge
+    thirty <- thirty[,1:ncol(thirty)]
+    if (is.list(thirty)) {
+      blotter <- archive
+    } else {
+      # Merge
+      archive <- archive[,c(colnames(thirty))]
+      blotter <- rbind(archive, thirty)
+    }
+    # Prepare for Mapping
+    blotter$date <- as.Date(blotter$INCIDENTTIME)
+    # Reform Hierarchy
+    blotter$HIERARCHY <- case_when(
+      blotter$HIERARCHY_Num == 1 ~ "01 Murder",
+      blotter$HIERARCHY_Num == 2 ~ "02 Rape", 
+      blotter$HIERARCHY_Num == 4 ~ "04 Assault",
+      blotter$HIERARCHY_Num == 5 ~ "05 Burglary",
+      blotter$HIERARCHY_Num == 6 ~ "06 Theft",
+      blotter$HIERARCHY_Num == 7 ~ "07 Vehicle Theft",
+      blotter$HIERARCHY_Num == 8 ~ "08 Arson",
+      blotter$HIERARCHY_Num == 9 ~ "09 Forgery",
+      blotter$HIERARCHY_Num == 10 ~ "10 Simple Assault",
+      blotter$HIERARCHY_Num == 11 ~ "11 Fraud",
+      blotter$HIERARCHY_Num == 12 ~ "12 Embezzlement",
+      blotter$HIERARCHY_Num == 13 ~ "13 Receiving Stolen Prop",
+      blotter$HIERARCHY_Num == 14 ~ "14 Vandalism",
+      blotter$HIERARCHY_Num == 15 ~ "15 Carrying Weapon",
+      blotter$HIERARCHY_Num == 16 ~ "16 Prostitution",
+      blotter$HIERARCHY_Num == 17 ~ "17 Sex Offense",
+      blotter$HIERARCHY_Num == 18 ~ "18 Drug Offense",
+      blotter$HIERARCHY_Num == 19 ~ "19 Gambling",
+      blotter$HIERARCHY_Num == 20 ~ "20 Endangering Children",
+      blotter$HIERARCHY_Num == 21 ~ "21 DUI",
+      blotter$HIERARCHY_Num == 22 ~ "22 Liquor Laws",
+      blotter$HIERARCHY_Num == 23 ~ "23 Public Drunkenness",
+      blotter$HIERARCHY_Num == 24 ~ "24 Disorderly Conduct",
+      blotter$HIERARCHY_Num == 25 ~ "25 Vagrancy",
+      TRUE ~ "26 Other"
+    )
+    blotter$HIERARCHY <- as.factor(blotter$HIERARCHY)
+    blotter$HIERARCHY_Num <-as.numeric(blotter$HIERARCHY_Num)
+    
+    # Unify Neighborhoods
+    blotter <- transform(blotter, INCIDENTNEIGHBORHOOD = as.factor(mapvalues(INCIDENTNEIGHBORHOOD, c("Golden Triangle/Civic Arena", "Central Northside", "Mt. Oliver Neighborhood", "Troy Hill-Herrs Island"),
+                                                                                       c("Central Business District", "Central North Side", "Mount Oliver", "Troy Hill"))))
+    
+    blotter <- transform(blotter, icon = as.factor(mapvalues(HIERARCHY, levels(hierarchies), 
+                                                                       c("arson", "assault",  "burglary", "carrying_weapon", "disorderly_conduct", "drug_offense", "DUI", "endangering_children", "embezzlement", "forgery", "fraud", "gambling", "liquor_laws", "murder", "other", "prostitution", "public_drunkenness", "rape", "receiving_stolen_property", "robbery", "sex_offense", "simple_assault", "theft", "vandalism", "vagrancy", "vehicle_theft"))))
+    # Clean Geographies
+    blotter$HIERARCHY <- as.factor(blotter$HIERARCHY)
+    names(blotter)[names(blotter)=="INCIDENTZONE"] <- "POLICE_ZONE"
+    blotter <- cleanGeo(blotter, TRUE)
+    # Clean Flag
+    blotter$CLEAREDFLAG <- ifelse(blotter$CLEAREDFLAG == "Y", "Yes", "No")
+    
+    # Offenses Columns
+    incidents <- as.data.frame(do.call(rbind, strsplit(blotter$OFFENSES, " / ", fixed = FALSE)))
+    blotter <- cbind(blotter, incidents)
+    offensesCol <- as.numeric(ncol(blotter))
+    offenses1 <- as.numeric(which(colnames(blotter)=="V1"))
     
     # Date filter
     blotter <- subset(blotter, date >= input$dates[1] & date <= input$dates[2])
@@ -1416,10 +1368,29 @@ server <- shinyServer(function(input, output, session) {
   })
   # Code Violations data with filters
   violationsInput <- reactive({
-    violations <- load.violations
     
-    # Date Filter
-    violations <- subset(violations, date >= input$dates[1] & date <= input$dates[2])
+    # Load Violations
+    violations <- ckanQueryDates("4e5374be-1a88-47f7-afee-6a79317019b4", input$dates[1], input$dates[2], "INSPECTION_DATE")
+    violations$date <- as.Date(violations$INSPECTION_DATE)
+    violations$INSPECTION_RESULT <- as.factor(violations$INSPECTION_RESULT)
+    violations <- transform(violations, icon = as.factor(mapvalues(INSPECTION_RESULT, c('Abated','Violations Found','Voided'),
+                                                                             c('violations_abated', 'violations_found', 'violations_void'))))
+    violations$FullAddress <- paste(ifelse(is.na(violations$STREET_NUM) | is.null(violations$STREET_NUM) | violations$STREET_NUM == 0, "", violations$STREET_NUM) , ifelse(is.na(violations$STREET_NAME) | is.null(violations$STREET_NAME), "", violations$STREET_NAME))
+    # Create Parcel URL
+    violations$full_address <- paste(violations$STREET_NUM, violations$STREET_NAME)
+    violations$url <-  paste0('<a href="http://www2.county.allegheny.pa.us/RealEstate/GeneralInfo.aspx?ParcelID=',violations$PARCEL, '" target="_blank">', violations$PARCEL, '</a>')
+    # Prepare 
+    violations1 <- ncol(violations) + 1
+    list <- as.data.frame(do.call(rbind, strsplit(violations$VIOLATION, ":: ", fixed = FALSE)))
+    violations <- cbind(violations, list)
+    violationsCol <- ncol(violations)
+    violations$VIOLATION <- as.character(violations$VIOLATION)
+    violations$VIOLATION <- gsub("::", "/", violations$VIOLATION)
+    violations$CORRECTIVE_ACTION <- gsub("::", "/", violations$CORRECTIVE_ACTION)
+    
+    # Clean Geographies
+    violations <- cleanGeo(violations, TRUE)
+
     
     # Sort
     violations <- violations[rev(order(as.Date(violations$date, format="%d/%m/%Y"))),]
@@ -1461,10 +1432,30 @@ server <- shinyServer(function(input, output, session) {
   })
   # Building Permits data with filters
   permitsInput <- reactive({
-    permits <- load.permits
-
-    # Date Filter
-    permits <- subset(permits, date >= input$dates[1] &  date <= input$dates[2])
+    # Load Permit Layer
+    permits <- ckanQueryDates("95d69895-e58d-44de-a370-fec6ad2b332e", input$dates[1], input$dates[2], "status_date")
+    permits$date <- as.Date(permits$intake_date)
+    # Full address clean
+    permits$full_address <- paste0(ifelse(is.na(permits$street_address) | is.null(permits$street_address), "", paste0(as.character(permits$street_address), " ")),
+                                        ifelse(is.na(permits$city) | is.null(permits$city), "",  paste0(permits$city, ", ")),
+                                        ifelse(is.na(permits$state) | is.null(permits$state), "",  paste0(permits$state, " ")),
+                                        ifelse(is.na(permits$zip) | is.null(permits$zip), "",  paste0(permits$zip, " ")))
+    types <- as.data.frame(do.call(rbind, strsplit(permits$permit_type, " - ", fixed = FALSE)))
+    permits$primary_type <- types$V1
+    permits$record_category <- ifelse(is.na(permits$record_category), "None", permits$record_category)
+    permits$current_status <- as.factor(permits$current_status)
+    permits$lat <- as.numeric(permits$lat)
+    permits$lon <- as.numeric(permits$lon)
+    permits$permit_type <- as.factor(permits$permit_type)
+    permits$neighborhood <- as.factor(permits$neighborhood)
+    
+    # Create County Parcel viewer link
+    permits$url <-  paste0('<a href="http://www2.county.allegheny.pa.us/RealEstate/GeneralInfo.aspx?ParcelID=',permits$parcel_id, '" target="_blank">', permits$parcel_id, '</a>')
+    
+    permits <- transform(permits, icon = as.factor(mapvalues(primary_type, permit_types,
+                                                                       c('appeals', 'building_permit', 'communication_tower', 'demolition_permit', 'electrical_permit', 'fire_alarm', 'HVAC_permit', 'land_operations', 'occupancy', 'occupant_load_placard', 'sign_permit', 'sprinkler_permit', 'temp_occupancy', 'temp_occupancy'))))
+    # Clean Geograhies
+    permits <- cleanGeo(permits)
 
     # Sort
     permits <- permits[rev(order(as.Date(permits$date, format="%d/%m/%Y"))),]
@@ -1542,7 +1533,35 @@ server <- shinyServer(function(input, output, session) {
   })
   # Capital Projects data with filters
   cprojInput <- reactive({
-    cproj <- load.cproj
+    # Capital Projects
+    load.cproj <- ckan("2fb96406-813e-4031-acfe-1a82e78dc33c")
+    # Clean Hood
+    load.cproj$neighborhood <- gsub("\\|", ", ", load.cproj$neighborhood)
+    # Clean Zones
+    for (i in 1:length(levels(load311$POLICE_ZONE))) {
+      rep <- as.character(levels(load311$POLICE_ZONE)[i])
+      load.cproj$police_zone <- gsub(as.character(i), rep, load.cproj$police_zone)
+    }
+    load.cproj$police_zone <- gsub("\\|", ", ", load.cproj$police_zone)
+    # Clean Council
+    for (i in 1:length(levels(load311$COUNCIL_DISTRICT))) {
+      rep <- as.character(levels(load311$COUNCIL_DISTRICT)[i])
+      load.cproj$council_district <- gsub(as.character(i), rep, load.cproj$council_district)
+    }
+    load.cproj$council_district <- gsub("\\|", ", ", load.cproj$council_district)
+    # Clean DPW
+    for (i in 1:length(levels(load311$PUBLIC_WORKS_DIVISION))) {
+      rep <- as.character(levels(load311$PUBLIC_WORKS_DIVISION)[i])
+      load.cproj$public_works_division <- gsub(as.character(i), rep, load.cproj$public_works_division)
+    }
+    load.cproj$public_works_division <- gsub("\\|", ", ", load.cproj$public_works_division)
+    
+    # Formatting
+    load.cproj$budgeted_amount <- dollarsComma(load.cproj$budgeted_amount)
+    load.cproj$asset_id[is.na(load.cproj$asset_id)] <- ""
+    load.cproj$asset_tt <- ifelse(load.cproj$asset_id == "", "",paste("<br><b>Asset:</b>", load.cproj$asset_id))
+    
+    load.cproj <- transform(load.cproj, icon = as.factor(mapvalues(area, functional_areas, c("administration", "engineering_construction", "facility_improvement", "neighborhood_development", "public_safety", "vehicles_equipment"))))
     
     # Year filter
     cproj <- subset(cproj, fiscal_year >= this_year)
