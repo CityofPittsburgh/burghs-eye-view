@@ -541,7 +541,7 @@ server <- shinyServer(function(input, output, session) {
   # Observe changes to the dates function, if not default include in bookmark/url
   observeEvent(input$dates,  {
     if (input$dates[1] != Sys.Date()-10 | input$dates[2] != Sys.Date()){
-      setBookmarkExclude("GetScreenWidth", "report.table_rows_all", "report.table_rows_current")
+      setBookmarkExclude(c("GetScreenWidth", "report.table_rows_all", "report.table_rows_current"))
     } else {
       setBookmarkExclude(c("GetScreenWidth", "dates", "report.table_rows_all", "report.table_rows_current"))
     }
