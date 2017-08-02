@@ -32,7 +32,6 @@ library(zoo)
 library(lubridate)
 library(stringi)
 library(stringr)
-library(sp)
 
 # Turn off Scientific Notation
 options(scipen = 999)
@@ -77,8 +76,8 @@ ckanQueryDates  <- function(id, days, column) {
   jsonlite::fromJSON(json)$result$records
 }
 
-ckanQuery3 <- function(id, query, column, query2, column2, query3, column3) {
-  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column,"%22%20=%20%27", query, "%27%20AND%20%22", column2, "%22%20=%20%27", query2, "%27%20AND%20%22", column3, "%22%20=%20%27", query3, "%27")
+ckanQuery <- function(id, query, column) {
+  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column, "%22%20=%20%27", query, "%27")
   r <- GET(url, add_headers(Authorization = ckan_api))
   c <- content(r, "text")
   json <- gsub('NaN', '""', c, perl = TRUE)
@@ -225,50 +224,50 @@ icons_311 <- iconList(
 )
 
 # Load Permit Layer
-load.permits <- ckan("95d69895-e58d-44de-a370-fec6ad2b332e")
-load.permits$date <- as.Date(load.permits$intake_date)
-# Full address clean
-load.permits$full_address <- paste0(ifelse(is.na(load.permits$street_address) | is.null(load.permits$street_address), "", paste0(as.character(load.permits$street_address), " ")),
-                                    ifelse(is.na(load.permits$city) | is.null(load.permits$city), "",  paste0(load.permits$city, ", ")),
-                                    ifelse(is.na(load.permits$state) | is.null(load.permits$state), "",  paste0(load.permits$state, " ")),
-                                    ifelse(is.na(load.permits$zip) | is.null(load.permits$zip), "",  paste0(load.permits$zip, " ")))
-types <- as.data.frame(do.call(rbind, strsplit(load.permits$permit_type, " - ", fixed = FALSE)))
-load.permits$primary_type <- types$V1
-load.permits$record_category <- ifelse(is.na(load.permits$record_category), "None", load.permits$record_category)
-load.permits$current_status <- as.factor(load.permits$current_status)
-load.permits$lat <- as.numeric(load.permits$lat)
-load.permits$lon <- as.numeric(load.permits$lon)
-load.permits$permit_type <- as.factor(load.permits$permit_type)
-load.permits$neighborhood <- as.factor(load.permits$neighborhood)
-
-# Create County Parcel viewer link
-load.permits$url <-  paste0('<a href="http://www2.county.allegheny.pa.us/RealEstate/GeneralInfo.aspx?ParcelID=',load.permits$parcel_id, '" target="_blank">', load.permits$parcel_id, '</a>')
-
-load.permits <- transform(load.permits, icon = as.factor(mapvalues(primary_type, c("Board of Appeals Application", "Building Permit", "Communication Tower", "Demolition Permit", "Electrical Permit", "Fire Alarm Permit", "HVAC Permit", "Land Operations Permit", "Occupancy Only", "Occupant Load Placard", "Sign Permit", "Sprinkler Permit", "Temporary Occupancy", "Temporary Occupancy Commercial"),
-                                                                   c('appeals', 'building_permit', 'communication_tower', 'demolition_permit', 'electrical_permit', 'fire_alarm', 'HVAC_permit', 'land_operations', 'occupancy', 'occupant_load_placard', 'sign_permit', 'sprinkler_permit', 'temp_occupancy', 'temp_occupancy'))))
-# Clean Geograhies
-load.permits <- cleanGeo(load.permits)
-
-# Icons for Permit
-icons_permits <- iconList(
-  appeals = makeIcon("./icons/PLI/appeals.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  building_permit = makeIcon("./icons/PLI/building.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  communication_tower = makeIcon("./icons/PLI/comm_tower.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  demolition_permit = makeIcon("./icons/PLI/demolition.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  electrical_permit = makeIcon("./icons/PLI/electrical.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  fire_alarm = makeIcon("./icons/PLI/fire_alarm.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  HVAC_permit = makeIcon("./icons/PLI/hvac.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  land_operations = makeIcon("./icons/PLI/land_operations.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  occupancy = makeIcon("./icons/PLI/occupancy.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  occupant_load_placard = makeIcon("./icons/PLI/occupant_load.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  sign_permit = makeIcon("./icons/PLI/sign.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  sprinkler_permit = makeIcon("./icons/PLI/sprinkler.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  temp_occupancy = makeIcon("./icons/PLI/temp_occupancy_commercial.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
-)
-
-# Load Workflow
-load.workflow <- ckan("7e0bf4bf-c7f5-48cd-8177-86f5ce776dfa")
-load.workflow$tool <- paste0("<dt>", load.workflow$status_date, ": ", load.workflow$action_by_dept, "</dt>", "<dd>", load.workflow$task, " - ", load.workflow$status, "</dd>")
+# load.permits <- ckan("95d69895-e58d-44de-a370-fec6ad2b332e")
+# load.permits$date <- as.Date(load.permits$intake_date)
+# # Full address clean
+# load.permits$full_address <- paste0(ifelse(is.na(load.permits$street_address) | is.null(load.permits$street_address), "", paste0(as.character(load.permits$street_address), " ")),
+#                                     ifelse(is.na(load.permits$city) | is.null(load.permits$city), "",  paste0(load.permits$city, ", ")),
+#                                     ifelse(is.na(load.permits$state) | is.null(load.permits$state), "",  paste0(load.permits$state, " ")),
+#                                     ifelse(is.na(load.permits$zip) | is.null(load.permits$zip), "",  paste0(load.permits$zip, " ")))
+# types <- as.data.frame(do.call(rbind, strsplit(load.permits$permit_type, " - ", fixed = FALSE)))
+# load.permits$primary_type <- types$V1
+# load.permits$record_category <- ifelse(is.na(load.permits$record_category), "None", load.permits$record_category)
+# load.permits$current_status <- as.factor(load.permits$current_status)
+# load.permits$lat <- as.numeric(load.permits$lat)
+# load.permits$lon <- as.numeric(load.permits$lon)
+# load.permits$permit_type <- as.factor(load.permits$permit_type)
+# load.permits$neighborhood <- as.factor(load.permits$neighborhood)
+# 
+# # Create County Parcel viewer link
+# load.permits$url <-  paste0('<a href="http://www2.county.allegheny.pa.us/RealEstate/GeneralInfo.aspx?ParcelID=',load.permits$parcel_id, '" target="_blank">', load.permits$parcel_id, '</a>')
+# 
+# load.permits <- transform(load.permits, icon = as.factor(mapvalues(primary_type, c("Board of Appeals Application", "Building Permit", "Communication Tower", "Demolition Permit", "Electrical Permit", "Fire Alarm Permit", "HVAC Permit", "Land Operations Permit", "Occupancy Only", "Occupant Load Placard", "Sign Permit", "Sprinkler Permit", "Temporary Occupancy", "Temporary Occupancy Commercial"),
+#                                                                    c('appeals', 'building_permit', 'communication_tower', 'demolition_permit', 'electrical_permit', 'fire_alarm', 'HVAC_permit', 'land_operations', 'occupancy', 'occupant_load_placard', 'sign_permit', 'sprinkler_permit', 'temp_occupancy', 'temp_occupancy'))))
+# # Clean Geograhies
+# load.permits <- cleanGeo(load.permits)
+# 
+# # Icons for Permit
+# icons_permits <- iconList(
+#   appeals = makeIcon("./icons/PLI/appeals.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+#   building_permit = makeIcon("./icons/PLI/building.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+#   communication_tower = makeIcon("./icons/PLI/comm_tower.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+#   demolition_permit = makeIcon("./icons/PLI/demolition.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+#   electrical_permit = makeIcon("./icons/PLI/electrical.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+#   fire_alarm = makeIcon("./icons/PLI/fire_alarm.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+#   HVAC_permit = makeIcon("./icons/PLI/hvac.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+#   land_operations = makeIcon("./icons/PLI/land_operations.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+#   occupancy = makeIcon("./icons/PLI/occupancy.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+#   occupant_load_placard = makeIcon("./icons/PLI/occupant_load.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+#   sign_permit = makeIcon("./icons/PLI/sign.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+#   sprinkler_permit = makeIcon("./icons/PLI/sprinkler.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+#   temp_occupancy = makeIcon("./icons/PLI/temp_occupancy_commercial.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+# )
+# 
+# # Load Workflow
+# load.workflow <- ckan("7e0bf4bf-c7f5-48cd-8177-86f5ce776dfa")
+# load.workflow$tool <- paste0("<dt>", load.workflow$status_date, ": ", load.workflow$action_by_dept, "</dt>", "<dd>", load.workflow$task, " - ", load.workflow$status, "</dd>")
 
 # Load Violations
 load.violations <- ckan("4e5374be-1a88-47f7-afee-6a79317019b4")
@@ -434,17 +433,45 @@ icons_cproj <- iconList(
 
 # this_year
 this_year <- format(Sys.Date(), format="%Y")
-last_year<- as.numeric(this_year) -  1
+last_year <- as.numeric(this_year) -  1
 
-crash_types <- c("Bicycle", "Bus", "Crash", "Hit Deer", "Intoxicated Driver", "Motorcycle", "Hit Fixed Object", "Pedestrian", "Train")
-
-icons_crashes <- iconList(
-  crash = makeIcon("./icons/crashes/crash.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
-)
+# Load Crashes
+# load.crashes <- ckanQuery("2c13021f-74a9-4289-a1e5-fe0472c89881", 2301, "MUNICIPALITY")
+# load.crashes$CRASH_MONTH <- str_pad(load.crashes$CRASH_MONTH, 2, pad = "0")
+# load.crashes$time <- str_pad(load.crashes$TIME_OF_DAY, 4, pad = "0")
+# load.crashes$date <- paste0(load.crashes$CRASH_YEAR, load.crashes$CRASH_MONTH, "01")
+# load.crashes$date_time <- as.POSIXct(paste(load.crashes$date, load.crashes$time), format = "%Y%m%d%H%M")
+# load.crashes$time <- format(load.crashes$date_time, "%I:%m %p")
+# load.crashes$date <- format(as.Date(load.crashes$date, format = "%Y%m%d"), "%B %Y")
+# load.crashes$day <- as.factor(case_when(
+#   load.crashes$DAY_OF_WEEK == "1" ~ "Sunday",
+#   load.crashes$DAY_OF_WEEK == "2" ~ "Monday",
+#   load.crashes$DAY_OF_WEEK == "3" ~ "Tuesday",
+#   load.crashes$DAY_OF_WEEK == "4" ~ "Wednesday",
+#   load.crashes$DAY_OF_WEEK == "5" ~ "Thursday",
+#   load.crashes$DAY_OF_WEEK == "6" ~ "Friday",
+#   load.crashes$DAY_OF_WEEK == "7" ~ "Saturday"
+# ))
+# load.crashes$BUS_COUNT <- as.numeric(load.crashes$BUS_COUNT)
+# load.crashes$icon <- "crash"
+# load.crashes$icon <- as.factor(case_when(
+#   load.crashes$BICYCLE == "1" ~ "bike",
+#   load.crashes$BUS_COUNT >= 1 ~ "bus",
+#   load.crashes$PEDESTRIAN == "1" ~ "ped",
+#   load.crashes$ALCOHOL_RELATED == "1" ~ "DUI",
+#   load.crashes$TRAIN_TROLLEY == "1" ~ "train",
+#   load.crashes$HIT_DEER == "1" ~ "deer",
+#   load.crashes$HIT_FIXED_OBJECT == "1" ~ "obj",
+#   TRUE ~ "crash"
+# ))
+# 
+# icons_cproj <- iconList(
+#   crash = makeIcon("./icons/crashes/crash.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+# )
 
 # CouchDB Connection
-# couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
+couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
+# couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 if(Sys.Date() <= as.Date(paste0(this_year,"-10-31")) & Sys.Date() >= as.Date(paste0(this_year,"-10-01"))) {
   # Egg
@@ -633,7 +660,7 @@ ui <- navbarPage(id = "navTab",
                           inputPanel(
                             selectInput("report_select", 
                                         tagList(shiny::icon("map-marker"), "Select Layer:"),
-                                        choices = c("311 Requests", "Arrests", "Blotter", "Building Permits", "Capital Projects", "Code Violations", "Non-Traffic Citations"), #  
+                                        choices = c("311 Requests", "Arrests", "Blotter", "Capital Projects", "Code Violations", "Non-Traffic Citations"), #  "Building Permits", 
                                         selected= "Capital Projects"),
                             # Define Button Position
                             uiOutput("buttonStyle")
@@ -678,7 +705,7 @@ server <- shinyServer(function(input, output, session) {
   # Observe changes to the dates function, if not default include in bookmark/url
   observeEvent(input$dates,  {
     if (input$dates[1] != Sys.Date()-10 | input$dates[2] != Sys.Date()){
-      setBookmarkExclude("GetScreenWidth", "report.table_rows_all", "report.table_rows_current")
+      setBookmarkExclude(c("GetScreenWidth", "report.table_rows_all", "report.table_rows_current"))
     } else {
       setBookmarkExclude(c("GetScreenWidth", "dates", "report.table_rows_all", "report.table_rows_current"))
     }
@@ -776,21 +803,21 @@ server <- shinyServer(function(input, output, session) {
                                   label = "Non-Traffic Citations",
                                   value = TRUE),
                     HTML('</font>'),
-                    HTML('<font color="#009FE1">'),
-                    checkboxInput("togglePermits",
-                                  label = "Building Permits",
-                                  value = TRUE),
-                    HTML('</font>'),
-                    selectInput("permit_select",
-                                label = NULL,
-                                c(`Permit Type`='', levels(load.permits$permit_type)),
-                                multiple = TRUE,
-                                selectize=TRUE),
-                    selectInput("status_select",
-                                label = NULL,
-                                c(`Permit Status`='', levels(load.permits$current_status)),
-                                multiple = TRUE,
-                                selectize=TRUE),
+                    # HTML('<font color="#009FE1">'),
+                    # checkboxInput("togglePermits",
+                    #               label = "Building Permits",
+                    #               value = TRUE),
+                    # HTML('</font>'),
+                    # selectInput("permit_select",
+                    #             label = NULL,
+                    #             c(`Permit Type`='', levels(load.permits$permit_type)),
+                    #             multiple = TRUE,
+                    #             selectize=TRUE),
+                    # selectInput("status_select",
+                    #             label = NULL,
+                    #             c(`Permit Status`='', levels(load.permits$current_status)),
+                    #             multiple = TRUE,
+                    #             selectize=TRUE),
                     HTML('<font color="#0B9444">'),
                     checkboxInput("toggleViolations",
                                   label = "Code Violations", 
@@ -810,26 +837,6 @@ server <- shinyServer(function(input, output, session) {
                     selectInput("funcarea_select",
                                 label = NULL,
                                 c(`Functional Area`='', levels(load.cproj$area)),
-                                multiple = TRUE,
-                                selectize=TRUE),
-                    HTML('<font color="#F9C13D">'),
-                    checkboxInput("toggleCrashes",
-                                  label = "Traffic Collisions",
-                                  value = FALSE),
-                    HTML('</font>'),
-                    selectInput("crash_year",
-                                label = NULL,
-                                c(`Collision Year`='', c(2004:last_year)),
-                                selected = last_year,
-                                selectize=TRUE),
-                    selectInput("crash_month",
-                                label = NULL,
-                                choices = c(`January` = "1", `February` = "2", `March` = "3", `April` = "4", `May` = "5", `June` = "6", `July` = '7', `August` = "8", `September` = "9", `October` = "10", `November` = "11", `December` = "12"),
-                                selected = as.numeric(format(Sys.Date(), format = "%m")),
-                                selectize=TRUE),
-                    selectInput("crash_select",
-                                label = NULL,
-                                c(`Collision Type`='', crash_types),
                                 multiple = TRUE,
                                 selectize=TRUE),
                     selectInput("basemap_select",
@@ -919,21 +926,21 @@ server <- shinyServer(function(input, output, session) {
                                    label = "Non-Traffic Citations",
                                    value = TRUE),
                      HTML('</font>'),
-                     HTML('<font color="#009FE1">'),
-                     checkboxInput("togglePermits",
-                                   label = "Building Permits",
-                                   value = TRUE),
-                     HTML('</font>'),
-                     selectInput("permit_select",
-                                 label = NULL,
-                                 c(`Permit Type`='', levels(load.permits$permit_type)),
-                                 multiple = TRUE,
-                                 selectize=TRUE),
-                     selectInput("status_select",
-                                 label = NULL,
-                                 c(`Permit Status`='', levels(load.permits$current_status)),
-                                 multiple = TRUE,
-                                 selectize=TRUE),
+                     # HTML('<font color="#009FE1">'),
+                     # checkboxInput("togglePermits",
+                     #               label = "Building Permits",
+                     #               value = TRUE),
+                     # HTML('</font>'),
+                     # selectInput("permit_select",
+                     #             label = NULL,
+                     #             c(`Permit Type`='', levels(load.permits$permit_type)),
+                     #             multiple = TRUE,
+                     #             selectize=TRUE),
+                     # selectInput("status_select",
+                     #             label = NULL,
+                     #             c(`Permit Status`='', levels(load.permits$current_status)),
+                     #             multiple = TRUE,
+                     #             selectize=TRUE),
                      HTML('<font color="#0B9444">'),
                      checkboxInput("toggleViolations",
                                    label = "Code Violations", 
@@ -950,25 +957,6 @@ server <- shinyServer(function(input, output, session) {
                                    label = "Capital Projects",
                                    value = TRUE),
                      HTML('</font>'),
-                     HTML('<font color="#F9C13D">'),
-                     checkboxInput("toggleCrashes",
-                                   label = "Traffic Collisions",
-                                   value = FALSE),
-                     HTML('</font>'),
-                     selectInput("crash_year",
-                                 label = NULL,
-                                 c(`Crash Year`='', c(2004:last_year)),
-                                 selected = last_year,
-                                 selectize=TRUE),
-                     selectInput("crash_month",
-                                 label = NULL,
-                                 choices = c(`January` = 1, `February` = 2, `March` = 3, `April` = 4, `May` = 5, `June` = 6, `July` = 7, `August` = 8, `September` = 9, `October` = 10, `November` = 11, `December` = 12),
-                                 selected = as.numeric(format(Sys.Date(), format = "%m"))),
-                     selectInput("crash_select",
-                                 label = NULL,
-                                 c(`Collision Type`='', crash_types),
-                                 multiple = TRUE,
-                                 selectize=TRUE),
                      selectInput("funcarea_select",
                                  label = NULL,
                                  c(`Functional Area`='', levels(load.cproj$area)),
@@ -1178,74 +1166,6 @@ server <- shinyServer(function(input, output, session) {
     zones
   })
   # Point Data
-  # Crash Data
-  crashInput <- reactive({
-    # Load Crashes
-    crashes <- ckanQuery3("2c13021f-74a9-4289-a1e5-fe0472c89881", 2301, "MUNICIPALITY", input$crash_year, "CRASH_YEAR", input$crash_month, "CRASH_MONTH")
-    # Subset
-    crashes <- subset(crashes, !is.na(DEC_LONG) & !is.na(DEC_LAT))
-    # Cleancrashes$BUS_COUNT <- as.numeric(crashes$BUS_COUNT)
-    # Icons
-    crashes$icon <- as.factor(case_when(
-      crashes$BICYCLE == "1" ~ "bike",
-      crashes$BUS_COUNT >= 1 ~ "bus",
-      crashes$MOTORCYCLE == "1" ~ "motorcycle",
-      crashes$PEDESTRIAN == "1" ~ "ped",
-      crashes$ALCOHOL_RELATED == "1" | crashes$DRUGGED_DRIVER == "1" ~ "DUI",
-      crashes$TRAIN_TROLLEY == "1" ~ "train",
-      crashes$HIT_DEER == "1" ~ "deer",
-      crashes$HIT_FIXED_OBJECT == "1" ~ "obj",
-      TRUE ~ "crash"
-    ))
-    crashes <- transform(crashes, type =as.factor(mapvalues(icon, c("bike", "bus", "crash", "deer", "DUI", "motorcycle", "train", "obj", "ped"),
-                                                                      crash_types)))
-    # Type Select
-    if (length(input$crash_select) > 0){
-      crashes <- crashes[crashes$type %in% input$crash_select,]
-    }
-    
-    # Clean
-    crashes$CRASH_MONTH <- str_pad(crashes$CRASH_MONTH, 2, pad = "0")
-    crashes$time <- str_pad(crashes$TIME_OF_DAY, 4, pad = "0")
-    crashes$date <- paste0(crashes$CRASH_YEAR, crashes$CRASH_MONTH, "01")
-    crashes$date_time <- as.POSIXct(paste(crashes$date, crashes$time), format = "%Y%m%d%H%M")
-    crashes$time <- format(crashes$date_time, "%I:%m %p")
-    crashes$date <- format(as.Date(crashes$date, format = "%Y%m%d"), "%B %Y")
-    crashes$day <- as.factor(case_when(
-      crashes$DAY_OF_WEEK == "1" ~ "Sunday",
-      crashes$DAY_OF_WEEK == "2" ~ "Monday",
-      crashes$DAY_OF_WEEK == "3" ~ "Tuesday",
-      crashes$DAY_OF_WEEK == "4" ~ "Wednesday",
-      crashes$DAY_OF_WEEK == "5" ~ "Thursday",
-      crashes$DAY_OF_WEEK == "6" ~ "Friday",
-      crashes$DAY_OF_WEEK == "7" ~ "Saturday"
-    ))
-    # Temp
-    crashes$icon <- "crash"
-    
-    # Spatial
-    coords <- cbind(as.numeric(crashes$DEC_LONG), as.numeric(crashes$DEC_LAT))
-    points <- SpatialPoints(coords)
-    crashes_sp <- SpatialPointsDataFrame(points, crashes)
-    proj4string(crashes_sp) <- CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
-    
-    # Geographic Filters
-    if (length(input$zone_select) > 0 & input$filter_select == "Police Zone") {
-      crashes_sp$POLICE_ZONE <- sp::over(crashes_sp, load.zones)$POLICE_ZONE
-      crashes_sp <- crashes_sp[crashes_sp$POLICE_ZONE %in% input$zone_select,]
-    } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
-      crashes_sp$hood <- sp::over(crashes_sp, load.hoods)$hood
-      crashes_sp <- crashes_sp[crashes_sp$hood %in% input$hood_select,]
-    } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
-      crashes_sp$PUBLIC_WORKS_DIVISION <- sp::over(crashes_sp, load.dpw)$PUBLIC_WORKS_DIVISION
-      crashes_sp <- crashes_sp[crashes_sp$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
-    } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
-      crashes_sp$COUNCIL_DISTRICT <- sp::over(crashes_sp, load.dpw)$COUNCIL_DISTRICT
-      crashes_sp <- crashes_sp[crashes_sp$COUNCIL_DISTRICT %in% input$council_select,]
-    }
-    
-    return(crashes_sp)
-  })
   # 311 data with filters
   dat311Input <- reactive({
     dat311 <- load311
@@ -1460,86 +1380,86 @@ server <- shinyServer(function(input, output, session) {
     return(violations)
   })
   # Building Permits data with filters
-  permitsInput <- reactive({
-    permits <- load.permits
-
-    # Date Filter
-    permits <- subset(permits, date >= input$dates[1] &  date <= input$dates[2])
-
-    # Sort
-    permits <- permits[rev(order(as.Date(permits$date, format="%d/%m/%Y"))),]
-
-    # Permit Filters
-    if (length(input$permit_select) > 0) {
-      permits <- permits[permits$permit_type %in% input$permit_select,]
-    }
-    if (length(input$status_select) > 0) {
-      permits <- permits[permits$current_status %in% input$status_select,]
-    }
-    if (length(input$category_select) > 0) {
-      permits <- permits[permits$record_category %in% input$category_select,]
-    }
-
-    # Geographic Filters
-    if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
-      permits <- permits[permits$police_zone %in% input$zone_select,]
-    } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
-      permits <- permits[permits$neighborhood %in% input$hood_select,]
-    } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
-      permits <- permits[permits$public_works_division %in% input$DPW_select,]
-    } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
-      permits <-permits[permits$council_district %in% input$council_select,]
-    }
-
-    # Search Filter
-    if (!is.null(input$search) && input$search != "") {
-      permits <- permits[apply(permits, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
-    }
-
-    # Append Workflows
-    workflow <- load.workflow
-    # Select Workflows
-    workflow <- workflow[workflow$permit_id %in% permits$permit_id,]
-    workflow$permit_id <- as.factor(workflow$permit_id)
-
-    if (nrow(permits) > 0) {
-      # Loop which aggregates appropriate Workflows
-      for (i in  levels(workflow$permit_id)){
-        # Isolate Workflows for Permit ID
-        temp <- subset(workflow, permit_id == i)
-        # Sort workflow to correct order
-        temp <- temp[order(temp$history_seq_nbr),]
-        # Isolate only tooltip
-        temp <- temp[,"tool"]
-        # Create DT string from list
-        tt <- paste0('<br><b>Workflow:</b><br><dl style="margin-bottom: 0px; margin-left:10px";>', toString(temp), "</dl>")
-        # Remove Junk characters from unlisting
-        tt <- gsub(",", "", tt)
-        tt <- gsub('" "', "", tt)
-        tt <- gsub('c\\("', "", tt)
-        tt <- gsub('"\\)', "", tt)
-        # Create Columns for bind
-        df <- data.frame(i,tt)
-        # Check for first Workflow
-        if (i == levels(workflow$permit_id)[1]){
-          tt.df <- df
-        # Merge to other tooltips
-        } else {
-          tt.df <- rbind(tt.df, df)
-        }
-      }
-
-    # Rename Columns for Merge
-    colnames(tt.df) <- c("permit_id", "tt")
-    # Merge Workflow Tooltip to Permits
-    permits <- merge(permits, tt.df, by = "permit_id", all.x = TRUE)
-    # Make Unsuccessful tooltips blank instead of NA
-    permits$tt <- as.character(permits$tt)
-    permits$tt[is.na(permits$tt)] <- ""
-    }
-
-    return(permits)
-  })
+  # permitsInput <- reactive({
+  #   permits <- load.permits
+  # 
+  #   # Date Filter
+  #   permits <- subset(permits, date >= input$dates[1] &  date <= input$dates[2])
+  # 
+  #   # Sort
+  #   permits <- permits[rev(order(as.Date(permits$date, format="%d/%m/%Y"))),]
+  # 
+  #   # Permit Filters
+  #   if (length(input$permit_select) > 0) {
+  #     permits <- permits[permits$permit_type %in% input$permit_select,]
+  #   }
+  #   if (length(input$status_select) > 0) {
+  #     permits <- permits[permits$current_status %in% input$status_select,]
+  #   }
+  #   if (length(input$category_select) > 0) {
+  #     permits <- permits[permits$record_category %in% input$category_select,]
+  #   }
+  # 
+  #   # Geographic Filters
+  #   if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
+  #     permits <- permits[permits$police_zone %in% input$zone_select,]
+  #   } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
+  #     permits <- permits[permits$neighborhood %in% input$hood_select,]
+  #   } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
+  #     permits <- permits[permits$public_works_division %in% input$DPW_select,]
+  #   } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
+  #     permits <-permits[permits$council_district %in% input$council_select,]
+  #   }
+  # 
+  #   # Search Filter
+  #   if (!is.null(input$search) && input$search != "") {
+  #     permits <- permits[apply(permits, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
+  #   }
+  # 
+  #   # Append Workflows
+  #   workflow <- load.workflow
+  #   # Select Workflows
+  #   workflow <- workflow[workflow$permit_id %in% permits$permit_id,]
+  #   workflow$permit_id <- as.factor(workflow$permit_id)
+  # 
+  #   if (nrow(permits) > 0) {
+  #     # Loop which aggregates appropriate Workflows
+  #     for (i in  levels(workflow$permit_id)){
+  #       # Isolate Workflows for Permit ID
+  #       temp <- subset(workflow, permit_id == i)
+  #       # Sort workflow to correct order
+  #       temp <- temp[order(temp$history_seq_nbr),]
+  #       # Isolate only tooltip
+  #       temp <- temp[,"tool"]
+  #       # Create DT string from list
+  #       tt <- paste0('<br><b>Workflow:</b><br><dl style="margin-bottom: 0px; margin-left:10px";>', toString(temp), "</dl>")
+  #       # Remove Junk characters from unlisting
+  #       tt <- gsub(",", "", tt)
+  #       tt <- gsub('" "', "", tt)
+  #       tt <- gsub('c\\("', "", tt)
+  #       tt <- gsub('"\\)', "", tt)
+  #       # Create Columns for bind
+  #       df <- data.frame(i,tt)
+  #       # Check for first Workflow
+  #       if (i == levels(workflow$permit_id)[1]){
+  #         tt.df <- df
+  #       # Merge to other tooltips
+  #       } else {
+  #         tt.df <- rbind(tt.df, df)
+  #       }
+  #     }
+  # 
+  #   # Rename Columns for Merge
+  #   colnames(tt.df) <- c("permit_id", "tt")
+  #   # Merge Workflow Tooltip to Permits
+  #   permits <- merge(permits, tt.df, by = "permit_id", all.x = TRUE)
+  #   # Make Unsuccessful tooltips blank instead of NA
+  #   permits$tt <- as.character(permits$tt)
+  #   permits$tt[is.na(permits$tt)] <- ""
+  #   }
+  # 
+  #   return(permits)
+  # })
   # Capital Projects data with filters
   cprojInput <- reactive({
     cproj <- load.cproj
@@ -1893,41 +1813,41 @@ server <- shinyServer(function(input, output, session) {
         }
       }
     # Building Permits Layer
-    if(input$togglePermits) {
-      permits <- permitsInput()
-      # Remove unmappables
-      permits <- permits[!(is.na(permits$lat)),]
-      permits <- permits[!(is.na(permits$lon)),]
-      permits <- subset(permits, lon > -80.242767 & lon < -79.660492 & lat < 40.591014 & lat > 40.266428)
-      if (nrow(permits) > 0) {
-        layerCount <- layerCount + 1
-        map <- addMarkers(map, data=permits,
-                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
-                                                                                      var childCount = cluster.getChildCount();
-                                                                                      if (childCount < 10) {
-                                                                                      c = 'rgba(207, 242, 252, 0.95);'
-                                                                                      } else if (childCount < 100) {
-                                                                                      c = 'rgba(117, 214, 247, 0.95);'
-                                                                                      } else {
-                                                                                      c = 'rgba(0, 150, 219, 0.95);'
-                                                                                      }
-                                                                                      return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-      }")), ~lon, ~lat, icon = ~icons_permits[icon],
-               popup = ~(paste("<font color='black'><b>Type:</b>", permits$permit_type,
-                               "<br><b>Status:</b>", permits$current_status,
-                               "<br><b>Address:</b>", permits$full_address,
-                               "<br><b>Neighborhood:</b>", permits$neighborhood,
-                               "<br><b>Council District:</b>", permits$council_district,
-                               "<br><b>Police Zone:</b>", permits$police_zone,
-                               "<br><b>Public Works Division:</b>", permits$public_works_division,
-                               "<br><b>Parcel ID:</b>", permits$url,
-                               "<br><b>Permit ID:</b>", permits$permit_id,
-                               permits$tt,
-                               '<br><center><a href="https://pittsburghpa.buildingeye.com/building" target="_blank">Search Permits on Building Eye!</a></center></font></font>'))
-        )
-      recs <- recs + nrow(permits)
-      }
-    }
+    # if(input$togglePermits) {
+    #   permits <- permitsInput()
+    #   # Remove unmappables
+    #   permits <- permits[!(is.na(permits$lat)),]
+    #   permits <- permits[!(is.na(permits$lon)),]
+    #   permits <- subset(permits, lon > -80.242767 & lon < -79.660492 & lat < 40.591014 & lat > 40.266428)
+    #   if (nrow(permits) > 0) {
+    #     layerCount <- layerCount + 1
+    #     map <- addMarkers(map, data=permits,
+    #                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
+    #                                                                                   var childCount = cluster.getChildCount();
+    #                                                                                   if (childCount < 10) {
+    #                                                                                   c = 'rgba(207, 242, 252, 0.95);'
+    #                                                                                   } else if (childCount < 100) {
+    #                                                                                   c = 'rgba(117, 214, 247, 0.95);'
+    #                                                                                   } else {
+    #                                                                                   c = 'rgba(0, 150, 219, 0.95);'
+    #                                                                                   }
+    #                                                                                   return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+    #   }")), ~lon, ~lat, icon = ~icons_permits[icon],
+    #            popup = ~(paste("<font color='black'><b>Type:</b>", permits$permit_type,
+    #                            "<br><b>Status:</b>", permits$current_status,
+    #                            "<br><b>Address:</b>", permits$full_address,
+    #                            "<br><b>Neighborhood:</b>", permits$neighborhood,
+    #                            "<br><b>Council District:</b>", permits$council_district,
+    #                            "<br><b>Police Zone:</b>", permits$police_zone,
+    #                            "<br><b>Public Works Division:</b>", permits$public_works_division,
+    #                            "<br><b>Parcel ID:</b>", permits$url,
+    #                            "<br><b>Permit ID:</b>", permits$permit_id,
+    #                            permits$tt,
+    #                            '<br><center><a href="https://pittsburghpa.buildingeye.com/building" target="_blank">Search Permits on Building Eye!</a></center></font></font>'))
+    #     )
+    #   recs <- recs + nrow(permits)
+    #   }
+    # }
     # Building Code Violations
     if(input$toggleViolations) {
       violations <- violationsInput()
@@ -1996,60 +1916,11 @@ server <- shinyServer(function(input, output, session) {
                                  "<br><b>Neighborhood:</b>", cproj$neighborhood,
                                  "<br><b>Council District:</b>", cproj$council_district,
                                  "<br><b>Public Works Division:</b>", cproj$public_works_division,
-                                 "<br><b>Police Zone:</b>", cproj$police_zone, '</font>'
+                                 "<br><b>Police Zone:</b>", cproj$police_zone
                           ))
         )
         recs <- recs + nrow(cproj)
       }
-    }
-    # Crashes
-    if (input$toggleCrashes) {
-      crashes <- crashInput()
-      if (nrow(crashes@data) > 0) {
-        layerCount <- layerCount + 1
-        map <- addMarkers(map, data=crashes,
-                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
-                                                                                      var childCount = cluster.getChildCount();
-                                                                                      if (childCount < 10) {  
-                                                                                          c = 'rgba(252, 247, 220, 1);'
-                                                                                      } else if (childCount < 100) {  
-                                                                                      c = 'rgba(251, 227, 136, 1);'  
-                                                                                      } else { 
-                                                                                      c = 'rgba(246, 205, 57, 1);'  
-                                                                                      }   
-                                                                                      return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-      }")), icon = ~icons_crashes[icon],
-                 popup = ~(paste("<font color='black'><b>Collision Type:</b>", crashes$type,
-                                 "<br><b>When:</b>", crashes$date,
-                                 "<br><b>Day:</b>", crashes$day,
-                                 "<br><b>Time:</b>", crashes$time,
-                                 "<br><b>Street:</b>", crashes$STREET_NAME,
-                                 "<br><b>Speed Limit:</b>", crashes$SPEED_LIMIT,
-                                 "<br><b>Vehicles:</b>", crashes$VEHICLE_COUNT,
-                                 "<br><b>People:</b>", crashes$PERSON_COUNT,
-                                 "<br><b>Injuries:</b>", crashes$INJURY_COUNT,
-                                 "<br><b>Deaths:</b>", crashes$FATAL_COUNT,
-                                 "<br><br><b>Special Circumstances:</b><ul>",
-                                  ifelse(crashes$AGGRESSIVE_DRIVING == 1, "<li>Aggressive Driving", ""),
-                                  ifelse(crashes$SPEEDING_RELATED == 1, "<li>Speeding Related", ""),
-                                  ifelse(crashes$UNLICENSED == 1, "<li>Unlicensed", ""),
-                                  ifelse(crashes$WET_ROAD == 1, "<li>Wet Road", ""),
-                                  ifelse(crashes$SNOW_SLUSH_ROAD == 1, "<li>Snow/Slushy Road", ""),
-                                  ifelse(crashes$ICY_ROAD == 1, "<li>Icy Road", ""),
-                                  ifelse(crashes$REAR_END == 1, "<li>Rear Ended", ""),
-                                  ifelse(crashes$OVERTURNED == 1, "<li>Overturned Vehicle", ""),
-                                  ifelse(crashes$CELL_PHONE == 1, "<li>Cellphone Related", ""),
-                                  ifelse(crashes$VEHICLE_TOWED == 1, "<li>Vehicle Towed", ""),
-                                  ifelse(crashes$RUNNING_RED_LT == 1, "<li>Ran Red Light", ""),
-                                  ifelse(crashes$RUNNING_STOP_SIGN == 1, "<li>Ran Stop Sign", ""),
-                                  ifelse(crashes$FATIGUE_ASLEEP == 1, "<li>Fatigued/Asleep", ""),
-                                  ifelse(crashes$WORK_ZONE == 1, "<li>Work Zone", ""),
-                                  ifelse(crashes$DISTRACTED == 1, "<li>Distracted", ""),
-                                  ifelse(crashes$SCH_BUS_IND == 1, "<li>School Bus", ""),
-                                 "</ul>"))
-        )
-      }
-      recs <- recs + nrow(crashes@data)
     }
     print(recs)
     if (layerCount < 1) {
