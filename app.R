@@ -77,8 +77,8 @@ ckanQueryDates  <- function(id, days, column) {
   jsonlite::fromJSON(json)$result$records
 }
 
-ckanQuery2 <- function(id, query, column, query2, column2) {
-  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column,"%22%20=%20%27", query, "%27%20AND%20%22", column2, "%22%20=%20%27", query2, "%27")
+ckanQuery3 <- function(id, query, column, query2, column2, query3, column3) {
+  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column,"%22%20=%20%27", query, "%27%20AND%20%22", column2, "%22%20=%20%27", query2, "%27%20AND%20%22", column3, "%22%20=%20%27", query3, "%27")
   r <- GET(url, add_headers(Authorization = ckan_api))
   c <- content(r, "text")
   json <- gsub('NaN', '""', c, perl = TRUE)
@@ -822,6 +822,11 @@ server <- shinyServer(function(input, output, session) {
                                 c(`Collision Year`='', c(2004:last_year)),
                                 selected = last_year,
                                 selectize=TRUE),
+                    selectInput("crash_month",
+                                label = NULL,
+                                choices = c(`January` = "1", `February` = "2", `March` = "3", `April` = "4", `May` = "5", `June` = "6", `July` = '7', `August` = "8", `September` = "9", `October` = "10", `November` = "11", `December` = "12"),
+                                selected = as.numeric(format(Sys.Date(), format = "%m")),
+                                selectize=TRUE),
                     selectInput("crash_select",
                                 label = NULL,
                                 c(`Collision Type`='', crash_types),
@@ -955,6 +960,10 @@ server <- shinyServer(function(input, output, session) {
                                  c(`Crash Year`='', c(2004:last_year)),
                                  selected = last_year,
                                  selectize=TRUE),
+                     selectInput("crash_month",
+                                 label = NULL,
+                                 choices = c(`January` = 1, `February` = 2, `March` = 3, `April` = 4, `May` = 5, `June` = 6, `July` = 7, `August` = 8, `September` = 9, `October` = 10, `November` = 11, `December` = 12),
+                                 selected = as.numeric(format(Sys.Date(), format = "%m"))),
                      selectInput("crash_select",
                                  label = NULL,
                                  c(`Collision Type`='', crash_types),
@@ -1172,7 +1181,7 @@ server <- shinyServer(function(input, output, session) {
   # Crash Data
   crashInput <- reactive({
     # Load Crashes
-    crashes <- ckanQuery2("2c13021f-74a9-4289-a1e5-fe0472c89881", 2301, "MUNICIPALITY", input$crash_year, "CRASH_YEAR")
+    crashes <- ckanQuery3("2c13021f-74a9-4289-a1e5-fe0472c89881", 2301, "MUNICIPALITY", input$crash_year, "CRASH_YEAR", input$crash_month, "CRASH_MONTH")
     # Subset
     crashes <- subset(crashes, !is.na(DEC_LONG) & !is.na(DEC_LAT))
     # Cleancrashes$BUS_COUNT <- as.numeric(crashes$BUS_COUNT)
@@ -2011,7 +2020,7 @@ server <- shinyServer(function(input, output, session) {
                                                                                       return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
       }")), icon = ~icons_crashes[icon],
                  popup = ~(paste("<font color='black'><b>Collision Type:</b>", crashes$type,
-                                 "<br><b>Month:</b>", crashes$date,
+                                 "<br><b>When:</b>", crashes$date,
                                  "<br><b>Day:</b>", crashes$day,
                                  "<br><b>Time:</b>", crashes$time,
                                  "<br><b>Street:</b>", crashes$STREET_NAME,
