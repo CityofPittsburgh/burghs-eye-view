@@ -101,24 +101,70 @@ ckanQuery2 <- function(id, query, column, arg, query2, column2) {
   }
 }
 
-ckanQueryCrashes <- function(start_month, start_year, end_month, end_year) {
-  if (end_month > start_month) {
+# Query Crash Dataset
+ckanQueryCrashes <- function(start_date, end_date) {
+  start_year <- as.numeric(format(as.Date(start_date), "%Y"))
+  end_year <- as.numeric(format(as.Date(end_date), "%Y"))
+  start_month <- as.numeric(format(as.Date(start_date), "%m"))
+  end_month <- as.numeric(format(as.Date(end_date), "%m"))
+  if (start_year == end_year) {
     months <- start_month:end_month
+    if (length(months) == 1) {
+      url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20=%20%272301%27%20AND%20%22CRASH_YEAR%22%20=%27", start_year,"%27%20AND%20%22CRASH_MONTH%22%20=%20%27", start_month, "%27")
+    } else {
+      url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20=%20%272301%27%20AND%20%22CRASH_YEAR%22%20=%27", start_year,"%27%20AND%20(%22CRASH_MONTH%22%20BETWEEN%20%27", start_month,"%27%20AND%20%27", end_month, "%27)")
+    }
+    r <- GET(url, add_headers(Authorization = ckan_api))
+    c <- content(r, "text")
+    json <- gsub('NaN', '""', c, perl = TRUE)
+    if (length(jsonlite::fromJSON(json)$result$records) == 0) {
+      fields <- jsonlite::fromJSON(json)$result$fields$id
+      df <- data.frame(t(data.frame(1:length(fields), row.names = fields))[0,])
+    } else {
+      df <- jsonlite::fromJSON(json)$result$records
+    }
   } else {
-    months_end <- end_month:1
-    months_start <- start_month:12
+    years <- start_year:end_year
+    url_start <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20=%20%272301%27%20AND%20%22CRASH_YEAR%22%20=%27", start_year,"%27%20AND%20(%22CRASH_MONTH%22%20BETWEEN%20%27", start_month,"%27%20AND%20%2712%27)")
+    r <- GET(url_start, add_headers(Authorization = ckan_api))
+    c <- content(r, "text")
+    json <- gsub('NaN', '""', c, perl = TRUE)
+    if (length(jsonlite::fromJSON(json)$result$records) == 0) {
+      fields <- jsonlite::fromJSON(json)$result$fields$id
+      df1 <- data.frame(t(data.frame(1:length(fields), row.names = fields))[0,])
+    } else {
+      df1 <- jsonlite::fromJSON(json)$result$records
+    }
+    url_end <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20=%20%272301%27%20AND%20%22CRASH_YEAR%22%20=%27", end_year,"%27%20AND%20(%22CRASH_MONTH%22%20BETWEEN%20%271%27%20AND%20%27", end_month, "%27)")
+    r <- GET(url_end, add_headers(Authorization = ckan_api))
+    c <- content(r, "text")
+    json <- gsub('NaN', '""', c, perl = TRUE)
+    if (length(jsonlite::fromJSON(json)$result$records) == 0) {
+      fields <- jsonlite::fromJSON(json)$result$fields$id
+      df2 <- data.frame(t(data.frame(1:length(fields), row.names = fields))[0,])
+    } else {
+      df2 <- jsonlite::fromJSON(json)$result$records
+    }
+    df <- rbind(df1, df2)
+    if (length(years) > 2) {
+      for (i in years[2]:years[length(years)-1]) {
+        url<- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20=%20%272301%27%20AND%20%22CRASH_YEAR%22%20=%27", i,"%27")
+        r <- GET(url, add_headers(Authorization = ckan_api))
+        c <- content(r, "text")
+        json <- gsub('NaN', '""', c, perl = TRUE)
+        if (length(jsonlite::fromJSON(json)$result$records) == 0) {
+          fields <- jsonlite::fromJSON(json)$result$fields$id
+          df_new <- data.frame(t(data.frame(1:length(fields), row.names = fields))[0,])
+        } else {
+          df_new <- jsonlite::fromJSON(json)$result$records
+        }
+        df <- rbind(df, df_new)
+      }
+    }
   }
-  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20=%20%272301%27%20AND%20(%22CRASH_YEAR%22%20BETWEEN%20", start_year,"%20AND%20", start_year, ")")
-  r <- GET(url, add_headers(Authorization = ckan_api))
-  c <- content(r, "text")
-  json <- gsub('NaN', '""', c, perl = TRUE)
-  if (length(jsonlite::fromJSON(json)$result$records) == 0) {
-    fields <- jsonlite::fromJSON(json)$result$fields$id
-    data.frame(t(data.frame(1:length(fields), row.names = fields))[0,])
-  } else {
-    jsonlite::fromJSON(json)$result$records
-  }
+  return(df)
 }
+
 #GEO CKAN Json
 ckanGEO <- function(url) {
   r<- GET(url, add_headers(Authorization = ckan_api))
@@ -943,12 +989,17 @@ server <- shinyServer(function(input, output, session) {
   # Crash Data
   crashInput <- reactive({
     # Load Crashes
-    crashes <- ckanQuery3("2c13021f-74a9-4289-a1e5-fe0472c89881", 2301, "MUNICIPALITY", input$crash_year, "CRASH_YEAR", input$crash_month, "CRASH_MONTH")
+    crashes <- ckanQueryCrashes(input$dates[1], input$dates[2])
     # Subset
     crashes <- subset(crashes, !is.na(DEC_LONG) & !is.na(DEC_LAT))
+    # Type Select
+    if (length(input$crash_select) > 0){
+      crashes <- crashes[crashes$type %in% input$crash_select,]
+    }
     # Cleancrashes$BUS_COUNT <- as.numeric(crashes$BUS_COUNT)
     # Icons
-    crashes$icon <- as.factor(case_when(
+    if (nrow(crashes) > 0){
+      crashes$icon <- as.factor(case_when(
       crashes$BICYCLE == "1" ~ "bike",
       crashes$BUS_COUNT >= 1 ~ "bus",
       crashes$MOTORCYCLE == "1" ~ "motorcycle",
@@ -957,56 +1008,51 @@ server <- shinyServer(function(input, output, session) {
       crashes$TRAIN_TROLLEY == "1" ~ "train",
       crashes$HIT_DEER == "1" ~ "deer",
       crashes$HIT_FIXED_OBJECT == "1" ~ "obj",
-      TRUE ~ "crash"
-    ))
-    crashes <- transform(crashes, type =as.factor(mapvalues(icon, c("bike", "bus", "crash", "deer", "DUI", "motorcycle", "train", "obj", "ped"),
-                                                                      crash_types)))
-    # Type Select
-    if (length(input$crash_select) > 0){
-      crashes <- crashes[crashes$type %in% input$crash_select,]
+      TRUE ~ "crash"))
+      
+      crashes <- transform(crashes, type =as.factor(mapvalues(icon, c("bike", "bus", "crash", "deer", "DUI", "motorcycle", "train", "obj", "ped"),
+                                                                        crash_types)))
+      # Clean
+      crashes$CRASH_MONTH <- str_pad(as.character(crashes$CRASH_MONTH), 2, pad = "0")
+      crashes$time <- str_pad(crashes$TIME_OF_DAY, 4, pad = "0")
+      crashes$date <- paste0(crashes$CRASH_YEAR, crashes$CRASH_MONTH, "01")
+      crashes$date_time <- as.POSIXct(paste(crashes$date, crashes$time), format = "%Y%m%d %H%M")
+      crashes$time <- format(crashes$date_time, "%I:%m %p")
+      crashes$date <- format(as.Date(crashes$date, format = "%Y%m%d"), "%B %Y")
+      crashes$day <- as.factor(case_when(
+        crashes$DAY_OF_WEEK == "1" ~ "Sunday",
+        crashes$DAY_OF_WEEK == "2" ~ "Monday",
+        crashes$DAY_OF_WEEK == "3" ~ "Tuesday",
+        crashes$DAY_OF_WEEK == "4" ~ "Wednesday",
+        crashes$DAY_OF_WEEK == "5" ~ "Thursday",
+        crashes$DAY_OF_WEEK == "6" ~ "Friday",
+        crashes$DAY_OF_WEEK == "7" ~ "Saturday"
+      ))
+      
+      # Spatial
+      coords <- cbind(as.numeric(crashes$DEC_LONG), as.numeric(crashes$DEC_LAT))
+      points <- SpatialPoints(coords)
+      crashes_sp <- SpatialPointsDataFrame(points, crashes)
+      proj4string(crashes_sp) <- CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+      
+      # Geographic Filters
+      if (length(input$zone_select) > 0 & input$filter_select == "Police Zone") {
+        crashes_sp$POLICE_ZONE <- sp::over(crashes_sp, load.zones)$POLICE_ZONE
+        crashes_sp <- crashes_sp[crashes_sp$POLICE_ZONE %in% input$zone_select,]
+      } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
+        crashes_sp$hood <- sp::over(crashes_sp, load.hoods)$hood
+        crashes_sp <- crashes_sp[crashes_sp$hood %in% input$hood_select,]
+      } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
+        crashes_sp$PUBLIC_WORKS_DIVISION <- sp::over(crashes_sp, load.dpw)$PUBLIC_WORKS_DIVISION
+        crashes_sp <- crashes_sp[crashes_sp$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
+      } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
+        crashes_sp$COUNCIL_DISTRICT <- sp::over(crashes_sp, load.dpw)$COUNCIL_DISTRICT
+        crashes_sp <- crashes_sp[crashes_sp$COUNCIL_DISTRICT %in% input$council_select,]
+      }
+      crashes <- crashes_sp
     }
     
-    # Clean
-    crashes$CRASH_MONTH <- str_pad(crashes$CRASH_MONTH, 2, pad = "0")
-    crashes$time <- str_pad(crashes$TIME_OF_DAY, 4, pad = "0")
-    crashes$date <- paste0(crashes$CRASH_YEAR, crashes$CRASH_MONTH, "01")
-    crashes$date_time <- as.POSIXct(paste(crashes$date, crashes$time), format = "%Y%m%d%H%M")
-    crashes$time <- format(crashes$date_time, "%I:%m %p")
-    crashes$date <- format(as.Date(crashes$date, format = "%Y%m%d"), "%B %Y")
-    crashes$day <- as.factor(case_when(
-      crashes$DAY_OF_WEEK == "1" ~ "Sunday",
-      crashes$DAY_OF_WEEK == "2" ~ "Monday",
-      crashes$DAY_OF_WEEK == "3" ~ "Tuesday",
-      crashes$DAY_OF_WEEK == "4" ~ "Wednesday",
-      crashes$DAY_OF_WEEK == "5" ~ "Thursday",
-      crashes$DAY_OF_WEEK == "6" ~ "Friday",
-      crashes$DAY_OF_WEEK == "7" ~ "Saturday"
-    ))
-    # Temp
-    crashes$icon <- "crash"
-    
-    # Spatial
-    coords <- cbind(as.numeric(crashes$DEC_LONG), as.numeric(crashes$DEC_LAT))
-    points <- SpatialPoints(coords)
-    crashes_sp <- SpatialPointsDataFrame(points, crashes)
-    proj4string(crashes_sp) <- CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
-    
-    # Geographic Filters
-    if (length(input$zone_select) > 0 & input$filter_select == "Police Zone") {
-      crashes_sp$POLICE_ZONE <- sp::over(crashes_sp, load.zones)$POLICE_ZONE
-      crashes_sp <- crashes_sp[crashes_sp$POLICE_ZONE %in% input$zone_select,]
-    } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
-      crashes_sp$hood <- sp::over(crashes_sp, load.hoods)$hood
-      crashes_sp <- crashes_sp[crashes_sp$hood %in% input$hood_select,]
-    } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
-      crashes_sp$PUBLIC_WORKS_DIVISION <- sp::over(crashes_sp, load.dpw)$PUBLIC_WORKS_DIVISION
-      crashes_sp <- crashes_sp[crashes_sp$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
-    } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
-      crashes_sp$COUNCIL_DISTRICT <- sp::over(crashes_sp, load.dpw)$COUNCIL_DISTRICT
-      crashes_sp <- crashes_sp[crashes_sp$COUNCIL_DISTRICT %in% input$council_select,]
-    }
-    
-    return(crashes_sp)
+    return(crashes)
   })
   # 311 data with filters
   dat311Input <- reactive({
@@ -1943,7 +1989,9 @@ server <- shinyServer(function(input, output, session) {
     # Crashes
     if (input$toggleCrashes) {
       crashes <- crashInput()
-      if (nrow(crashes@data) > 0) {
+      if (nrow(crashes) > 0) {
+        # Temp Icon
+        crashes$icon <- "crash"
         layerCount <- layerCount + 1
         map <- addMarkers(map, data=crashes,
                           clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
@@ -1986,8 +2034,8 @@ server <- shinyServer(function(input, output, session) {
                                   ifelse(crashes$SCH_BUS_IND == 1, "<li>School Bus", ""),
                                  "</ul>"))
         )
+        recs <- recs + nrow(crashes@data)
       }
-      recs <- recs + nrow(crashes@data)
     }
     print(recs)
     if (layerCount < 1) {
