@@ -1501,84 +1501,85 @@ server <- shinyServer(function(input, output, session) {
     year1 <- format(as.Date(input$dates[1]), "%Y")
     year2 <- format(as.Date(input$dates[2]), "%Y")
     cproj <- ckanQuery2("2fb96406-813e-4031-acfe-1a82e78dc33c", year1, "fiscal_year", "OR", year2, "fiscal_year")
-    # Clean Hood
-    cproj$neighborhood <- gsub("\\|", ", ", cproj$neighborhood)
-    # Clean Zones
-    for (i in 1:length(levels(load.zones$POLICE_ZONE))) {
-      rep <- as.character(levels(load.zones$POLICE_ZONE)[i])
-      cproj$police_zone <- gsub(as.character(i), rep, cproj$police_zone)
-    }
-    cproj$police_zone <- gsub("\\|", ", ", cproj$police_zone)
-    # Clean Council
-    for (i in 1:length(levels(load.council$COUNCIL_DISTRICT))) {
-      rep <- as.character(levels(load.council$COUNCIL_DISTRICT)[i])
-      cproj$council_district <- gsub(as.character(i), rep, cproj$council_district)
-    }
-    cproj$council_district <- gsub("\\|", ", ", cproj$council_district)
-    # Clean DPW
-    for (i in 1:length(levels(load.dpw$PUBLIC_WORKS_DIVISION))) {
-      rep <- as.character(levels(load.dpw$PUBLIC_WORKS_DIVISION)[i])
-      cproj$public_works_division <- gsub(as.character(i), rep, cproj$public_works_division)
-    }
-    cproj$public_works_division <- gsub("\\|", ", ", cproj$public_works_division)
     
-    # Formatting
-    cproj$budgeted_amount <- dollarsComma(as.numeric(cproj$budgeted_amount))
-    cproj$asset_id[is.na(cproj$asset_id)] <- ""
-    cproj$asset_tt <- ifelse(cproj$asset_id == "", "",paste("<br><b>Asset:</b>", cproj$asset_id))
-    
-    cproj <- transform(cproj, icon = as.factor(mapvalues(area, functional_areas, c("administration", "engineering_construction", "facility_improvement", "neighborhood_development", "public_safety", "vehicles_equipment"))))
-    
-    if (length(input$funcarea_select) > 0) {
-      cproj <- cproj[cproj$area %in% input$funcarea_select,]
-    }
-    
-    # Geographic Filters
-    if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
-      for (i in 1:length(input$zone_select)) {
-        if (i == 1) {
-          cproj.temp <- cproj[grepl(as.character(input$zone_select[i]), cproj$police_zone), ]
-        } else {
-          temp <- cproj[grepl(input$zone_select[i], cproj$police_zone), ]
-          cproj.temp <- rbind(cproj.temp, temp)
-        }
+    if (nrow(cproj) > 0){
+      # Clean Hood
+      cproj$neighborhood <- gsub("\\|", ", ", cproj$neighborhood)
+      # Clean Zones
+      for (i in 1:length(levels(load.zones$POLICE_ZONE))) {
+        rep <- as.character(levels(load.zones$POLICE_ZONE)[i])
+        cproj$police_zone <- gsub(as.character(i), rep, cproj$police_zone)
       }
-      cproj <- unique(cproj.temp)
-    } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
-      for (i in 1:length(input$hood_select)) {
-        if (i == 1) {
-          cproj.temp <- cproj[grepl(as.character(input$hood_select[i]), cproj$neighborhood), ]
-        } else {
-          temp <- cproj[grepl(as.character(input$hood_select[i]), cproj$neighborhood), ]
-          cproj.temp <- rbind(cproj.temp, temp)
-        }
+      cproj$police_zone <- gsub("\\|", ", ", cproj$police_zone)
+      # Clean Council
+      for (i in 1:length(levels(load.council$COUNCIL_DISTRICT))) {
+        rep <- as.character(levels(load.council$COUNCIL_DISTRICT)[i])
+        cproj$council_district <- gsub(as.character(i), rep, cproj$council_district)
       }
-      cproj <- unique(cproj.temp)
-    } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
-      for (i in 1:length(input$DPW_select)) {
-        if (i == 1) {
-          cproj.temp <- cproj[grepl(input$DPW_select[i], cproj$public_works_division), ]
-        } else {
-          temp <- cproj[grepl(input$DPW_select[i], cproj$public_works_division), ]
-          cproj.temp <- rbind(cproj.temp, temp)
-        }
+      cproj$council_district <- gsub("\\|", ", ", cproj$council_district)
+      # Clean DPW
+      for (i in 1:length(levels(load.dpw$PUBLIC_WORKS_DIVISION))) {
+        rep <- as.character(levels(load.dpw$PUBLIC_WORKS_DIVISION)[i])
+        cproj$public_works_division <- gsub(as.character(i), rep, cproj$public_works_division)
       }
-      cproj <- unique(cproj.temp)
-    } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
-      for (i in 1:length(input$council_select)) {
-        if (i == 1) {
-          cproj.temp <- cproj[grepl(input$council_select[i], cproj$council_district), ]
-        } else {
-          temp <- cproj[grepl(input$council_select[i], cproj$council_district), ]
-          cproj.temp <- rbind(cproj.temp, temp)
-        }
+      cproj$public_works_division <- gsub("\\|", ", ", cproj$public_works_division)
+      
+      # Formatting
+      cproj$budgeted_amount <- dollarsComma(as.numeric(cproj$budgeted_amount))
+      
+      cproj <- transform(cproj, icon = as.factor(mapvalues(area, functional_areas, c("administration", "engineering_construction", "facility_improvement", "neighborhood_development", "public_safety", "vehicles_equipment"))))
+      
+      if (length(input$funcarea_select) > 0) {
+        cproj <- cproj[cproj$area %in% input$funcarea_select,]
       }
-      cproj <- unique(cproj.temp)
-    }
-    
-    # Search Filter
-    if (!is.null(input$search) && input$search != "") {
-      cproj <- cproj[apply(cproj, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
+      
+      # Geographic Filters
+      if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
+        for (i in 1:length(input$zone_select)) {
+          if (i == 1) {
+            cproj.temp <- cproj[grepl(as.character(input$zone_select[i]), cproj$police_zone), ]
+          } else {
+            temp <- cproj[grepl(input$zone_select[i], cproj$police_zone), ]
+            cproj.temp <- rbind(cproj.temp, temp)
+          }
+        }
+        cproj <- unique(cproj.temp)
+      } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
+        for (i in 1:length(input$hood_select)) {
+          if (i == 1) {
+            cproj.temp <- cproj[grepl(as.character(input$hood_select[i]), cproj$neighborhood), ]
+          } else {
+            temp <- cproj[grepl(as.character(input$hood_select[i]), cproj$neighborhood), ]
+            cproj.temp <- rbind(cproj.temp, temp)
+          }
+        }
+        cproj <- unique(cproj.temp)
+      } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
+        for (i in 1:length(input$DPW_select)) {
+          if (i == 1) {
+            cproj.temp <- cproj[grepl(input$DPW_select[i], cproj$public_works_division), ]
+          } else {
+            temp <- cproj[grepl(input$DPW_select[i], cproj$public_works_division), ]
+            cproj.temp <- rbind(cproj.temp, temp)
+          }
+        }
+        cproj <- unique(cproj.temp)
+      } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
+        for (i in 1:length(input$council_select)) {
+          if (i == 1) {
+            cproj.temp <- cproj[grepl(input$council_select[i], cproj$council_district), ]
+          } else {
+            temp <- cproj[grepl(input$council_select[i], cproj$council_district), ]
+            cproj.temp <- rbind(cproj.temp, temp)
+          }
+        }
+        cproj <- unique(cproj.temp)
+      }
+      
+      # Search Filter
+      if (!is.null(input$search) && input$search != "") {
+        cproj <- cproj[apply(cproj, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
+      }
     }
     
     return(cproj)
@@ -1971,7 +1972,7 @@ server <- shinyServer(function(input, output, session) {
                                                                                       return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
       }")), ~longitude, ~latitude, icon = ~icons_cproj[icon],
                  popup = ~(paste("<font color='black'><b>Name:</b>", cproj$name,
-                                 cproj$asset_tt,
+                                 ifelse(is.na(cproj$asset_id), "", paste("<br><b>Asset:</b>", cproj$asset_id)),
                                  "<br><b>Description:</b>", cproj$task_description,
                                  "<br><b>Functional Area:</b>", cproj$area,
                                  "<br><b>Status:</b>",  cproj$status,
@@ -1989,7 +1990,7 @@ server <- shinyServer(function(input, output, session) {
     # Crashes
     if (input$toggleCrashes) {
       crashes <- crashInput()
-      if (nrow(crashes) > 0) {
+      if (!is.data.frame(crashes)) {
         # Temp Icon
         crashes$icon <- "crash"
         layerCount <- layerCount + 1
