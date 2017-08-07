@@ -1,5 +1,5 @@
 # Burghs Eye View - Points
-<p align="center"><img src="burghs-eye-view/www/burghs_eyeview_logo_horz.svg"></p>
+<p align="center"><img src="http://apps.pittsburghpa.gov/cis/burgh-seye-icon.png"></p>
 Burgh's Eye View is the core application used by Pittsburgh I&P's Analytics & Strategy team for mapping open data for point based data.
 
 ## Introduction 
