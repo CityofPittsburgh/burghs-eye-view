@@ -325,7 +325,7 @@ icons_violations <- iconList(
 )
 
 # Blotter Input & Icons
-hierarchies <- as.factor(c("08 Arson", "04 Assault", "05 Burglary", "15 Carrying Weapon", "24 Disorderly Conduct", "18 Drug Offense", "21 DUI", "20 Endangering Children", "12 Embezzlement", "09 Forgery", "11 Fraud", "19 Gambling", "22 Liquor Laws", "01 Murder", "26 Other", "16 Prostitution", "23 Public Drunkenness", "02 Rape", "13 Receiving Stolen Prop", "03 Robbery", "17 Sex Offense", "10 Simple Assault", "06 Theft", "14 Vandalism", "14 Vagrancy", "07 Vehicle Theft"))
+hierarchies <- as.factor(c("01 Murder", "02 Rape", "03 Robbery", "04 Assault", "05 Burglary", "06 Theft", "07 Vehicle Theft", "08 Arson", "09 Forgery", "10 Simple Assault", "11 Fraud", "12 Embezzlement", "13 Receiving Stolen Prop", "14 Vandalism", "15 Carrying Weapon", "16 Prostitution", "17 Sex Offense", "18 Drug Offense", "19 Gambling", "20 Endangering Children", "21 DUI", "22 Liquor Laws", "23 Public Drunkenness", "24 Disorderly Conduct", "25 Vagrancy", "26 Other"))
 
 offenses <- selectGet("offenses", selection_conn)
 
@@ -1173,7 +1173,8 @@ server <- shinyServer(function(input, output, session) {
                                                                                        c("Central Business District", "Central North Side", "Mount Oliver", "Troy Hill"))))
     
     blotter <- transform(blotter, icon = as.factor(mapvalues(HIERARCHY, levels(hierarchies), 
-                                                                       c("arson", "assault",  "burglary", "carrying_weapon", "disorderly_conduct", "drug_offense", "DUI", "endangering_children", "embezzlement", "forgery", "fraud", "gambling", "liquor_laws", "murder", "other", "prostitution", "public_drunkenness", "rape", "receiving_stolen_property", "robbery", "sex_offense", "simple_assault", "theft", "vandalism", "vagrancy", "vehicle_theft"))))
+                                                                       c("murder",  "rape", "robbery", "assault", "burglary", "theft", "vehicle_theft", "arson", "forgery", "simple_assault", "fraud", "embezzlement",  "receiving_stolen_property", "vandalism", "carrying_weapon", "prostitution", "sex_offense", "drug_offense", "gambling", "endangering_children", "DUI", "liquor_laws", "public_drunkenness", "disorderly_conduct", "vagrancy", "other"))))
+    
     # Clean Geographies
     blotter$HIERARCHY <- as.factor(blotter$HIERARCHY)
     names(blotter)[names(blotter)=="INCIDENTZONE"] <- "POLICE_ZONE"
