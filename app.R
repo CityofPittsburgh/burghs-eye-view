@@ -376,18 +376,18 @@ icons_cproj <- iconList(
 this_year <- format(Sys.Date(), format="%Y")
 last_year<- as.numeric(this_year) -  1
 
-crash_types <- c("Bicycle", "Bus", "Collision", "Hit Deer", "Intoxicated Driver", "Motorcycle", "Fixed Object Collision", "Pedestrian", "Train")
+crash_types <- c("Collision", "Bicycle", "Bus", "Hit Deer", "Intoxicated Driver", "Motorcycle", "Pedestrian", "Train/Trolley", "Fixed Object Collision")
 
 icons_crashes <- iconList(
+  crash = makeIcon("./icons/crashes/crash.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
   crash_bike = makeIcon("./icons/crashes/crash_bike.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
   crash_bus = makeIcon("./icons/crashes/crash_bus.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  crash = makeIcon("./icons/crashes/crash.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
   crash_deer = makeIcon("./icons/crashes/crash_deer.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
   crash_dui = makeIcon("./icons/crashes/crash_dui.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
   crash_motorcycle = makeIcon("./icons/crashes/crash_motorcycle.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  crash_trolly = makeIcon("./icons/crashes/crash_trolly.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  crashcrash_single = makeIcon("./icons/crashes/crash_single.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  crash__pedestrian = makeIcon("./icons/crashes/crash__pedestrian.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+  crash_pedestrian = makeIcon("./icons/crashes/crash_pedestrian.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  crash_trolley = makeIcon("./icons/crashes/crash_trolley.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  crash_single = makeIcon("./icons/crashes/crash_single.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
 
 # CouchDB Connection
@@ -1005,10 +1005,7 @@ server <- shinyServer(function(input, output, session) {
     crashes <- ckanQueryCrashes(input$dates[1], input$dates[2])
     # Subset
     crashes <- subset(crashes, !is.na(DEC_LONG) & !is.na(DEC_LAT))
-    # Type Select
-    if (length(input$crash_select) > 0){
-      crashes <- crashes[crashes$type %in% input$crash_select,]
-    }
+
     # Cleancrashes$BUS_COUNT <- as.numeric(crashes$BUS_COUNT)
     # Icons
     if (nrow(crashes) > 0){
@@ -1016,15 +1013,19 @@ server <- shinyServer(function(input, output, session) {
       crashes$BICYCLE == "1" ~ "crash_bike",
       crashes$BUS_COUNT >= 1 ~ "crash_bus",
       crashes$MOTORCYCLE == "1" ~ "crash_motorcycle",
-      crashes$PEDESTRIAN == "1" ~ "crash__pedestrian",
+      crashes$PEDESTRIAN == "1" ~ "crash_pedestrian",
       crashes$ALCOHOL_RELATED == "1" | crashes$DRUGGED_DRIVER == "1" ~ "crash_dui",
-      crashes$TRAIN_TROLLEY == "1" ~ "crash_trolly",
+      crashes$TRAIN_TROLLEY == "1" ~ "crash_trolley",
       crashes$HIT_DEER == "1" ~ "crash_deer",
-      crashes$HIT_FIXED_OBJECT == "1" | crashes$HIT_POLE  == "1" | crashes$HIT_GDRAIL  == "1" | crashes$HIT_BARRIER  == "1" | crashes$HIT_TREE_SHRUB == "1" | crashes$HIT_PARKED_VEHICLE  == "1" | crashes$HIT_GDRAIL_END ~ "crash_single",
+      crashes$HIT_FIXED_OBJECT == "1" | crashes$HIT_POLE  == "1" | crashes$HIT_GDRAIL  == "1" | crashes$HIT_BARRIER  == "1" | crashes$HIT_TREE_SHRUB == "1" | crashes$HIT_PARKED_VEHICLE  == "1" | crashes$HIT_GDRAIL_END == "1" ~ "crash_single",
       TRUE ~ "crash"))
       
-      crashes <- transform(crashes, type = as.factor(mapvalues(icon, c("crash_bike", "crash_bus", "crash", "crash_deer", "crash_dui", "crash_motorcycle", "crash_trolly", "crash_single", "crash__pedestrian"),
+      crashes <- transform(crashes, type = as.factor(mapvalues(icon, c("crash", "crash_bike", "crash_bus", "crash_deer", "crash_dui", "crash_motorcycle", "crash_pedestrian", "crash_trolley", "crash_single"),
                                                                         crash_types)))
+    # Type Select
+    if (length(input$crash_select) > 0){
+      crashes <- crashes[crashes$type %in% input$crash_select,]
+    }
       # Clean
       crashes$CRASH_MONTH <- str_pad(as.character(crashes$CRASH_MONTH), 2, pad = "0")
       crashes$time <- str_pad(crashes$TIME_OF_DAY, 4, pad = "0")
@@ -2005,8 +2006,6 @@ server <- shinyServer(function(input, output, session) {
     if (input$toggleCrashes) {
       crashes <- crashInput()
       if (!is.data.frame(crashes)) {
-        # Temp Icon
-        crashes$icon <- "crash"
         layerCount <- layerCount + 1
         map <- addMarkers(map, data=crashes,
                           clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
