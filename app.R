@@ -376,10 +376,18 @@ icons_cproj <- iconList(
 this_year <- format(Sys.Date(), format="%Y")
 last_year<- as.numeric(this_year) -  1
 
-crash_types <- c("Bicycle", "Bus", "Crash", "Hit Deer", "Intoxicated Driver", "Motorcycle", "Hit Fixed Object", "Pedestrian", "Train")
+crash_types <- c("Bicycle", "Bus", "Collision", "Hit Deer", "Intoxicated Driver", "Motorcycle", "Fixed Object Collision", "Pedestrian", "Train")
 
 icons_crashes <- iconList(
-  crash = makeIcon("./icons/crashes/crash.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+  crash_bike = makeIcon("./icons/crashes/crash_bike.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  crash_bus = makeIcon("./icons/crashes/crash_bus.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  crash = makeIcon("./icons/crashes/crash.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  crash_deer = makeIcon("./icons/crashes/crash_deer.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  crash_dui = makeIcon("./icons/crashes/crash_dui.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  crash_motorcycle = makeIcon("./icons/crashes/crash_motorcycle.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  crash_trolly = makeIcon("./icons/crashes/crash_trolly.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  crashcrash_single = makeIcon("./icons/crashes/crash_single.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  crash__pedestrian = makeIcon("./icons/crashes/crash__pedestrian.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
 
 # CouchDB Connection
@@ -589,6 +597,11 @@ server <- shinyServer(function(input, output, session) {
       setBookmarkExclude(c("GetScreenWidth", "report.table_rows_all", "report.table_rows_current"))
     } else {
       setBookmarkExclude(c("GetScreenWidth", "dates", "report.table_rows_all", "report.table_rows_current"))
+    }
+  })
+  observeEvent(input$toggleCrashes, {
+    if (input$toggleCrashes) {
+      showNotification(paste0("You have turned on Traffic Collisions. These are reported by the State of Pennslyvania annually. To see Collisions adjust the Date range prior to January 1st ", this_year, "."), type = "warning", duration = 30, id = "crashmessage")
     }
   })
   sessionStart <- as.numeric(Sys.time())
@@ -1000,17 +1013,17 @@ server <- shinyServer(function(input, output, session) {
     # Icons
     if (nrow(crashes) > 0){
       crashes$icon <- as.factor(case_when(
-      crashes$BICYCLE == "1" ~ "bike",
-      crashes$BUS_COUNT >= 1 ~ "bus",
-      crashes$MOTORCYCLE == "1" ~ "motorcycle",
-      crashes$PEDESTRIAN == "1" ~ "ped",
-      crashes$ALCOHOL_RELATED == "1" | crashes$DRUGGED_DRIVER == "1" ~ "DUI",
-      crashes$TRAIN_TROLLEY == "1" ~ "train",
-      crashes$HIT_DEER == "1" ~ "deer",
-      crashes$HIT_FIXED_OBJECT == "1" ~ "obj",
+      crashes$BICYCLE == "1" ~ "crash_bike",
+      crashes$BUS_COUNT >= 1 ~ "crash_bus",
+      crashes$MOTORCYCLE == "1" ~ "crash_motorcycle",
+      crashes$PEDESTRIAN == "1" ~ "crash__pedestrian",
+      crashes$ALCOHOL_RELATED == "1" | crashes$DRUGGED_DRIVER == "1" ~ "crash_dui",
+      crashes$TRAIN_TROLLEY == "1" ~ "crash_trolly",
+      crashes$HIT_DEER == "1" ~ "crash_deer",
+      crashes$HIT_FIXED_OBJECT == "1" | crashes$HIT_POLE  == "1" | crashes$HIT_GDRAIL  == "1" | crashes$HIT_BARRIER  == "1" | crashes$HIT_TREE_SHRUB == "1" | crashes$HIT_PARKED_VEHICLE  == "1" | crashes$HIT_GDRAIL_END ~ "crash_single",
       TRUE ~ "crash"))
       
-      crashes <- transform(crashes, type =as.factor(mapvalues(icon, c("bike", "bus", "crash", "deer", "DUI", "motorcycle", "train", "obj", "ped"),
+      crashes <- transform(crashes, type = as.factor(mapvalues(icon, c("crash_bike", "crash_bus", "crash", "crash_deer", "crash_dui", "crash_motorcycle", "crash_trolly", "crash_single", "crash__pedestrian"),
                                                                         crash_types)))
       # Clean
       crashes$CRASH_MONTH <- str_pad(as.character(crashes$CRASH_MONTH), 2, pad = "0")
