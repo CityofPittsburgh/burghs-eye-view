@@ -376,7 +376,7 @@ icons_cproj <- iconList(
 this_year <- format(Sys.Date(), format="%Y")
 last_year<- as.numeric(this_year) -  1
 
-crash_types <- c("Collision", "Bicycle", "Bus", "Hit Deer", "Intoxicated Driver", "Motorcycle", "Pedestrian", "Train/Trolley", "Fixed Object Collision")
+crash_types <- c("Automobile", "Bicycle", "Bus", "Hit Deer", "Intoxicated Driver", "Motorcycle", "Pedestrian", "Train/Trolley", "Fixed Object")
 
 icons_crashes <- iconList(
   crash = makeIcon("./icons/crashes/crash.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
@@ -502,6 +502,16 @@ ui <- navbarPage(id = "navTab",
                           tags$script(getWidth),
                           # Google Tag Manager Script to Head
                           tags$head(includeScript("tag-manager-head.js")),
+                          # Notification Centered and Color Fix
+                          tags$head(tags$style(HTML(".shiny-notification {
+                                                     position: fixed;
+                                                     background: #2c3e50;
+                                                     top: calc(50%);;
+                                                     left: calc(50%);;
+                                                     width: calc(25%);;
+                                                     min-width: 200px;
+                                                     transform: translate(-50%, 0);}"))),
+                          tags$head(tags$style(HTML(".shiny-notification-close { color: white; }"))),
                           # Set favicon
                           tags$head(tags$link(rel = "icon", type = "image/png", href="favicon.png")),
                           tags$head(HTML('<link rel="apple-touch-icon-precomposed" href="apple-touch-icon-precomposed.png" />
@@ -601,7 +611,7 @@ server <- shinyServer(function(input, output, session) {
   })
   observeEvent(input$toggleCrashes, {
     if (input$toggleCrashes) {
-      showNotification(paste0("You have turned on Traffic Collisions. These are reported by the State of Pennslyvania annually. To see Collisions adjust the Date range prior to January 1st ", this_year, "."), type = "warning", duration = 30, id = "crashmessage")
+      showNotification(HTML(paste0('<center><font color="white">You have turned on Traffic Collisions. These are reported by the State of Pennslyvania annually. <b>To see Collisions adjust the Date range prior to January 1st ', this_year, ".</b></font></center>")), type = "message", duration = NULL, id = "crashmessage")
     }
   })
   sessionStart <- as.numeric(Sys.time())
@@ -632,9 +642,10 @@ server <- shinyServer(function(input, output, session) {
       tagList(
         # Generate Map
         div(class="mapBack", style="position: absolute;
-                                              width: 100%;z-index: -1;
-            left: 0px;
-            top: 55px;", leafletOutput("map")),
+                                    width: 100%;
+                                    z-index: -1;
+                                    left: 0px;
+                                    top: 55px;", leafletOutput("map")),
         # Map size for Desktop CSS
         tags$style(type = "text/css", "#map {height: calc(100vh - 60px) !important;}"),
         absolutePanel(
