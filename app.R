@@ -374,7 +374,7 @@ icons_cproj <- iconList(
 
 # this_year
 this_year <- format(Sys.Date(), format="%Y")
-last_year<- as.numeric(this_year) -  1
+last_year <- as.numeric(this_year) -  1
 
 crash_types <- c("Automobile", "Bicycle", "Bus", "Hit Deer", "Intoxicated Driver", "Motorcycle", "Pedestrian", "Train/Trolley", "Fixed Object")
 
@@ -610,8 +610,8 @@ server <- shinyServer(function(input, output, session) {
     }
   })
   observeEvent(input$toggleCrashes, {
-    if (input$toggleCrashes) {
-      showNotification(HTML(paste0('<center><font color="white">You have turned on Traffic Collisions. These are reported by the State of Pennslyvania annually. <b>To see Collisions adjust the Date range prior to January 1st ', this_year, ".</b></font></center>")), type = "message", duration = NULL, id = "crashmessage")
+    if (input$toggleCrashes & format(input$dates[1], "%Y") == this_year) {
+      showNotification(HTML(paste0('<center><font color="white">You have turned on Traffic Collisions. These are reported by the State of Pennslyvania annually. <b>To see Collisions adjust the Date range prior to January 1st ', this_year, ".</b></font></center>")), type = "message", duration = 10, id = "crashmessage")
     }
   })
   sessionStart <- as.numeric(Sys.time())
