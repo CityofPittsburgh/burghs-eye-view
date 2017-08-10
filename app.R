@@ -627,22 +627,22 @@ server <- shinyServer(function(input, output, session) {
     if (input$heatVision %% 2){
       updateActionButton(session = session,
                          inputId = "heatVision",
-                         label = "Enable Heat Map",
-                         icon = icon("eye"))
-      updateSelectInput(session = session,
-                        inputId = "basemap_select",
-                        label = "Basemap",
-                        choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `Dark Matter` = "CartoDB.DarkMatter", `Positron` = "CartoDB.Positron"),
-                        selected = "CartoDB.DarkMatter")
-    } else {
-      updateActionButton(session = session,
-                         inputId = "heatVision",
                          label = "Disable Heat Map",
                          icon = icon("low-vision"))
       updateSelectInput(session = session,
                         inputId = "basemap_select",
                         label = "Basemap",
-                        choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `Dark Matter` = "CartoDB.DarkMatter", `Positron` = "CartoDB.Positron"),
+                        choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `OSM Dark Matter` = "CartoDB.DarkMatter", `Positron` = "CartoDB.Positron"),
+                        selected = "CartoDB.DarkMatter")
+    } else {
+      updateActionButton(session = session,
+                         inputId = "heatVision",
+                         label = "Ensable Heat Map",
+                         icon = icon("eye"))
+      updateSelectInput(session = session,
+                        inputId = "basemap_select",
+                        label = "Basemap",
+                        choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `OSM Dark Matter` = "CartoDB.DarkMatter", `OSM Positron` = "CartoDB.Positron"),
                         selected = "OpenStreetMap.Mapnik")
     }
   })
@@ -1057,6 +1057,8 @@ server <- shinyServer(function(input, output, session) {
     crashes <- ckanQueryCrashes(input$dates[1], input$dates[2])
     # Subset
     crashes <- subset(crashes, !is.na(DEC_LONG) & !is.na(DEC_LAT))
+    crashes$DEC_LONG <- as.numeric(crashes$DEC_LONG)
+    crashes$DEC_LAT <- as.numeric(crashes$DEC_LAT)
     crashes <- subset(crashes, DEC_LONG > -80.242767 & DEC_LONG < -79.660492 & DEC_LAT < 40.591014 & DEC_LAT > 40.266428)
     
     # Cleancrashes$BUS_COUNT <- as.numeric(crashes$BUS_COUNT)
@@ -1886,8 +1888,8 @@ server <- shinyServer(function(input, output, session) {
         }
       }
       # Create Heat Map
-      recs <- nrow(allData)
-      if (!is.null(recs)) {
+      recs <- ifelse(is.null(allData), 0, nrow(allData))
+      if (recs > 0) {
         map <- addHeatmap(map, data = allData, lng = ~X, lat = ~Y, radius = 8)
       }
     # Point Layers  
@@ -2200,16 +2202,16 @@ server <- shinyServer(function(input, output, session) {
           recs <- recs + nrow(crashes@data)
         }
       }
-      print(recs)
-      if (recs < 1) {
-        if (Sys.Date() >= as.Date(paste0(this_year,"-11-01")) & Sys.Date() <= as.Date(paste0(this_year,"-11-08"))) {
-          egg <- load.egg
-        } else {
-          egg <- load.egg[sample(1:nrow(load.egg),1),]
-        }
-        map <- addMarkers(map, data=egg, ~X, ~Y, icon = ~icons_egg[icon], popup = ~tt) %>% 
-            setView(-79.9959, 40.4406, zoom = 10)
+    }
+    print(recs)
+    if (recs < 1) {
+      if (Sys.Date() >= as.Date(paste0(this_year,"-11-01")) & Sys.Date() <= as.Date(paste0(this_year,"-11-08"))) {
+        egg <- load.egg
+      } else {
+        egg <- load.egg[sample(1:nrow(load.egg),1),]
       }
+      map <- addMarkers(map, data=egg, ~X, ~Y, icon = ~icons_egg[icon], popup = ~tt) %>% 
+          setView(-79.9959, 40.4406, zoom = 10)
     }
     #Write inputs to Couch
     dateTime <- Sys.time()
