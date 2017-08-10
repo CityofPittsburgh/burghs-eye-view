@@ -1748,7 +1748,6 @@ server <- shinyServer(function(input, output, session) {
   # Build main map
   output$map <- renderLeaflet({
     recs <- 0
-    layerCount <- 0
     map <- leaflet() %>% 
       addProviderTiles(input$basemap_select,
                        options = providerTileOptions(noWrap = TRUE)) %>%
@@ -1902,7 +1901,6 @@ server <- shinyServer(function(input, output, session) {
         dat311 <- dat311[!(is.na(dat311$Y)),]
         dat311 <- subset(dat311, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
         if (nrow(dat311) > 0){
-          layerCount <- layerCount + 1
           map <- addMarkers(map, data = dat311,
                             clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
                                                                                         var childCount = cluster.getChildCount();  
@@ -1938,7 +1936,6 @@ server <- shinyServer(function(input, output, session) {
         arrests <- subset(arrests, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
         if (nrow(arrests) > 0) {
           arrests$icon <- "arrest_made"
-          layerCount <- layerCount + 1
           map <- addMarkers(map, data=arrests,
                             clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
                                                                                         var childCount = cluster.getChildCount();  
@@ -1975,7 +1972,6 @@ server <- shinyServer(function(input, output, session) {
         citations <- subset(citations, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
         if (nrow(citations) > 0) {
           citations$icon <- "citation"
-          layerCount <- layerCount + 1
           map <- addMarkers(map, data=citations,
                             clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
                                                                                         var childCount = cluster.getChildCount();  
@@ -2016,7 +2012,6 @@ server <- shinyServer(function(input, output, session) {
           blotter <- blotter[!(blotter$CCR %in% citations$CCR),]
         }
         if (nrow(blotter) > 0) {
-          layerCount <- layerCount + 1
           map <- addMarkers(map, data=blotter,
                             clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
                                                                                         var childCount = cluster.getChildCount();  
@@ -2050,7 +2045,6 @@ server <- shinyServer(function(input, output, session) {
       #   permits <- permits[!(is.na(permits$lon)),]
       #   permits <- subset(permits, lon > -80.242767 & lon < -79.660492 & lat < 40.591014 & lat > 40.266428)
       #   if (nrow(permits) > 0) {
-      #     layerCount <- layerCount + 1
       #     map <- addMarkers(map, data=permits,
       #                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
       #                                                                                   var childCount = cluster.getChildCount();
@@ -2086,7 +2080,6 @@ server <- shinyServer(function(input, output, session) {
         violations <- violations[!(is.na(violations$Y)),]
         violations <- subset(violations, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
         if (nrow(violations) > 0) {
-          layerCount <- layerCount + 1
           map <- addMarkers(map, data=violations, 
                             clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
                                                                                         var childCount = cluster.getChildCount();  
@@ -2123,7 +2116,6 @@ server <- shinyServer(function(input, output, session) {
         cproj <- cproj[!(is.na(cproj$latitude)),]
         cproj <- subset(cproj, longitude > -80.242767 & longitude < -79.660492 & latitude < 40.591014 & latitude > 40.266428)
         if (nrow(cproj) > 0) {
-          layerCount <- layerCount + 1
           map <- addMarkers(map, data=cproj,
                             clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
                                                                                         var childCount = cluster.getChildCount();
@@ -2156,7 +2148,6 @@ server <- shinyServer(function(input, output, session) {
       if (input$toggleCrashes) {
         crashes <- crashInput()
         if (!is.data.frame(crashes)) {
-          layerCount <- layerCount + 1
           map <- addMarkers(map, data=crashes,
                             clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
                                                                                         var childCount = cluster.getChildCount();
