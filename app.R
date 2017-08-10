@@ -47,7 +47,8 @@ selection_conn <- cdbIni(serverName = "webhost.pittsburghpa.gov", port = "5984",
 selectGet <- function(id, conn) {
   conn$id <- id
   r <- cdbGetDoc(conn)$res
-  unlist(r)[3:length(r)]
+  vals <- unlist(r)[3:length(r)]
+  levels(as.factor(vals))
 }
 
 # Function to read backslashes correctly
