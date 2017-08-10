@@ -18,6 +18,7 @@ library(R4CouchDB)
 
 # Visuals Libraries
 library(leaflet)
+library(leaflet.extras)
 library(DT)
 library(maptools)
 library(htmltools)
@@ -609,11 +610,43 @@ server <- shinyServer(function(input, output, session) {
       setBookmarkExclude(c("GetScreenWidth", "dates", "report.table_rows_all", "report.table_rows_current"))
     }
   })
+  # Crashes Event Message
   observeEvent(input$toggleCrashes, {
     if (input$toggleCrashes & format(input$dates[1], "%Y") == this_year) {
-      showNotification(HTML(paste0('<center><font color="white">You have turned on Traffic Collisions. These are reported by the State of Pennslyvania annually. <b>To see Collisions adjust the Date range prior to January 1st ', this_year, ".</b></font></center>")), type = "message", duration = 10, id = "crashmessage")
+      showNotification(HTML(paste0('<center><font color="white">Because Traffic Collision are reported by the State of Pennslyvania annually the Date Range has been set to last year.</font></center>')), type = "message", duration = 10, id = "crashmessage")
+      updateDateRangeInput(session = session,
+                           inputId = "dates",
+                           start = as.Date(input$dates[1]) - 365,
+                           end = as.Date(input$dates[2]) - 365,
+                           min = as.Date("2004-01-01"),
+                           max = Sys.Date())
     }
   })
+  # Night Vision Button Text
+  observeEvent(input$heatVision, {
+    if (input$heatVision %% 2){
+      updateActionButton(session = session,
+                         inputId = "heatVision",
+                         label = "Enable Heat Map",
+                         icon = icon("eye"))
+      updateSelectInput(session = session,
+                        inputId = "basemap_select",
+                        label = "Basemap",
+                        choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `Dark Matter` = "CartoDB.DarkMatter", `Positron` = "CartoDB.Positron"),
+                        selected = "CartoDB.DarkMatter")
+    } else {
+      updateActionButton(session = session,
+                         inputId = "heatVision",
+                         label = "Disable Heat Map",
+                         icon = icon("low-vision"))
+      updateSelectInput(session = session,
+                        inputId = "basemap_select",
+                        label = "Basemap",
+                        choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `Dark Matter` = "CartoDB.DarkMatter", `Positron` = "CartoDB.Positron"),
+                        selected = "OpenStreetMap.Mapnik")
+    }
+  })
+  # Tracking Info
   sessionStart <- as.numeric(Sys.time())
   names(sessionStart) <- "sessionStart"
   sessionID <- paste(stri_rand_strings(1, 5), gsub("\\.", "-", sessionStart) , "points-dev", sep="-")
@@ -647,7 +680,7 @@ server <- shinyServer(function(input, output, session) {
                                     left: 0px;
                                     top: 55px;", leafletOutput("map")),
         # Map size for Desktop CSS
-        tags$style(type = "text/css", "#map {height: calc(100vh - 60px) !important;}"),
+        tags$style(type = "text/css", "#map {height: calc(100vh - 55px) !important;}"),
         absolutePanel(
           # Input panel for Desktops (alpha'd)
           top = 70, left = 50, width = '300px',
@@ -671,6 +704,10 @@ server <- shinyServer(function(input, output, session) {
                                    min = as.Date("2004-01-01"),
                                    max = Sys.Date(),
                                    startview = "day"),
+                    tags$br(),
+                    actionButton("heatVision",
+                                 label = "Enable Heat Map",
+                                 icon = icon("eye")),
                     HTML('<font color="#F47B25">'),
                     checkboxInput("toggle311",
                                   label = "311 Requests",
@@ -768,8 +805,8 @@ server <- shinyServer(function(input, output, session) {
                                 selectize=TRUE),
                     selectInput("basemap_select",
                                 label = "Basemap",
-                                choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", Pioneer = "Thunderforest.Pioneer"),
-                                selected = ifelse(Sys.Date() == as.Date(paste0(this_year,"-07-15")) | Sys.Date() == as.Date(paste0(this_year,"-08-31")), "Thunderforest.Pioneer", "OpenStreetMap.Mapnik")),
+                                choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `Dark Matter` = "CartoDB.DarkMatter", `Positron` = "CartoDB.Positron"),
+                                selected = "OpenStreetMap.Mapnik"),
                     selectInput("filter_select",
                                 "Filter by Area",
                                 c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Public Works Division")),
@@ -813,9 +850,13 @@ server <- shinyServer(function(input, output, session) {
                                     label = NULL,
                                     start = Sys.Date()-10,
                                     end = Sys.Date(),
-                                    min = Sys.Date()-365,
+                                    min = as.Date("2004-01-01"),
                                     max = Sys.Date(),
                                     startview = "day"),
+                     tags$br(),
+                     actionButton("heatVision",
+                                  label = "Enable Heat Map",
+                                  icon = icon("eye")),
                      HTML('<font color="#F47B25">'),
                      checkboxInput("toggle311",
                                    label = "311 Requests",
@@ -913,8 +954,8 @@ server <- shinyServer(function(input, output, session) {
                                  selectize=TRUE),
                      selectInput("basemap_select",
                                  label = "Basemap",
-                                 choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", Pioneer = "Thunderforest.Pioneer"),
-                                 selected = ifelse(Sys.Date() == as.Date(paste0(this_year,"-07-06")) | Sys.Date() == as.Date(paste0(this_year,"-08-31")), "Thunderforest.Pioneer", "OpenStreetMap.Mapnik")),
+                                 choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `Dark Matter` = "CartoDB.DarkMatter", `Positron` = "CartoDB.Positron"),
+                                 selected = "OpenStreetMap.Mapnik"),
                      uiOutput("filter_UI"),
                      selectInput("filter_select",
                                  "Filter by Area",
@@ -1016,7 +1057,8 @@ server <- shinyServer(function(input, output, session) {
     crashes <- ckanQueryCrashes(input$dates[1], input$dates[2])
     # Subset
     crashes <- subset(crashes, !is.na(DEC_LONG) & !is.na(DEC_LAT))
-
+    crashes <- subset(crashes, DEC_LONG > -80.242767 & DEC_LONG < -79.660492 & DEC_LAT < 40.591014 & DEC_LAT > 40.266428)
+    
     # Cleancrashes$BUS_COUNT <- as.numeric(crashes$BUS_COUNT)
     # Icons
     if (nrow(crashes) > 0){
@@ -1753,324 +1795,421 @@ server <- shinyServer(function(input, output, session) {
                            popup = ~paste("<font color='black'><b>Zone:</b> ", htmlEscape(POLICE_ZONE), "</font>")
         )
       }
-    }  
-    
-    # Point Layers
-    # 311 Data
-    if (input$toggle311) {
-      dat311 <- dat311Input()
-      dat311 <- dat311[!(is.na(dat311$X)),] 
-      dat311 <- dat311[!(is.na(dat311$Y)),]
-      dat311 <- subset(dat311, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
-      if (nrow(dat311) > 0){
-        layerCount <- layerCount + 1
-        map <- addMarkers(map, data = dat311,
-                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
-                                                                                      var childCount = cluster.getChildCount();  
-                                                                                      if (childCount < 10) {  
-                                                                                      c = 'rgba(252, 236, 214, 1);'
-                                                                                      } else if (childCount < 100) {  
-                                                                                      c = 'rgba(252, 188, 101, 1);'  
-                                                                                      } else { 
-                                                                                      c = 'rgba(248, 155, 59, 1);'  
-                                                                                      }    
-                                                                                      return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-      }")), ~X, ~Y, icon = ~icons_311[icon],
-                        popup = ~(paste("<font color='black'><b>Request:</b>", dat311$REQUEST_TYPE,
-                                        "<br><b>Location Accuracy:</b>", dat311$GEO_ACCURACY,
-                                        "<br><b>Open Date/Time:</b>", dat311$CREATED_ON,
-                                        "<br><b>Dept:</b>", dat311$DEPARTMENT,
-                                        "<br><b>Origin:</b>", dat311$REQUEST_ORIGIN2,
-                                        "<br><b>Neighborhood:</b>", dat311$NEIGHBORHOOD,
-                                        "<br><b>Council District:</b>", dat311$COUNCIL_DISTRICT,
-                                        "<br><b>Police Zone:</b>", dat311$POLICE_ZONE,
-                                        "<br><b>Public Works Division:</b>", dat311$PUBLIC_WORKS_DIVISION,
-                                        '<br><center><a href="http://pittsburghpa.gov/311/form" target="_blank">Submit a 311 Request!</a></center></font>'))
-        )
-        recs <- recs + nrow(dat311)
-  }
-}
-    # Arrests Layer
-    if(input$toggleArrests) {
-      arrests <- arrestsInput()
-      # Remove unmappables
-      arrests <- arrests[!(is.na(arrests$X)),] 
-      arrests <- arrests[!(is.na(arrests$Y)),]
-      arrests <- subset(arrests, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
-      if (nrow(arrests) > 0) {
-        arrests$icon <- "arrest_made"
-        layerCount <- layerCount + 1
-        map <- addMarkers(map, data=arrests,
-                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
-                                                                                      var childCount = cluster.getChildCount();  
-                                                                                      if (childCount < 10) {  
-                                                                                      c = 'rgba(178, 102, 102, 0.95);'
-                                                                                      } else if (childCount < 100) {  
-                                                                                      c = 'rgba(204, 152, 152, 0.95);'  
-                                                                                      } else { 
-                                                                                      c = 'rgba(128, 0, 0, 0.95);'  
-                                                                                      }    
-                                                                                      return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-      }")), ~X, ~Y, icon = ~icons_arrests[icon],
-                          popup = ~(paste("<font color='black'><b>Offense(s):</b>", arrests$OFFENSES,
-                                          "<br><b>Date/Time:</b>", arrests$ARRESTTIME,
-                                          "<br><b>Age:</b>", arrests$AGE,
-                                          "<br><b>Gender:</b>", arrests$GENDER,
-                                          "<br><b>Race:</b>", arrests$RACE,
-                                          "<br><b>Arrest Location:</b>", arrests$ARRESTLOCATION,
-                                          "<br><b>Incident Location:</b>", arrests$INCIDENTLOCATION,
-                                          "<br><b>Incident Neighborhood:</b>", arrests$INCIDENTNEIGHBORHOOD,
-                                          "<br><b>Council District:</b>", arrests$COUNCIL_DISTRICT,
-                                          "<br><b>Incident Police Zone:</b>", arrests$POLICE_ZONE,
-                                          "<br><b>CCR:</b>", arrests$CCR, "</font>"))
-        )
-        recs <- recs + nrow(arrests)
-                }
+    } 
+    # Heat Vision Check
+    if (input$heatVision %% 2) {
+      allData <- NULL
+      # 311 Layer
+      if (input$toggle311) {
+        dat311 <- dat311Input()
+        dat311 <- dat311[!(is.na(dat311$X)),] 
+        dat311 <- dat311[!(is.na(dat311$Y)),]
+        dat311 <- subset(dat311, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
+        
+        allData <- rbind(dat311[,c("X", "Y")], allData)
       }
-    # Non-Traffic Citations
-    if (input$toggleCitations) {
-      citations <- citationsInput()
-      # Remove unmappables
-      citations <- citations[!(is.na(citations$X)),] 
-      citations <- citations[!(is.na(citations$Y)),]
-      citations <- subset(citations, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
-      if (nrow(citations) > 0) {
-        citations$icon <- "citation"
-        layerCount <- layerCount + 1
-        map <- addMarkers(map, data=citations,
-                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
-                                                                                      var childCount = cluster.getChildCount();  
-                                                                                      if (childCount < 10) {  
-                                                                                      c = 'rgba(255, 224, 229, 0.95);'
-                                                                                      } else if (childCount < 100) {  
-                                                                                      c = 'rgba(255, 167, 182, 0.95);'  
-                                                                                      } else { 
-                                                                                      c = 'rgba(255, 204, 213, 0.95);'  
-                                                                                      }    
-                                                                                      return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-      }")), ~X, ~Y, icon = ~icons_citations[icon],
-                          popup = ~(paste("<font color='black'><b>Offense(s):</b>", citations$OFFENSES,
-                                          "<br><b>Date/Time:</b>", citations$CITEDTIME,
-                                          "<br><b>Age:</b>", citations$AGE,
-                                          "<br><b>Gender:</b>", citations$GENDER,
-                                          "<br><b>Race:</b>", citations$RACE,
-                                          "<br><b>Incident Location:</b>", citations$INCIDENTLOCATION,
-                                          "<br><b>Neighborhood:</b>", citations$NEIGHBORHOOD,
-                                          "<br><b>Council District:</b>", citations$COUNCIL_DISTRICT,
-                                          "<br><b>Police Zone:</b>", citations$POLICE_ZONE,
-                                          "<br><b>CCR:</b>", citations$CCR, "</font>"))
-        )
-        recs <- recs + nrow(citations)
-        }
+      # Arrests Layer
+      if(input$toggleArrests) {
+        arrests <- arrestsInput()
+        # Remove unmappables
+        arrests <- arrests[!(is.na(arrests$X)),] 
+        arrests <- arrests[!(is.na(arrests$Y)),]
+        arrests <- subset(arrests, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
+        
+        allData <- rbind(arrests[,c("X", "Y")], allData)
       }
-    # Police Blotter Layer
-    if (input$toggleBlotter) {
-      blotter <- blotterInput()
-      # Remove unmappables
-      blotter <- blotter[!(is.na(blotter$X)),] 
-      blotter <- blotter[!(is.na(blotter$Y)),]
-      blotter <- subset(blotter, X >= -80.242767 & X <= -79.660492 & Y <= 40.591014 & Y >= 40.266428)
-      # Remove non-pittsburgh incidents for map (these incidents still appear in data extracts)
-      blotter <- subset(blotter, POLICE_ZONE != "OSC" | INCIDENTNEIGHBORHOOD != "Outside City" | INCIDENTNEIGHBORHOOD != "Outside County")
-      # Remove Citation instances from Blotter data (if layer is)
+      # Non-Traffic Citations Layer
       if (input$toggleCitations) {
-        blotter <- blotter[!(blotter$CCR %in% citations$CCR),]
+        citations <- citationsInput()
+        # Remove unmappables
+        citations <- citations[!(is.na(citations$X)),] 
+        citations <- citations[!(is.na(citations$Y)),]
+        citations <- subset(citations, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
+        
+        allData <- rbind(citations[,c("X", "Y")], allData)
       }
-      if (nrow(blotter) > 0) {
-        layerCount <- layerCount + 1
-        map <- addMarkers(map, data=blotter,
-                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
-                                                                                      var childCount = cluster.getChildCount();  
-                                                                                      if (childCount < 10) {  
-                                                                                      c = 'rgba(222, 229, 242, 0.95);'
-                                                                                      } else if (childCount < 100) {  
-                                                                                      c = 'rgba(140, 165, 210, 0.95);'  
-                                                                                      } else { 
-                                                                                      c = 'rgba(67, 109, 179, 0.95);'  
-                                                                                      }    
-                                                                                      return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-      }")), ~X, ~Y, icon = ~icons_blotter[icon],
-                          popup = ~(paste("<font color='black'><b>Hierarchy:</b>", blotter$HIERARCHY,
-                                          "<br><b>Offense(s):</b>", blotter$OFFENSES,
-                                          "<br><b>Cleared Flag:</b>", blotter$CLEAREDFLAG,
-                                          "<br><b>Date/Time:</b>", blotter$INCIDENTTIME,
-                                          "<br><b>Location:</b>", blotter$INCIDENTLOCATION,
-                                          "<br><b>Neighborhood:</b>", blotter$INCIDENTNEIGHBORHOOD,
-                                          "<br><b>Council District:</b>", blotter$COUNCIL_DISTRICT,
-                                          "<br><b>Police Zone:</b>", blotter$POLICE_ZONE,
-                                          "<br><b>CCR:</b>", blotter$CCR, "</font>"))
-        )
-        recs <- recs + nrow(blotter)
+      # Police Blotter Layer
+      if (input$toggleBlotter) {
+        blotter <- blotterInput()
+        # Remove unmappables
+        blotter <- blotter[!(is.na(blotter$X)),] 
+        blotter <- blotter[!(is.na(blotter$Y)),]
+        blotter <- subset(blotter, X >= -80.242767 & X <= -79.660492 & Y <= 40.591014 & Y >= 40.266428)
+        # Remove non-pittsburgh incidents for map (these incidents still appear in data extracts)
+        blotter <- subset(blotter, POLICE_ZONE != "OSC" | INCIDENTNEIGHBORHOOD != "Outside City" | INCIDENTNEIGHBORHOOD != "Outside County")
+       
+        allData <- rbind(blotter[,c("X", "Y")], allData) 
+      }
+      # Building Permits Layer
+      # if(input$togglePermits) {
+      #   permits <- permitsInput()
+      #   # Remove unmappables
+      #   permits <- permits[!(is.na(permits$lat)),]
+      #   permits <- permits[!(is.na(permits$lon)),]
+      #   permits <- subset(permits, lon > -80.242767 & lon < -79.660492 & lat < 40.591014 & lat > 40.266428)
+      #   
+      #   permits <- permits[,c("lon", "lat")]
+      #   colnames(permits) <- c("X", "Y")
+      #   allData <- rbind(permits, allData)
+      # }
+      # Building Code Violations
+      if(input$toggleViolations) {
+        violations <- violationsInput()
+        # Remove unmappables
+        violations <- violations[!(is.na(violations$X)),]
+        violations <- violations[!(is.na(violations$Y)),]
+        violations <- subset(violations, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
+        
+        allData <- rbind(violations[,c("X", "Y")], allData)  
+      }
+      # Capital Projects Layer
+      if (input$toggleCproj) {
+        cproj <- cprojInput()
+        # Remove unmappables
+        cproj <- cproj[!(is.na(cproj$longitude)),]
+        cproj <- cproj[!(is.na(cproj$latitude)),]
+        cproj <- subset(cproj, longitude > -80.242767 & longitude < -79.660492 & latitude < 40.591014 & latitude > 40.266428)
+        
+        cproj <- cproj[,c("longitude", "latitude")]
+        colnames(cproj) <- c("X", "Y")
+        
+        allData <- rbind(cproj, allData)
+      }
+      if (input$toggleCrashes) {
+        crashes <- crashInput()
+        if (!is.data.frame(crashes)) {
+          crashes <- crashes@data
+          crashes <- crashes[,c("DEC_LONG","DEC_LAT")]
+          colnames(crashes) <- c("X", "Y")
+          
+          allData <- rbind(crashes, allData)
         }
       }
-    # Building Permits Layer
-    # if(input$togglePermits) {
-    #   permits <- permitsInput()
-    #   # Remove unmappables
-    #   permits <- permits[!(is.na(permits$lat)),]
-    #   permits <- permits[!(is.na(permits$lon)),]
-    #   permits <- subset(permits, lon > -80.242767 & lon < -79.660492 & lat < 40.591014 & lat > 40.266428)
-    #   if (nrow(permits) > 0) {
-    #     layerCount <- layerCount + 1
-    #     map <- addMarkers(map, data=permits,
-    #                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
-    #                                                                                   var childCount = cluster.getChildCount();
-    #                                                                                   if (childCount < 10) {
-    #                                                                                   c = 'rgba(207, 242, 252, 0.95);'
-    #                                                                                   } else if (childCount < 100) {
-    #                                                                                   c = 'rgba(117, 214, 247, 0.95);'
-    #                                                                                   } else {
-    #                                                                                   c = 'rgba(0, 150, 219, 0.95);'
-    #                                                                                   }
-    #                                                                                   return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-    #   }")), ~lon, ~lat, icon = ~icons_permits[icon],
-    #            popup = ~(paste("<font color='black'><b>Type:</b>", permits$permit_type,
-    #                            "<br><b>Status:</b>", permits$current_status,
-    #                            "<br><b>Address:</b>", permits$full_address,
-    #                            "<br><b>Neighborhood:</b>", permits$neighborhood,
-    #                            "<br><b>Council District:</b>", permits$council_district,
-    #                            "<br><b>Police Zone:</b>", permits$police_zone,
-    #                            "<br><b>Public Works Division:</b>", permits$public_works_division,
-    #                            "<br><b>Parcel ID:</b>", permits$url,
-    #                            "<br><b>Permit ID:</b>", permits$permit_id,
-    #                            permits$tt,
-    #                            '<br><center><a href="https://pittsburghpa.buildingeye.com/building" target="_blank">Search Permits on Building Eye!</a></center></font></font>'))
-    #     )
-    #   recs <- recs + nrow(permits)
-    #   }
-    # }
-    # Building Code Violations
-    if(input$toggleViolations) {
-      violations <- violationsInput()
-      # Remove unmappables
-      violations <- violations[!(is.na(violations$X)),]
-      violations <- violations[!(is.na(violations$Y)),]
-      violations <- subset(violations, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
-      if (nrow(violations) > 0) {
-        layerCount <- layerCount + 1
-        map <- addMarkers(map, data=violations, 
-                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
-                                                                                      var childCount = cluster.getChildCount();  
-                                                                                      if (childCount < 10) {  
-                                                                                      c = 'rgba(115, 201, 158, 1);'
-                                                                                      } else if (childCount < 100) {  
-                                                                                      c = 'rgba(57, 168, 113, 1);'  
-                                                                                      } else { 
-                                                                                      c = 'rgba(0, 136, 68, 1);'  
-                                                                                      }    
-                                                                                      return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-      }")), ~X, ~Y, icon = ~icons_violations[icon],
-                        popup = ~(paste("<font color='black'><b>Violation (Result):</b>", violations$VIOLATION,
-                                        "<br><b>Inspection Result:</b>", violations$INSPECTION_RESULT,
-                                        "<br><b>Date Inspected:</b>", violations$date,
-                                        "<br><b>Corrective Action(s):</b>", violations$CORRECTIVE_ACTION,
-                                        "<br><b>Address:</b>", violations$FullAddress,
-                                        "<br><b>Neighborhood:</b>", violations$NEIGHBORHOOD,
-                                        "<br><b>Council District:</b>", violations$COUNCIL_DISTRICT,
-                                        "<br><b>Public Works Division:</b>", violations$PUBLIC_WORKS_DIVISION,
-                                        "<br><b>Police Zone:</b>", violations$POLICE_ZONE,
-                                        "<br><b>Parcel ID:</b>", violations$url,
-                                        "<br><b>Case #:</b>", violations$CASE_NUMBER,
-                                        '<br><center><a href="https://pittsburghpa.buildingeye.com/enforcement" target="_blank">Search Violations on Building Eye!</a></center></font>'))
-        )
-        recs <- recs + nrow(violations)
+      # Create Heat Map
+      recs <- nrow(allData)
+      if (!is.null(recs)) {
+        map <- addHeatmap(map, data = allData, lng = ~X, lat = ~Y, radius = 8)
+      }
+    # Point Layers  
+    } else {
+      # 311 Data
+      if (input$toggle311) {
+        dat311 <- dat311Input()
+        dat311 <- dat311[!(is.na(dat311$X)),] 
+        dat311 <- dat311[!(is.na(dat311$Y)),]
+        dat311 <- subset(dat311, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
+        if (nrow(dat311) > 0){
+          layerCount <- layerCount + 1
+          map <- addMarkers(map, data = dat311,
+                            clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+                                                                                        var childCount = cluster.getChildCount();  
+                                                                                        if (childCount < 10) {  
+                                                                                        c = 'rgba(252, 236, 214, 1);'
+                                                                                        } else if (childCount < 100) {  
+                                                                                        c = 'rgba(252, 188, 101, 1);'  
+                                                                                        } else { 
+                                                                                        c = 'rgba(248, 155, 59, 1);'  
+                                                                                        }    
+                                                                                        return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+        }")), ~X, ~Y, icon = ~icons_311[icon],
+                          popup = ~(paste("<font color='black'><b>Request:</b>", dat311$REQUEST_TYPE,
+                                          "<br><b>Location Accuracy:</b>", dat311$GEO_ACCURACY,
+                                          "<br><b>Open Date/Time:</b>", dat311$CREATED_ON,
+                                          "<br><b>Dept:</b>", dat311$DEPARTMENT,
+                                          "<br><b>Origin:</b>", dat311$REQUEST_ORIGIN2,
+                                          "<br><b>Neighborhood:</b>", dat311$NEIGHBORHOOD,
+                                          "<br><b>Council District:</b>", dat311$COUNCIL_DISTRICT,
+                                          "<br><b>Police Zone:</b>", dat311$POLICE_ZONE,
+                                          "<br><b>Public Works Division:</b>", dat311$PUBLIC_WORKS_DIVISION,
+                                          '<br><center><a href="http://pittsburghpa.gov/311/form" target="_blank">Submit a 311 Request!</a></center></font>'))
+          )
+          recs <- recs + nrow(dat311)
+    }
+  }
+      # Arrests Layer
+      if(input$toggleArrests) {
+        arrests <- arrestsInput()
+        # Remove unmappables
+        arrests <- arrests[!(is.na(arrests$X)),] 
+        arrests <- arrests[!(is.na(arrests$Y)),]
+        arrests <- subset(arrests, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
+        if (nrow(arrests) > 0) {
+          arrests$icon <- "arrest_made"
+          layerCount <- layerCount + 1
+          map <- addMarkers(map, data=arrests,
+                            clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+                                                                                        var childCount = cluster.getChildCount();  
+                                                                                        if (childCount < 10) {  
+                                                                                        c = 'rgba(178, 102, 102, 0.95);'
+                                                                                        } else if (childCount < 100) {  
+                                                                                        c = 'rgba(204, 152, 152, 0.95);'  
+                                                                                        } else { 
+                                                                                        c = 'rgba(128, 0, 0, 0.95);'  
+                                                                                        }    
+                                                                                        return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+        }")), ~X, ~Y, icon = ~icons_arrests[icon],
+                            popup = ~(paste("<font color='black'><b>Offense(s):</b>", arrests$OFFENSES,
+                                            "<br><b>Date/Time:</b>", arrests$ARRESTTIME,
+                                            "<br><b>Age:</b>", arrests$AGE,
+                                            "<br><b>Gender:</b>", arrests$GENDER,
+                                            "<br><b>Race:</b>", arrests$RACE,
+                                            "<br><b>Arrest Location:</b>", arrests$ARRESTLOCATION,
+                                            "<br><b>Incident Location:</b>", arrests$INCIDENTLOCATION,
+                                            "<br><b>Incident Neighborhood:</b>", arrests$INCIDENTNEIGHBORHOOD,
+                                            "<br><b>Council District:</b>", arrests$COUNCIL_DISTRICT,
+                                            "<br><b>Incident Police Zone:</b>", arrests$POLICE_ZONE,
+                                            "<br><b>CCR:</b>", arrests$CCR, "</font>"))
+          )
+          recs <- recs + nrow(arrests)
+                  }
+        }
+      # Non-Traffic Citations
+      if (input$toggleCitations) {
+        citations <- citationsInput()
+        # Remove unmappables
+        citations <- citations[!(is.na(citations$X)),] 
+        citations <- citations[!(is.na(citations$Y)),]
+        citations <- subset(citations, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
+        if (nrow(citations) > 0) {
+          citations$icon <- "citation"
+          layerCount <- layerCount + 1
+          map <- addMarkers(map, data=citations,
+                            clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+                                                                                        var childCount = cluster.getChildCount();  
+                                                                                        if (childCount < 10) {  
+                                                                                        c = 'rgba(255, 224, 229, 0.95);'
+                                                                                        } else if (childCount < 100) {  
+                                                                                        c = 'rgba(255, 167, 182, 0.95);'  
+                                                                                        } else { 
+                                                                                        c = 'rgba(255, 204, 213, 0.95);'  
+                                                                                        }    
+                                                                                        return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+        }")), ~X, ~Y, icon = ~icons_citations[icon],
+                            popup = ~(paste("<font color='black'><b>Offense(s):</b>", citations$OFFENSES,
+                                            "<br><b>Date/Time:</b>", citations$CITEDTIME,
+                                            "<br><b>Age:</b>", citations$AGE,
+                                            "<br><b>Gender:</b>", citations$GENDER,
+                                            "<br><b>Race:</b>", citations$RACE,
+                                            "<br><b>Incident Location:</b>", citations$INCIDENTLOCATION,
+                                            "<br><b>Neighborhood:</b>", citations$NEIGHBORHOOD,
+                                            "<br><b>Council District:</b>", citations$COUNCIL_DISTRICT,
+                                            "<br><b>Police Zone:</b>", citations$POLICE_ZONE,
+                                            "<br><b>CCR:</b>", citations$CCR, "</font>"))
+          )
+          recs <- recs + nrow(citations)
+          }
+        }
+      # Police Blotter Layer
+      if (input$toggleBlotter) {
+        blotter <- blotterInput()
+        # Remove unmappables
+        blotter <- blotter[!(is.na(blotter$X)),] 
+        blotter <- blotter[!(is.na(blotter$Y)),]
+        blotter <- subset(blotter, X >= -80.242767 & X <= -79.660492 & Y <= 40.591014 & Y >= 40.266428)
+        # Remove non-pittsburgh incidents for map (these incidents still appear in data extracts)
+        blotter <- subset(blotter, POLICE_ZONE != "OSC" | INCIDENTNEIGHBORHOOD != "Outside City" | INCIDENTNEIGHBORHOOD != "Outside County")
+        # Remove Citation instances from Blotter data (if layer is)
+        if (input$toggleCitations) {
+          blotter <- blotter[!(blotter$CCR %in% citations$CCR),]
+        }
+        if (nrow(blotter) > 0) {
+          layerCount <- layerCount + 1
+          map <- addMarkers(map, data=blotter,
+                            clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+                                                                                        var childCount = cluster.getChildCount();  
+                                                                                        if (childCount < 10) {  
+                                                                                        c = 'rgba(222, 229, 242, 0.95);'
+                                                                                        } else if (childCount < 100) {  
+                                                                                        c = 'rgba(140, 165, 210, 0.95);'  
+                                                                                        } else { 
+                                                                                        c = 'rgba(67, 109, 179, 0.95);'  
+                                                                                        }    
+                                                                                        return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+        }")), ~X, ~Y, icon = ~icons_blotter[icon],
+                            popup = ~(paste("<font color='black'><b>Hierarchy:</b>", blotter$HIERARCHY,
+                                            "<br><b>Offense(s):</b>", blotter$OFFENSES,
+                                            "<br><b>Cleared Flag:</b>", blotter$CLEAREDFLAG,
+                                            "<br><b>Date/Time:</b>", blotter$INCIDENTTIME,
+                                            "<br><b>Location:</b>", blotter$INCIDENTLOCATION,
+                                            "<br><b>Neighborhood:</b>", blotter$INCIDENTNEIGHBORHOOD,
+                                            "<br><b>Council District:</b>", blotter$COUNCIL_DISTRICT,
+                                            "<br><b>Police Zone:</b>", blotter$POLICE_ZONE,
+                                            "<br><b>CCR:</b>", blotter$CCR, "</font>"))
+          )
+          recs <- recs + nrow(blotter)
+          }
+        }
+      # Building Permits Layer
+      # if(input$togglePermits) {
+      #   permits <- permitsInput()
+      #   # Remove unmappables
+      #   permits <- permits[!(is.na(permits$lat)),]
+      #   permits <- permits[!(is.na(permits$lon)),]
+      #   permits <- subset(permits, lon > -80.242767 & lon < -79.660492 & lat < 40.591014 & lat > 40.266428)
+      #   if (nrow(permits) > 0) {
+      #     layerCount <- layerCount + 1
+      #     map <- addMarkers(map, data=permits,
+      #                       clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
+      #                                                                                   var childCount = cluster.getChildCount();
+      #                                                                                   if (childCount < 10) {
+      #                                                                                   c = 'rgba(207, 242, 252, 0.95);'
+      #                                                                                   } else if (childCount < 100) {
+      #                                                                                   c = 'rgba(117, 214, 247, 0.95);'
+      #                                                                                   } else {
+      #                                                                                   c = 'rgba(0, 150, 219, 0.95);'
+      #                                                                                   }
+      #                                                                                   return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+      #   }")), ~lon, ~lat, icon = ~icons_permits[icon],
+      #            popup = ~(paste("<font color='black'><b>Type:</b>", permits$permit_type,
+      #                            "<br><b>Status:</b>", permits$current_status,
+      #                            "<br><b>Address:</b>", permits$full_address,
+      #                            "<br><b>Neighborhood:</b>", permits$neighborhood,
+      #                            "<br><b>Council District:</b>", permits$council_district,
+      #                            "<br><b>Police Zone:</b>", permits$police_zone,
+      #                            "<br><b>Public Works Division:</b>", permits$public_works_division,
+      #                            "<br><b>Parcel ID:</b>", permits$url,
+      #                            "<br><b>Permit ID:</b>", permits$permit_id,
+      #                            permits$tt,
+      #                            '<br><center><a href="https://pittsburghpa.buildingeye.com/building" target="_blank">Search Permits on Building Eye!</a></center></font></font>'))
+      #     )
+      #   recs <- recs + nrow(permits)
+      #   }
+      # }
+      # Building Code Violations
+      if(input$toggleViolations) {
+        violations <- violationsInput()
+        # Remove unmappables
+        violations <- violations[!(is.na(violations$X)),]
+        violations <- violations[!(is.na(violations$Y)),]
+        violations <- subset(violations, X > -80.242767 & X < -79.660492 & Y < 40.591014 & Y > 40.266428)
+        if (nrow(violations) > 0) {
+          layerCount <- layerCount + 1
+          map <- addMarkers(map, data=violations, 
+                            clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+                                                                                        var childCount = cluster.getChildCount();  
+                                                                                        if (childCount < 10) {  
+                                                                                        c = 'rgba(115, 201, 158, 1);'
+                                                                                        } else if (childCount < 100) {  
+                                                                                        c = 'rgba(57, 168, 113, 1);'  
+                                                                                        } else { 
+                                                                                        c = 'rgba(0, 136, 68, 1);'  
+                                                                                        }    
+                                                                                        return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+        }")), ~X, ~Y, icon = ~icons_violations[icon],
+                          popup = ~(paste("<font color='black'><b>Violation (Result):</b>", violations$VIOLATION,
+                                          "<br><b>Inspection Result:</b>", violations$INSPECTION_RESULT,
+                                          "<br><b>Date Inspected:</b>", violations$date,
+                                          "<br><b>Corrective Action(s):</b>", violations$CORRECTIVE_ACTION,
+                                          "<br><b>Address:</b>", violations$FullAddress,
+                                          "<br><b>Neighborhood:</b>", violations$NEIGHBORHOOD,
+                                          "<br><b>Council District:</b>", violations$COUNCIL_DISTRICT,
+                                          "<br><b>Public Works Division:</b>", violations$PUBLIC_WORKS_DIVISION,
+                                          "<br><b>Police Zone:</b>", violations$POLICE_ZONE,
+                                          "<br><b>Parcel ID:</b>", violations$url,
+                                          "<br><b>Case #:</b>", violations$CASE_NUMBER,
+                                          '<br><center><a href="https://pittsburghpa.buildingeye.com/enforcement" target="_blank">Search Violations on Building Eye!</a></center></font>'))
+          )
+          recs <- recs + nrow(violations)
+          }
+        }
+      # Capital Projects Layer
+      if (input$toggleCproj) {
+        cproj <- cprojInput()
+        # Remove unmappables
+        cproj <- cproj[!(is.na(cproj$longitude)),]
+        cproj <- cproj[!(is.na(cproj$latitude)),]
+        cproj <- subset(cproj, longitude > -80.242767 & longitude < -79.660492 & latitude < 40.591014 & latitude > 40.266428)
+        if (nrow(cproj) > 0) {
+          layerCount <- layerCount + 1
+          map <- addMarkers(map, data=cproj,
+                            clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
+                                                                                        var childCount = cluster.getChildCount();
+                                                                                        if (childCount < 10) {
+                                                                                        c = 'rgba(220, 210, 224, 0.95);'
+                                                                                        } else if (childCount < 100) {
+                                                                                        c = 'rgba(208, 195, 213, 0.95);'
+                                                                                        } else {
+                                                                                        c = 'rgba(184, 165, 192, 0.95);'
+                                                                                        }
+                                                                                        return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+        }")), ~longitude, ~latitude, icon = ~icons_cproj[icon],
+                   popup = ~(paste("<font color='black'><b>Name:</b>", cproj$name,
+                                   ifelse(is.na(cproj$asset_id), "", paste("<br><b>Asset:</b>", cproj$asset_id)),
+                                   "<br><b>Description:</b>", cproj$task_description,
+                                   "<br><b>Functional Area:</b>", cproj$area,
+                                   "<br><b>Status:</b>",  cproj$status,
+                                   "<br><b>Budgeted Amount:</b>", cproj$budgeted_amount,
+                                   "<br><b>Fiscal Year:</b>", cproj$fiscal_year,
+                                   "<br><b>Neighborhood:</b>", cproj$neighborhood,
+                                   "<br><b>Council District:</b>", cproj$council_district,
+                                   "<br><b>Public Works Division:</b>", cproj$public_works_division,
+                                   "<br><b>Police Zone:</b>", cproj$police_zone, '</font>'
+                            ))
+          )
+          recs <- recs + nrow(cproj)
         }
       }
-    # Capital Projects Layer
-    if (input$toggleCproj) {
-      cproj <- cprojInput()
-      # Remove unmappables
-      cproj <- cproj[!(is.na(cproj$longitude)),]
-      cproj <- cproj[!(is.na(cproj$latitude)),]
-      cproj <- subset(cproj, longitude > -80.242767 & longitude < -79.660492 & latitude < 40.591014 & latitude > 40.266428)
-      if (nrow(cproj) > 0) {
-        layerCount <- layerCount + 1
-        map <- addMarkers(map, data=cproj,
-                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
-                                                                                      var childCount = cluster.getChildCount();
-                                                                                      if (childCount < 10) {
-                                                                                      c = 'rgba(220, 210, 224, 0.95);'
-                                                                                      } else if (childCount < 100) {
-                                                                                      c = 'rgba(208, 195, 213, 0.95);'
-                                                                                      } else {
-                                                                                      c = 'rgba(184, 165, 192, 0.95);'
-                                                                                      }
-                                                                                      return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-      }")), ~longitude, ~latitude, icon = ~icons_cproj[icon],
-                 popup = ~(paste("<font color='black'><b>Name:</b>", cproj$name,
-                                 ifelse(is.na(cproj$asset_id), "", paste("<br><b>Asset:</b>", cproj$asset_id)),
-                                 "<br><b>Description:</b>", cproj$task_description,
-                                 "<br><b>Functional Area:</b>", cproj$area,
-                                 "<br><b>Status:</b>",  cproj$status,
-                                 "<br><b>Budgeted Amount:</b>", cproj$budgeted_amount,
-                                 "<br><b>Fiscal Year:</b>", cproj$fiscal_year,
-                                 "<br><b>Neighborhood:</b>", cproj$neighborhood,
-                                 "<br><b>Council District:</b>", cproj$council_district,
-                                 "<br><b>Public Works Division:</b>", cproj$public_works_division,
-                                 "<br><b>Police Zone:</b>", cproj$police_zone, '</font>'
-                          ))
-        )
-        recs <- recs + nrow(cproj)
+      # Crashes
+      if (input$toggleCrashes) {
+        crashes <- crashInput()
+        if (!is.data.frame(crashes)) {
+          layerCount <- layerCount + 1
+          map <- addMarkers(map, data=crashes,
+                            clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
+                                                                                        var childCount = cluster.getChildCount();
+                                                                                        if (childCount < 10) {  
+                                                                                            c = 'rgba(252, 247, 220, 1);'
+                                                                                        } else if (childCount < 100) {  
+                                                                                        c = 'rgba(251, 227, 136, 1);'  
+                                                                                        } else { 
+                                                                                        c = 'rgba(246, 205, 57, 1);'  
+                                                                                        }   
+                                                                                        return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+        }")), icon = ~icons_crashes[icon],
+                   popup = ~(paste("<font color='black'><b>Collision Type:</b>", crashes$type,
+                                   "<br><b>When:</b>", crashes$date,
+                                   "<br><b>Day:</b>", crashes$day,
+                                   "<br><b>Time:</b>", crashes$time,
+                                   "<br><b>Street:</b>", crashes$STREET_NAME,
+                                   "<br><b>Speed Limit:</b>", crashes$SPEED_LIMIT,
+                                   "<br><b>Vehicles:</b>", crashes$VEHICLE_COUNT,
+                                   "<br><b>People:</b>", crashes$PERSON_COUNT,
+                                   "<br><b>Injuries:</b>", crashes$INJURY_COUNT,
+                                   "<br><b>Deaths:</b>", crashes$FATAL_COUNT,
+                                   "<br><br><b>Special Circumstances:</b><ul>",
+                                    ifelse(crashes$LANE_CLOSED == 1, "<li>Lane Closed", ""),
+                                    ifelse(crashes$TAILGATING== 1, "<li>Tailgating", ""),
+                                    ifelse(crashes$AGGRESSIVE_DRIVING == 1, "<li>Aggressive Driving", ""),
+                                    ifelse(crashes$SPEEDING_RELATED == 1, "<li>Speeding Related", ""),
+                                    ifelse(crashes$UNLICENSED == 1, "<li>Unlicensed", ""),
+                                    ifelse(crashes$WET_ROAD == 1, "<li>Wet Road", ""),
+                                    ifelse(crashes$SNOW_SLUSH_ROAD == 1, "<li>Snow/Slushy Road", ""),
+                                    ifelse(crashes$ICY_ROAD == 1, "<li>Icy Road", ""),
+                                    ifelse(crashes$REAR_END == 1, "<li>Rear Ended", ""),
+                                    ifelse(crashes$OVERTURNED == 1, "<li>Overturned Vehicle", ""),
+                                    ifelse(crashes$CELL_PHONE == 1, "<li>Cellphone Related", ""),
+                                    ifelse(crashes$VEHICLE_TOWED == 1, "<li>Vehicle Towed", ""),
+                                    ifelse(crashes$RUNNING_RED_LT == 1, "<li>Ran Red Light", ""),
+                                    ifelse(crashes$RUNNING_STOP_SIGN == 1, "<li>Ran Stop Sign", ""),
+                                    ifelse(crashes$FATIGUE_ASLEEP == 1, "<li>Fatigued/Asleep", ""),
+                                    ifelse(crashes$WORK_ZONE == 1, "<li>Work Zone", ""),
+                                    ifelse(crashes$DISTRACTED == 1, "<li>Distracted", ""),
+                                    ifelse(crashes$SCH_BUS_IND == 1, "<li>School Bus", ""),
+                                   "</ul>"))
+          )
+          recs <- recs + nrow(crashes@data)
+        }
       }
-    }
-    # Crashes
-    if (input$toggleCrashes) {
-      crashes <- crashInput()
-      if (!is.data.frame(crashes)) {
-        layerCount <- layerCount + 1
-        map <- addMarkers(map, data=crashes,
-                          clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
-                                                                                      var childCount = cluster.getChildCount();
-                                                                                      if (childCount < 10) {  
-                                                                                          c = 'rgba(252, 247, 220, 1);'
-                                                                                      } else if (childCount < 100) {  
-                                                                                      c = 'rgba(251, 227, 136, 1);'  
-                                                                                      } else { 
-                                                                                      c = 'rgba(246, 205, 57, 1);'  
-                                                                                      }   
-                                                                                      return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
-      }")), icon = ~icons_crashes[icon],
-                 popup = ~(paste("<font color='black'><b>Collision Type:</b>", crashes$type,
-                                 "<br><b>When:</b>", crashes$date,
-                                 "<br><b>Day:</b>", crashes$day,
-                                 "<br><b>Time:</b>", crashes$time,
-                                 "<br><b>Street:</b>", crashes$STREET_NAME,
-                                 "<br><b>Speed Limit:</b>", crashes$SPEED_LIMIT,
-                                 "<br><b>Vehicles:</b>", crashes$VEHICLE_COUNT,
-                                 "<br><b>People:</b>", crashes$PERSON_COUNT,
-                                 "<br><b>Injuries:</b>", crashes$INJURY_COUNT,
-                                 "<br><b>Deaths:</b>", crashes$FATAL_COUNT,
-                                 "<br><br><b>Special Circumstances:</b><ul>",
-                                  ifelse(crashes$AGGRESSIVE_DRIVING == 1, "<li>Aggressive Driving", ""),
-                                  ifelse(crashes$SPEEDING_RELATED == 1, "<li>Speeding Related", ""),
-                                  ifelse(crashes$UNLICENSED == 1, "<li>Unlicensed", ""),
-                                  ifelse(crashes$WET_ROAD == 1, "<li>Wet Road", ""),
-                                  ifelse(crashes$SNOW_SLUSH_ROAD == 1, "<li>Snow/Slushy Road", ""),
-                                  ifelse(crashes$ICY_ROAD == 1, "<li>Icy Road", ""),
-                                  ifelse(crashes$REAR_END == 1, "<li>Rear Ended", ""),
-                                  ifelse(crashes$OVERTURNED == 1, "<li>Overturned Vehicle", ""),
-                                  ifelse(crashes$CELL_PHONE == 1, "<li>Cellphone Related", ""),
-                                  ifelse(crashes$VEHICLE_TOWED == 1, "<li>Vehicle Towed", ""),
-                                  ifelse(crashes$RUNNING_RED_LT == 1, "<li>Ran Red Light", ""),
-                                  ifelse(crashes$RUNNING_STOP_SIGN == 1, "<li>Ran Stop Sign", ""),
-                                  ifelse(crashes$FATIGUE_ASLEEP == 1, "<li>Fatigued/Asleep", ""),
-                                  ifelse(crashes$WORK_ZONE == 1, "<li>Work Zone", ""),
-                                  ifelse(crashes$DISTRACTED == 1, "<li>Distracted", ""),
-                                  ifelse(crashes$SCH_BUS_IND == 1, "<li>School Bus", ""),
-                                 "</ul>"))
-        )
-        recs <- recs + nrow(crashes@data)
+      print(recs)
+      if (recs < 1) {
+        if (Sys.Date() >= as.Date(paste0(this_year,"-11-01")) & Sys.Date() <= as.Date(paste0(this_year,"-11-08"))) {
+          egg <- load.egg
+        } else {
+          egg <- load.egg[sample(1:nrow(load.egg),1),]
+        }
+        map <- addMarkers(map, data=egg, ~X, ~Y, icon = ~icons_egg[icon], popup = ~tt) %>% 
+            setView(-79.9959, 40.4406, zoom = 10)
       }
-    }
-    print(recs)
-    if (layerCount < 1) {
-      if (Sys.Date() >= as.Date(paste0(this_year,"-11-01")) & Sys.Date() <= as.Date(paste0(this_year,"-11-08"))) {
-        egg <- load.egg
-      } else {
-        egg <- load.egg[sample(1:nrow(load.egg),1),]
-      }
-      map <- addMarkers(map, data=egg, ~X, ~Y, icon = ~icons_egg[icon], popup = ~tt) %>% 
-          setView(-79.9959, 40.4406, zoom = 10)
     }
     #Write inputs to Couch
     dateTime <- Sys.time()
