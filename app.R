@@ -841,8 +841,8 @@ server <- shinyServer(function(input, output, session) {
                                    value = ifelse(Sys.Date() == as.Date(paste0(this_year,"-11-08")), "Election Day!", ""),
                                    label = NULL, 
                                    placeholder = "Search")),
-                     tags$style(style="text/css", chartr0('#mapPanel button .fa:before { content: "\\f056";  }
-                                                          #mapPanel button.collapsed .fa:before { content: "\\f055";  }')),
+                     tags$style(style="text/css", chartr0('#mapPanel #outer .btn .fa:before { content: "\\f056";  }
+                                                          #mapPanel #outer .btn.collapsed .fa:before { content: "\\f055";  }')),
                      HTML('<button class="btn collapsed" data-toggle="collapse" data-target="#mobile"><i class="fa fa-search-plus" aria-hidden="true"></i></button></div>
                           <div id="mobile" class="collapse" style="margin-top:55px;">
                             <small style="font-size:11px;margin-left:3px">Not all locations are exact. (See &rsquo;About&rsquo; for details.)</small>
