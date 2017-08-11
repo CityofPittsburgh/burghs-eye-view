@@ -25,6 +25,7 @@ library(htmltools)
 library(htmlwidgets)
 library(rgeos)
 library(geojsonio)
+library(sp)
 
 # Data Transform
 library(plyr)
@@ -33,7 +34,6 @@ library(zoo)
 library(lubridate)
 library(stringi)
 library(stringr)
-library(sp)
 
 # Turn off Scientific Notation
 options(scipen = 999)
@@ -242,6 +242,8 @@ load.dpw@data <- cleanDPW(load.dpw@data, TRUE)
 load.zones <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/7e95f0914283472e83e8000c0af33110_0.geojson", what = "sp")
 load.zones$POLICE_ZONE <- load.zones$zone
 load.zones@data <- cleanZone(load.zones@data, TRUE)
+# Fire Zone
+load.firez <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/324584a643a743afba24149a304cc6d3_0.geojson", what = "sp")
 
 # 311 Input & Icons
 request_types <- selectGet("request_types", selection_conn)
@@ -364,7 +366,6 @@ icons_blotter <- iconList(
 # Capital Projects Inputs & Icons
 functional_areas <- c("Administration/Sub-Award", "Engineering and Construction", "Facility Improvement", "Neighborhood and Community Development", "Public Safety","Vehicles and Equipment")
 
-
 icons_cproj <- iconList(
   administration = makeIcon("./icons/omb/administration.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
   engineering_construction = makeIcon("./icons/omb/engineering_construction.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
@@ -374,10 +375,7 @@ icons_cproj <- iconList(
   vehicles_equipment = makeIcon("./icons/omb/vehicles_equipment.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
 
-# this_year
-this_year <- format(Sys.Date(), format="%Y")
-last_year <- as.numeric(this_year) -  1
-
+# Collisions
 crash_types <- c("Automobile", "Bicycle", "Bus", "Hit Deer", "Intoxicated Driver", "Motorcycle", "Pedestrian", "Train/Trolley", "Fixed Object")
 
 icons_crashes <- iconList(
@@ -391,6 +389,22 @@ icons_crashes <- iconList(
   crash_trolley = makeIcon("./icons/crashes/crash_trolley.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
   crash_single = makeIcon("./icons/crashes/crash_single.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
 )
+
+# Fires
+fire_desc <- selectGet("fire_desc", selection_conn)
+
+icons_fires <- iconList(
+  fire = makeIcon("./icons/fire/fire.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  fire_brush = makeIcon("./icons/fire/fire_brush.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  fire_building = makeIcon("./icons/fire/fire_building.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  fire_cooking = makeIcon("./icons/fire/fire_cooking.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  fire_trash = makeIcon("./icons/fire/fire_trash.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  fire_vehicle = makeIcon("./icons/fire/fire_vehicle.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+)
+
+# this_year
+this_year <- format(Sys.Date(), format="%Y")
+last_year <- as.numeric(this_year) -  1
 
 # CouchDB Connection
 # couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
@@ -743,8 +757,8 @@ server <- shinyServer(function(input, output, session) {
                                 label = NULL,
                                 c(`Offense Type`='', offenses),
                                 multiple = TRUE,
-                                selectize=TRUE),
-                    HTML('<font color="#A91622">'),
+                                selectize = TRUE),
+                    HTML('<font color="#474545">'),
                     checkboxInput("toggleArrests",
                                   label = "Arrests",
                                   value = TRUE),
@@ -754,6 +768,16 @@ server <- shinyServer(function(input, output, session) {
                                   label = "Non-Traffic Citations",
                                   value = TRUE),
                     HTML('</font>'),
+                    HTML('<font color="#BA1924">'),
+                    checkboxInput("toggleFires",
+                                  label = "Fires",
+                                  value = TRUE),
+                    HTML('</font>'),
+                    selectInput("fire_desc_select",
+                                label = NULL,
+                                c(`Fire Type` = '', fire_desc),
+                                multiple = TRUE,
+                                selectize = TRUE),
                     # HTML('<font color="#009FE1">'),
                     # checkboxInput("togglePermits",
                     #               label = "Building Permits",
@@ -810,7 +834,7 @@ server <- shinyServer(function(input, output, session) {
                                 selected = "OpenStreetMap.Mapnik"),
                     selectInput("filter_select",
                                 "Filter by Area",
-                                c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Public Works Division")),
+                                c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Fire Zone", "Public Works Division")),
                                 selectize = TRUE,
                                 selected = ""),
                     uiOutput("filter_UI")
@@ -893,7 +917,7 @@ server <- shinyServer(function(input, output, session) {
                                  c(`Offense Type`='', offenses),
                                  multiple = TRUE,
                                  selectize=TRUE),
-                     HTML('<font color="#A91622">'),
+                     HTML('<font color="#474545">'),
                      checkboxInput("toggleArrests",
                                    label = "Arrests",
                                    value = TRUE),
@@ -903,6 +927,16 @@ server <- shinyServer(function(input, output, session) {
                                    label = "Non-Traffic Citations",
                                    value = TRUE),
                      HTML('</font>'),
+                     HTML('<font color="#BA1924">'),
+                     checkboxInput("toggleFires",
+                                   label = "Fires",
+                                   value = TRUE),
+                     HTML('</font>'),
+                     selectInput("fire_desc_select",
+                                 label = NULL,
+                                 c(`Fire Type` = '', fire_desc),
+                                 multiple = TRUE,
+                                 selectize = TRUE),
                      # HTML('<font color="#009FE1">'),
                      # checkboxInput("togglePermits",
                      #               label = "Building Permits",
@@ -960,7 +994,7 @@ server <- shinyServer(function(input, output, session) {
                      uiOutput("filter_UI"),
                      selectInput("filter_select",
                                  "Filter by Area",
-                                 c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Public Works Division")),
+                                 c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Fire Zone", "Public Works Division")),
                                  selectize = TRUE,
                                  selected = ""),
                      
@@ -1008,6 +1042,12 @@ server <- shinyServer(function(input, output, session) {
                   c(`Council District`='', levels(load.council$COUNCIL_DISTRICT)),
                   multiple = TRUE,
                   selectize=TRUE)
+    } else if (input$filter_select == "Fire Zone") {
+      selectInput("firez_select",
+                  label = NULL,
+                  c(`Fire Zone`='', levels(load.firez$dist_zone)),
+                  multiple = TRUE,
+                  selectize=TRUE)
     }
   })
   # Boundary Data
@@ -1051,6 +1091,16 @@ server <- shinyServer(function(input, output, session) {
     
     zones
   })
+  firezInput <- reactive({
+    firez <- load.firez
+    
+    if (length(input$firez_select) > 0){
+      firez <- firez[firez$dist_zone %in% input$firez_select]
+    }
+    
+    firez
+  })
+  
   # Point Data
   # Crash Data
   crashInput <- reactive({
@@ -1116,8 +1166,11 @@ server <- shinyServer(function(input, output, session) {
         crashes_sp$PUBLIC_WORKS_DIVISION <- sp::over(crashes_sp, load.dpw)$PUBLIC_WORKS_DIVISION
         crashes_sp <- crashes_sp[crashes_sp$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
       } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
-        crashes_sp$COUNCIL_DISTRICT <- sp::over(crashes_sp, load.dpw)$COUNCIL_DISTRICT
+        crashes_sp$COUNCIL_DISTRICT <- sp::over(crashes_sp, load.council)$COUNCIL_DISTRICT
         crashes_sp <- crashes_sp[crashes_sp$COUNCIL_DISTRICT %in% input$council_select,]
+      } else if (length(input$firez_select) > 0 & input$filter_select == "Fire Zone") {
+        crashes_sp$firez <- sp::over(crashes_sp, load.firez)$dist_zone
+        crashes_sp <- crashes_sp[crashes_sp$firez %in% input$firez_select,]
       }
       crashes <- crashes_sp
     }
@@ -1279,6 +1332,8 @@ server <- shinyServer(function(input, output, session) {
       blotter <- blotter[blotter$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
       blotter <- blotter[blotter$COUNCIL_DISTRICT %in% input$council_select,]
+    } else if (length(input$firez_select) > 0 & input$filter_select == "Fire Zone") {
+      blotter <- blotter[blotter$FIRE_ZONE %in% input$firez_select,]
     }
     
     # Prepare Filter
@@ -1331,7 +1386,9 @@ server <- shinyServer(function(input, output, session) {
       arrests <- arrests[arrests$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
       arrests <-arrests[arrests$COUNCIL_DISTRICT %in% input$council_select,]
-    } 
+    } else if (length(input$firez_select) > 0 & input$filter_select == "Fire Zone") {
+      arrests <- arrests[arrests$FIRE_ZONE %in% input$firez_select,]
+    }
     
     # Offense Filter
     if (length(input$offense_select) > 0) { 
@@ -1381,6 +1438,8 @@ server <- shinyServer(function(input, output, session) {
       citations <- citations[citations$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
       citations <-citations[citations$COUNCIL_DISTRICT %in% input$council_select,]
+    } else if (length(input$firez_select) > 0 & input$filter_select == "Fire Zone") {
+      citations <- citations[citations$FIRE_ZONE %in% input$firez_select,]
     }
 
     # Offense Filter
@@ -1402,6 +1461,47 @@ server <- shinyServer(function(input, output, session) {
     }
     
     return(citations) 
+  })
+  # Fire data with filters
+  firesInput <-reactive({
+    fires <- ckanQueryDates("8d76ac6b-5ae8-4428-82a4-043130d17b02", input$dates[1], input$dates[2], "alarm_time")
+    fires$fire_desc <- paste(fires$incident_type, fires$type_description)
+    
+    # Type Description Filter
+    if (length(input$fire_desc_select) > 0) {
+      fires <- fires[fires$fire_desc %in% input$fire_desc_select,]
+    }
+    
+    # Clean Geographies
+    fires <- cleanGeo(fires)
+    
+    # Geographic Filters
+    if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
+      fires <- fires[fires$police_zone %in% input$zone_select,]
+    } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
+      fires <- fires[fires$neighborhood %in% input$hood_select,]
+    } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
+      fires <- fires[fires$public_works_division %in% input$DPW_select,]
+    } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
+      fires <-fires[fires$council_district %in% input$council_select,]
+    } else if (length(input$firez_select) > 0 & input$filter_select == "Fire Zone") {
+      fires <- fires[fires$fire_zone %in% input$firez_select,]
+    }
+    
+    # Search Filter
+    if (!is.null(input$search) && input$search != "") {
+      fires <- fires[apply(citations, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
+    }
+    
+    # Icons
+    fires$icon <- case_when(fires$incident_type %in% c(111, 112, 123) ~ "fire_building",
+                         fires$incident_type == 113 ~ "fire_cooking",
+                         fires$incident_type %in% c(130, 131, 132, 133, 137) ~ "fire_vehicle",
+                         fires$incident_type %in% c(118, 140, 141, 142, 143, 151, 154, 171, 173) ~ "fire_brush",
+                         fires$incident_type %in% c(118, 150, 151, 152, 155) ~ "fire_trash",
+                         TRUE ~ "fire")
+    
+    return(fires)
   })
   # Code Violations data with filters
   violationsInput <- reactive({
@@ -1456,6 +1556,8 @@ server <- shinyServer(function(input, output, session) {
       violations <- violations[violations$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
       violations <-violations[violations$COUNCIL_DISTRICT %in% input$council_select,]
+    } else if (length(input$firez_select) > 0 & input$filter_select == "Fire Zone") {
+      violations <- violations[violations$FIRE_ZONE %in% input$firez_select,]
     }
     
     # Search Filter
@@ -1515,6 +1617,8 @@ server <- shinyServer(function(input, output, session) {
       permits <- permits[permits$public_works_division %in% input$DPW_select,]
     } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
       permits <-permits[permits$council_district %in% input$council_select,]
+    } else if (length(input$firez_select) > 0 & input$filter_select == "Fire Zone") {
+      permits <- permits[permits$fire_zone %in% input$firez_select,]
     }
 
     # Search Filter
@@ -1641,6 +1745,16 @@ server <- shinyServer(function(input, output, session) {
             cproj.temp <- cproj[grepl(input$council_select[i], cproj$council_district), ]
           } else {
             temp <- cproj[grepl(input$council_select[i], cproj$council_district), ]
+            cproj.temp <- rbind(cproj.temp, temp)
+          }
+        }
+        cproj <- unique(cproj.temp)
+      } else if (length(input$firez_select) > 0 & input$filter_select == "Fire Zone") {
+        for (i in 1:length(input$firez_select)) {
+          if (i == 1) {
+            cproj.temp <- cproj[grepl(input$firez_select[i], cproj$council_district), ]
+          } else {
+            temp <- cproj[grepl(input$firez_select[i], cproj$firez_district), ]
             cproj.temp <- rbind(cproj.temp, temp)
           }
         }
@@ -1794,7 +1908,16 @@ server <- shinyServer(function(input, output, session) {
         map <- addPolygons(map, data = zones,
                            stroke = TRUE, smoothFactor = 0, weight = 1, color = "#000000", opacity = 0.6,
                            fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0, 
-                           popup = ~paste("<font color='black'><b>Zone:</b> ", htmlEscape(POLICE_ZONE), "</font>")
+                           popup = ~paste("<font color='black'><b>Police Zone:</b> ", htmlEscape(POLICE_ZONE), "</font>")
+        )
+      }
+    } else if (input$filter_select == "Fire Zone"){
+      firez <- zonesInput()
+      if (nrow(zones) > 0) {
+        map <- addPolygons(map, data = firez,
+                           stroke = TRUE, smoothFactor = 0, weight = 1, color = "#000000", opacity = 0.6,
+                           fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0, 
+                           popup = ~paste("<font color='black'><b>Fire Zone:</b> ", htmlEscape(dist_zone), "</font>")
         )
       }
     } 
@@ -1841,6 +1964,19 @@ server <- shinyServer(function(input, output, session) {
         blotter <- subset(blotter, POLICE_ZONE != "OSC" | INCIDENTNEIGHBORHOOD != "Outside City" | INCIDENTNEIGHBORHOOD != "Outside County")
        
         allData <- rbind(blotter[,c("X", "Y")], allData) 
+      }
+      # Fire Incidents Layer
+      if (input$toggleFires) {
+        fires <- firesInput()
+        # Remove unmappables        
+        fires <- fires[!(is.na(fires$longitude)),]
+        fires <- fires[!(is.na(fires$latitude)),]
+        fires <- subset(fires, longitude >= -80.242767 & longitude <= -79.660492 & latitude <= 40.591014 & latitude >= 40.266428)
+        
+        fires <- fires[,c("longitude", "latitude")]
+        colnames(fires) <- c("X", "Y")
+        
+        allData <- rbind(fires, allData)
       }
       # Building Permits Layer
       # if(input$togglePermits) {
@@ -1938,13 +2074,13 @@ server <- shinyServer(function(input, output, session) {
           arrests$icon <- "arrest_made"
           map <- addMarkers(map, data=arrests,
                             clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
-                                                                                        var childCount = cluster.getChildCount();  
+                                                                                      var childCount = cluster.getChildCount();  
                                                                                         if (childCount < 10) {  
-                                                                                        c = 'rgba(178, 102, 102, 0.95);'
+                                                                                        c = 'rgba(217, 217, 224, 1);'
                                                                                         } else if (childCount < 100) {  
-                                                                                        c = 'rgba(204, 152, 152, 0.95);'  
+                                                                                        c = 'rgba(171, 171, 182, 1);'  
                                                                                         } else { 
-                                                                                        c = 'rgba(128, 0, 0, 0.95);'  
+                                                                                        c = 'rgba(150, 150, 163, 1);'  
                                                                                         }    
                                                                                         return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
         }")), ~X, ~Y, icon = ~icons_arrests[icon],
@@ -2032,11 +2168,49 @@ server <- shinyServer(function(input, output, session) {
                                             "<br><b>Neighborhood:</b>", blotter$INCIDENTNEIGHBORHOOD,
                                             "<br><b>Council District:</b>", blotter$COUNCIL_DISTRICT,
                                             "<br><b>Police Zone:</b>", blotter$POLICE_ZONE,
+                                            "<br><b>Fire Zone:</b>", blotter$FIRE_ZONE,
+                                            "<br><b>DPW Division:</b>", blotter$PUBLIC_WORKS_DIVISION,
                                             "<br><b>CCR:</b>", blotter$CCR, "</font>"))
           )
           recs <- recs + nrow(blotter)
           }
+      }
+      # Fire Incidents Layer
+      if (input$toggleFires) {
+        fires <- firesInput()
+        # Remove unmappables        
+        fires <- fires[!(is.na(fires$longitude)),]
+        fires <- fires[!(is.na(fires$latitude)),]
+        fires <- subset(fires, longitude >= -80.242767 & longitude <= -79.660492 & latitude <= 40.591014 & latitude >= 40.266428)
+        if(nrow(fires) > 0) {
+          map <- addMarkers(map, data=fires,
+                            clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
+                                                                                        var childCount = cluster.getChildCount();  
+                                                                                        if (childCount < 10) {  
+                                                                                        c = 'rgba(249, 208, 209, 1);'
+                                                                                        } else if (childCount < 100) {  
+                                                                                        c = 'rgba(230, 83, 92, 1);'  
+                                                                                        } else { 
+                                                                                        c = 'rgba(212, 30, 39, 1);'  
+                                                                                        }    
+                                                                                        return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+        }")), ~longitude, ~latitude, icon = ~icons_fires[icon],
+                            popup = ~(paste("<font color='black'><b>Fire Description:</b>", fires$fire_desc,
+                                            "<br><b>Alarm Time:</b>", fires$alarm_time,
+                                            "<br><b>Arrival Time:</b>", fires$arrival_time,
+                                            "<br><b>Primary Unit:</b>", fires$primary_unit,
+                                            "<br><b># of Alarms:</b>", fires$alarms,
+                                            "<br><b>Location:</b>", fires$address,
+                                            "<br><b>Neighborhood:</b>", fires$neighborhood,
+                                            "<br><b>Council District:</b>", fires$council_district,
+                                            "<br><b>Police Zone:</b>", fires$police_zone,
+                                            "<br><b>Fire Zone:</b>", fires$fire_zone,
+                                            "<br><b>DPW Division:</b>", fires$public_works_division,
+                                            "<br><b>Call #:</b>", fires$call_no, "</font>"))
+          )
+          recs <- recs + nrow(fires)                 
         }
+      }
       # Building Permits Layer
       # if(input$togglePermits) {
       #   permits <- permitsInput()
