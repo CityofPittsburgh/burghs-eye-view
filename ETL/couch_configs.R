@@ -107,3 +107,12 @@ permits <- ckan("95d69895-e58d-44de-a370-fec6ad2b332e")
 permit_status <- unique(permits$current_status)
 
 addUpdateDoc("permit_status", permit_status)
+
+# Fire Incidents
+fires <- ckan("8d76ac6b-5ae8-4428-82a4-043130d17b02")
+
+fires$fire_desc <- paste(fires$incident_type, fires$type_description)
+
+fire_desc <- unique(fires$fire_desc)
+
+addUpdateDoc("fire_desc", fire_desc)
