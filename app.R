@@ -1494,11 +1494,11 @@ server <- shinyServer(function(input, output, session) {
     }
     
     # Icons
-    fires$icon <- case_when(fires$incident_type %in% c(111, 112, 123) ~ "fire_building",
-                         fires$incident_type == 113 ~ "fire_cooking",
-                         fires$incident_type %in% c(130, 131, 132, 133, 137) ~ "fire_vehicle",
-                         fires$incident_type %in% c(118, 140, 141, 142, 143, 151, 154, 171, 173) ~ "fire_brush",
-                         fires$incident_type %in% c(118, 150, 151, 152, 155) ~ "fire_trash",
+    fires$icon <- case_when(fires$incident_type %in% c(111, 112) ~ "fire_building",
+                         fires$incident_type %in% c(113, 123) ~ "fire_cooking",
+                         fires$incident_type %in% c(130, 131, 132, 133, 134, 137) ~ "fire_vehicle",
+                         fires$incident_type %in% c(140, 141, 142, 143, 171, 173) ~ "fire_brush",
+                         fires$incident_type %in% c(118, 117, 150, 151, 152, 154, 155) ~ "fire_trash",
                          TRUE ~ "fire")
     
     return(fires)
