@@ -1251,18 +1251,13 @@ server <- shinyServer(function(input, output, session) {
     # Clean for merge
     archive$X <- as.numeric(archive$X)
     archive$Y <- as.numeric(archive$Y)
-    archive$INCIDENTTIME <- as.POSIXct(archive$INCIDENTTIME, format = '%Y-%m-%dT%H:%M:%S')
     # Load Thirty Day Blotter
     thirty <- ckanQueryDates("1797ead8-8262-41cc-9099-cbc8a161924b", input$dates[1], input$dates[2], "INCIDENTTIME")
-    # Check for Merge
-    thirty <- thirty[,1:ncol(thirty)]
-    if (is.list(thirty)) {
-      blotter <- archive
-    } else {
-      # Merge
-      archive <- archive[,c(colnames(thirty))]
-      blotter <- rbind(archive, thirty)
-    }
+    
+    # Merge
+    archive <- archive[,c(colnames(thirty))]
+    blotter <- rbind(archive, thirty)
+    
     # Prepare for Mapping
     blotter$date <- as.Date(blotter$INCIDENTTIME)
     # Reform Hierarchy
