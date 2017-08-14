@@ -86,7 +86,7 @@ ckanQueryDates <- function(id, start, end, column) {
     fields <- jsonlite::fromJSON(json)$result$fields$id
     data.frame(t(data.frame(1:length(fields), row.names = fields))[0,])
   } else {
-    jsonlite::fromJSON(json)$result$records
+    data.frame(jsonlite::fromJSON(json)$result$records)
   }
 }
 
@@ -770,7 +770,7 @@ server <- shinyServer(function(input, output, session) {
                     HTML('</font>'),
                     HTML('<font color="#BA1924">'),
                     checkboxInput("toggleFires",
-                                  label = "Fires",
+                                  label = "Fire Incidents",
                                   value = TRUE),
                     HTML('</font>'),
                     selectInput("fire_desc_select",
@@ -929,7 +929,7 @@ server <- shinyServer(function(input, output, session) {
                      HTML('</font>'),
                      HTML('<font color="#BA1924">'),
                      checkboxInput("toggleFires",
-                                   label = "Fires",
+                                   label = "Fire Incidents",
                                    value = TRUE),
                      HTML('</font>'),
                      selectInput("fire_desc_select",
@@ -1112,7 +1112,6 @@ server <- shinyServer(function(input, output, session) {
     crashes$DEC_LAT <- as.numeric(crashes$DEC_LAT)
     crashes <- subset(crashes, DEC_LONG > -80.242767 & DEC_LONG < -79.660492 & DEC_LAT < 40.591014 & DEC_LAT > 40.266428)
     
-    # Cleancrashes$BUS_COUNT <- as.numeric(crashes$BUS_COUNT)
     # Icons
     if (nrow(crashes) > 0){
       crashes$icon <- as.factor(case_when(
@@ -1173,6 +1172,8 @@ server <- shinyServer(function(input, output, session) {
         crashes_sp <- crashes_sp[crashes_sp$firez %in% input$firez_select,]
       }
       crashes <- crashes_sp
+    } else {
+      crashes <- read.table(text = "", col.names =  c(names(crashes), c("type", "date", "day", "time")))
     }
     
     return(crashes)
@@ -1466,6 +1467,7 @@ server <- shinyServer(function(input, output, session) {
   firesInput <-reactive({
     fires <- ckanQueryDates("8d76ac6b-5ae8-4428-82a4-043130d17b02", input$dates[1], input$dates[2], "alarm_time")
     fires$fire_desc <- paste(fires$incident_type, fires$type_description)
+    fires$fire_desc <- as.factor(fires$fire_desc)
     
     # Type Description Filter
     if (length(input$fire_desc_select) > 0) {
@@ -1811,8 +1813,8 @@ server <- shinyServer(function(input, output, session) {
       report <- citations
     } else if (input$report_select == "Fire Incidents") {
       fires <- firesInput()
-      
-      fires <- subset(fires, select = c(call_no, fire_desc, alarm_time, arrival_time, primary_unit, alarm, address, fire_zone, neighborhood, council_district))
+
+      fires <- subset(fires, select = c(call_no, fire_desc, alarm_time, arrival_time, primary_unit, alarms, address, fire_zone, neighborhood, council_district))
       colnames(fires) <- c("Call #", "Type", "Alarm Time", "Arrival Time", "Primary Unit", "Alarms", "Location", "Fire Zone", "Neighborhood", "Council District")
       
       report <- fires
@@ -1830,6 +1832,7 @@ server <- shinyServer(function(input, output, session) {
       violations <- subset(violations, select = c(VIOLATION, INSPECTION_RESULT, INSPECTION_DATE, full_address, NEIGHBORHOOD, COUNCIL_DISTRICT, POLICE_ZONE, PUBLIC_WORKS_DIVISION, CASE_NUMBER, url))
       
       colnames(violations) <- c("Violation", "Result", "Inspection Date", "Address", "Neighborhood", "Council District", "Police Zone", "Public Works Division", "Case #", "Parcel ID")
+      
       report <- violations
     } else if (input$report_select == "Capital Projects") {
       cproj <- cprojInput()
@@ -1840,9 +1843,9 @@ server <- shinyServer(function(input, output, session) {
       
       report <- cproj
     } else if (input$report_select == "Collisions") {
-      crahes <- crashesInput()
+      crashes <- crashesInput()
       
-      crashes <- subset(crashes, select = c(type, date, day, time, STREET_NAME, SPEED_LIMIT, VEHICLE_COUNT, PERSON_COUNT, INJURY_COUNT, FATAL_COUNT, LANE_CLOSED, TAILGATING, AGRESSIVE_DRIVING, SPEEDING_RELATED, UNLICENSED, WET_ROAD, SNOW_SLUSH_ROAD, ICY_ROUD, READ_END, OVERTURNED, CELL_PHONE, VEHICLE_TOWED, RUNNING_RED_LT, RUNNING_STOP_SIGN, FATIGUE_ASLEEP, WORK_ZONE, DISTRACTED, SCH_BUS_IND))
+      crashes <- subset(crashes, select = c(type, date, day, time, STREET_NAME, SPEED_LIMIT, VEHICLE_COUNT, PERSON_COUNT, INJURY_COUNT, FATAL_COUNT, LANE_CLOSED, TAILGATING, AGGRESSIVE_DRIVING, SPEEDING_RELATED, UNLICENSED, WET_ROAD, SNOW_SLUSH_ROAD, ICY_ROAD, REAR_END, OVERTURNED, CELL_PHONE, VEHICLE_TOWED, RUNNING_RED_LT, RUNNING_STOP_SIGN, FATIGUE_ASLEEP, WORK_ZONE, DISTRACTED, SCH_BUS_IND))
       
       colnames(crashes) <- c("Type", "When", "Day", "Time", "Street", "Speed Limit", "Vehicles", "People", "Injuries", "Deaths", "Lane Closed", "Tailgating", "Agreesive Driving", "Speeding", "Unlicensed, Wet Road", "Snow/Slush", "Ice", "Rear Ended", "OVerturned", "Cellphone", "Towed", "Ran Red Light", "Ran Stop Sign", "Fatigue/Asleep", "Work Zone", "Distracted", "School Bus")
       
