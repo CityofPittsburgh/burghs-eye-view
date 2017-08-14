@@ -1131,47 +1131,51 @@ server <- shinyServer(function(input, output, session) {
     if (length(input$crash_select) > 0){
       crashes <- crashes[crashes$type %in% input$crash_select,]
     }
-      # Clean
-      crashes$CRASH_MONTH <- str_pad(as.character(crashes$CRASH_MONTH), 2, pad = "0")
-      crashes$time <- str_pad(crashes$TIME_OF_DAY, 4, pad = "0")
-      crashes$date <- paste0(crashes$CRASH_YEAR, crashes$CRASH_MONTH, "01")
-      crashes$date_time <- as.POSIXct(paste(crashes$date, crashes$time), format = "%Y%m%d %H%M")
-      crashes$time <- format(crashes$date_time, "%I:%m %p")
-      crashes$date <- format(as.Date(crashes$date, format = "%Y%m%d"), "%B %Y")
-      crashes$day <- as.factor(case_when(
-        crashes$DAY_OF_WEEK == "1" ~ "Sunday",
-        crashes$DAY_OF_WEEK == "2" ~ "Monday",
-        crashes$DAY_OF_WEEK == "3" ~ "Tuesday",
-        crashes$DAY_OF_WEEK == "4" ~ "Wednesday",
-        crashes$DAY_OF_WEEK == "5" ~ "Thursday",
-        crashes$DAY_OF_WEEK == "6" ~ "Friday",
-        crashes$DAY_OF_WEEK == "7" ~ "Saturday"
-      ))
+      if (nrow(crashes) > 0) {
+        # Clean
+        crashes$CRASH_MONTH <- str_pad(as.character(crashes$CRASH_MONTH), 2, pad = "0")
+        crashes$time <- str_pad(crashes$TIME_OF_DAY, 4, pad = "0")
+        crashes$date <- paste0(crashes$CRASH_YEAR, crashes$CRASH_MONTH, "01")
+        crashes$date_time <- as.POSIXct(paste(crashes$date, crashes$time), format = "%Y%m%d %H%M")
+        crashes$time <- format(crashes$date_time, "%I:%m %p")
+        crashes$date <- format(as.Date(crashes$date, format = "%Y%m%d"), "%B %Y")
+        crashes$day <- as.factor(case_when(
+          crashes$DAY_OF_WEEK == "1" ~ "Sunday",
+          crashes$DAY_OF_WEEK == "2" ~ "Monday",
+          crashes$DAY_OF_WEEK == "3" ~ "Tuesday",
+          crashes$DAY_OF_WEEK == "4" ~ "Wednesday",
+          crashes$DAY_OF_WEEK == "5" ~ "Thursday",
+          crashes$DAY_OF_WEEK == "6" ~ "Friday",
+          crashes$DAY_OF_WEEK == "7" ~ "Saturday"
+        ))
       
-      # Spatial
-      coords <- cbind(as.numeric(crashes$DEC_LONG), as.numeric(crashes$DEC_LAT))
-      points <- SpatialPoints(coords)
-      crashes_sp <- SpatialPointsDataFrame(points, crashes)
-      proj4string(crashes_sp) <- CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
-      
-      # Geographic Filters
-      if (length(input$zone_select) > 0 & input$filter_select == "Police Zone") {
-        crashes_sp$POLICE_ZONE <- sp::over(crashes_sp, load.zones)$POLICE_ZONE
-        crashes_sp <- crashes_sp[crashes_sp$POLICE_ZONE %in% input$zone_select,]
-      } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
-        crashes_sp$hood <- sp::over(crashes_sp, load.hoods)$hood
-        crashes_sp <- crashes_sp[crashes_sp$hood %in% input$hood_select,]
-      } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
-        crashes_sp$PUBLIC_WORKS_DIVISION <- sp::over(crashes_sp, load.dpw)$PUBLIC_WORKS_DIVISION
-        crashes_sp <- crashes_sp[crashes_sp$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
-      } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
-        crashes_sp$COUNCIL_DISTRICT <- sp::over(crashes_sp, load.council)$COUNCIL_DISTRICT
-        crashes_sp <- crashes_sp[crashes_sp$COUNCIL_DISTRICT %in% input$council_select,]
-      } else if (length(input$firez_select) > 0 & input$filter_select == "Fire Zone") {
-        crashes_sp$firez <- sp::over(crashes_sp, load.firez)$dist_zone
-        crashes_sp <- crashes_sp[crashes_sp$firez %in% input$firez_select,]
+        # Spatial for filtering
+        coords <- cbind(as.numeric(crashes$DEC_LONG), as.numeric(crashes$DEC_LAT))
+        points <- SpatialPoints(coords)
+        crashes_sp <- SpatialPointsDataFrame(points, crashes)
+        proj4string(crashes_sp) <- CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0")
+        
+        # Geographic Filters
+        if (length(input$zone_select) > 0 & input$filter_select == "Police Zone") {
+          crashes_sp$POLICE_ZONE <- sp::over(crashes_sp, load.zones)$POLICE_ZONE
+          crashes_sp <- crashes_sp[crashes_sp$POLICE_ZONE %in% input$zone_select,]
+        } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
+          crashes_sp$hood <- sp::over(crashes_sp, load.hoods)$hood
+          crashes_sp <- crashes_sp[crashes_sp$hood %in% input$hood_select,]
+        } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
+          crashes_sp$PUBLIC_WORKS_DIVISION <- sp::over(crashes_sp, load.dpw)$PUBLIC_WORKS_DIVISION
+          crashes_sp <- crashes_sp[crashes_sp$PUBLIC_WORKS_DIVISION %in% input$DPW_select,]
+        } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
+          crashes_sp$COUNCIL_DISTRICT <- sp::over(crashes_sp, load.council)$COUNCIL_DISTRICT
+          crashes_sp <- crashes_sp[crashes_sp$COUNCIL_DISTRICT %in% input$council_select,]
+        } else if (length(input$firez_select) > 0 & input$filter_select == "Fire Zone") {
+          crashes_sp$firez <- sp::over(crashes_sp, load.firez)$dist_zone
+          crashes_sp <- crashes_sp[crashes_sp$firez %in% input$firez_select,]
+        }
+        crashes <- crashes_sp
+      } else {
+        crashes <- read.table(text = "", col.names =  c(names(crashes), c("date", "day", "time")))
       }
-      crashes <- crashes_sp
     } else {
       crashes <- read.table(text = "", col.names =  c(names(crashes), c("type", "date", "day", "time")))
     }
@@ -1496,12 +1500,18 @@ server <- shinyServer(function(input, output, session) {
     }
     
     # Icons
-    fires$icon <- case_when(fires$incident_type %in% c(111, 112) ~ "fire_building",
+    if (nrow(fires) > 0) {
+      fires$icon <- case_when(fires$incident_type %in% c(111, 112) ~ "fire_building",
                          fires$incident_type %in% c(113, 123) ~ "fire_cooking",
                          fires$incident_type %in% c(130, 131, 132, 133, 134, 137) ~ "fire_vehicle",
                          fires$incident_type %in% c(140, 141, 142, 143, 171, 173) ~ "fire_brush",
                          fires$incident_type %in% c(118, 117, 150, 151, 152, 154, 155) ~ "fire_trash",
                          TRUE ~ "fire")
+    } else {
+      fires <- read.table(text = "", col.names =  c(names(fires), "icon"))
+    }
+    
+    
     
     return(fires)
   })
