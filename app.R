@@ -575,7 +575,7 @@ ui <- navbarPage(id = "navTab",
                           inputPanel(
                             selectInput("report_select", 
                                         tagList(shiny::icon("map-marker"), "Select Layer:"),
-                                        choices = c("311 Requests", "Arrests", "Blotter", "Capital Projects", "Code Violations", "Non-Traffic Citations"), #  , "Building Permits"
+                                        choices = c("311 Requests", "Arrests", "Blotter", "Capital Projects", "Code Violations", "Collisions", "Fire Incidents", "Non-Traffic Citations"), #  , "Building Permits"
                                         selected= "311 Requests"),
                             # Define Button Position
                             uiOutput("buttonStyle")
@@ -1103,7 +1103,7 @@ server <- shinyServer(function(input, output, session) {
   
   # Point Data
   # Crash Data
-  crashInput <- reactive({
+  crashesInput <- reactive({
     # Load Crashes
     crashes <- ckanQueryCrashes(input$dates[1], input$dates[2])
     # Subset
@@ -1809,6 +1809,13 @@ server <- shinyServer(function(input, output, session) {
       colnames(citations)  <- c("Offense(s)", "Age", "Gender", "Race", "Date/Time", "Incident Location", " Neighborhood", "Council District", "Police Zone", "Public Works Division", "CCR")
       
       report <- citations
+    } else if (input$report_select == "Fire Incidents") {
+      fires <- firesInput()
+      
+      fires <- subset(fires, select = c(call_no, fire_desc, alarm_time, arrival_time, primary_unit, alarm, address, fire_zone, neighborhood, council_district))
+      colnames(fires) <- c("Call #", "Type", "Alarm Time", "Arrival Time", "Primary Unit", "Alarms", "Location", "Fire Zone", "Neighborhood", "Council District")
+      
+      report <- fires
     } else if (input$report_select == "Building Permits") {
       permits <- permitsInput()
       
@@ -1832,6 +1839,14 @@ server <- shinyServer(function(input, output, session) {
       colnames(cproj) <- c("Project Name", "Asset", "Description", "Functional Area", "Status", "Budgeted Amount", "Fiscal Year", "Neighborhood", "Council", "Public Works Division", "Police Zone")
       
       report <- cproj
+    } else if (input$report_select == "Collisions") {
+      crahes <- crashesInput()
+      
+      crashes <- subset(crashes, select = c(type, date, day, time, STREET_NAME, SPEED_LIMIT, VEHICLE_COUNT, PERSON_COUNT, INJURY_COUNT, FATAL_COUNT, LANE_CLOSED, TAILGATING, AGRESSIVE_DRIVING, SPEEDING_RELATED, UNLICENSED, WET_ROAD, SNOW_SLUSH_ROAD, ICY_ROUD, READ_END, OVERTURNED, CELL_PHONE, VEHICLE_TOWED, RUNNING_RED_LT, RUNNING_STOP_SIGN, FATIGUE_ASLEEP, WORK_ZONE, DISTRACTED, SCH_BUS_IND))
+      
+      colnames(crashes) <- c("Type", "When", "Day", "Time", "Street", "Speed Limit", "Vehicles", "People", "Injuries", "Deaths", "Lane Closed", "Tailgating", "Agreesive Driving", "Speeding", "Unlicensed, Wet Road", "Snow/Slush", "Ice", "Rear Ended", "OVerturned", "Cellphone", "Towed", "Ran Red Light", "Ran Stop Sign", "Fatigue/Asleep", "Work Zone", "Distracted", "School Bus")
+      
+      report <- crashes
     }
     # Return Data
     report
@@ -2014,7 +2029,7 @@ server <- shinyServer(function(input, output, session) {
         allData <- rbind(cproj, allData)
       }
       if (input$toggleCrashes) {
-        crashes <- crashInput()
+        crashes <- crashesInput()
         if (!is.data.frame(crashes)) {
           crashes <- crashes@data
           crashes <- crashes[,c("DEC_LONG","DEC_LAT")]
@@ -2320,7 +2335,7 @@ server <- shinyServer(function(input, output, session) {
       }
       # Crashes
       if (input$toggleCrashes) {
-        crashes <- crashInput()
+        crashes <- crashesInput()
         if (!is.data.frame(crashes)) {
           map <- addMarkers(map, data=crashes,
                             clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
