@@ -1095,7 +1095,7 @@ server <- shinyServer(function(input, output, session) {
     firez <- load.firez
     
     if (length(input$firez_select) > 0){
-      firez <- firez[firez$dist_zone %in% input$firez_select]
+      firez <- firez[firez$dist_zone %in% input$firez_select,]
     }
     
     firez
@@ -1491,7 +1491,7 @@ server <- shinyServer(function(input, output, session) {
     
     # Search Filter
     if (!is.null(input$search) && input$search != "") {
-      fires <- fires[apply(citations, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
+      fires <- fires[apply(fires, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
     }
     
     # Icons
@@ -1505,8 +1505,6 @@ server <- shinyServer(function(input, output, session) {
     } else {
       fires <- read.table(text = "", col.names =  c(names(fires), "icon"))
     }
-    
-    
     
     return(fires)
   })
@@ -1935,8 +1933,8 @@ server <- shinyServer(function(input, output, session) {
         )
       }
     } else if (input$filter_select == "Fire Zone"){
-      firez <- zonesInput()
-      if (nrow(zones) > 0) {
+      firez <- firezInput()
+      if (nrow(firez) > 0) {
         map <- addPolygons(map, data = firez,
                            stroke = TRUE, smoothFactor = 0, weight = 1, color = "#000000", opacity = 0.6,
                            fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0, 
