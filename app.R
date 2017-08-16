@@ -686,6 +686,7 @@ server <- shinyServer(function(input, output, session) {
   # Map Tab UI
   output$mapPanel <- renderUI({
     # UI for Desktop Users
+    #
     if (as.numeric(input$GetScreenWidth) > 800) {
       tagList(
         # Generate Map
@@ -858,7 +859,7 @@ server <- shinyServer(function(input, output, session) {
                      # Div for Search Bar and Expansion
                      HTML('<div id="outer" style="position:absolute;z-index: 9; background-color:#ecf0f1; width:100%;">'),
                      # Set Searchvar width optimal for device
-                     tags$style(type = "text/css", paste0('#search {width: ', input$GetScreenWidth - 84, 'px; margin-left:10px;}')),
+                     tags$style(type = "text/css", paste0('#search {width: calc(100vw - 85px); margin-left:10px;}')),
                      # Inputs
                      div(style="display:inline-block;", 
                          textInput("search", 
