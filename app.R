@@ -408,8 +408,8 @@ this_year <- format(Sys.Date(), format="%Y")
 last_year <- as.numeric(this_year) -  1
 
 # CouchDB Connection
-couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
+# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
+couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 if(Sys.Date() <= as.Date(paste0(this_year,"-10-31")) & Sys.Date() >= as.Date(paste0(this_year,"-10-01"))) {
   # Egg
@@ -665,7 +665,7 @@ server <- shinyServer(function(input, output, session) {
   # Tracking Info
   sessionStart <- as.numeric(Sys.time())
   names(sessionStart) <- "sessionStart"
-  sessionID <- paste(stri_rand_strings(1, 5), gsub("\\.", "-", sessionStart) , "points-dev", sep="-")
+  sessionID <- paste(stri_rand_strings(1, 5), gsub("\\.", "-", sessionStart) , "points", sep="-")
   names(sessionID) <- "sessionID"
   observe({
     # Trigger this observer every time an input changes
