@@ -41,8 +41,9 @@ options(scipen = 999)
 ckan_api <- jsonlite::fromJSON("key.json")$ckan_api
 couchdb_un <- jsonlite::fromJSON("key.json")$couchdb_un
 couchdb_pw <- jsonlite::fromJSON("key.json")$couchdb_pw
+couchdb_url <- jsonlite::fromJSON("key.json")$couchdb_url
 
-selection_conn <- cdbIni(serverName = "webhost.pittsburghpa.gov", port = "5984", uname = couchdb_un, pwd = couchdb_pw, DBName = "bev-inputs")
+selection_conn <- cdbIni(serverName = couchdb_url, port = "5984", uname = couchdb_un, pwd = couchdb_pw, DBName = "bev-inputs")
 
 selectGet <- function(id, conn) {
   conn$id <- id
@@ -407,8 +408,8 @@ this_year <- format(Sys.Date(), format="%Y")
 last_year <- as.numeric(this_year) -  1
 
 # CouchDB Connection
-# couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-couchDB <- cdbIni(serverName = "webhost.pittsburghpa.gov", uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
+# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
+couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 if(Sys.Date() <= as.Date(paste0(this_year,"-10-31")) & Sys.Date() >= as.Date(paste0(this_year,"-10-01"))) {
   # Egg
@@ -2402,7 +2403,7 @@ server <- shinyServer(function(input, output, session) {
           setView(-79.9959, 40.4406, zoom = 10)
     }
     #Write inputs to Couch
-    if (url.exists("webhost.pittsburghpa.gov:5984/_utils/")){
+    if (url.exists(paste0(couchdb_url, ":5984/_utils/"))){
       dateTime <- Sys.time()
       names(dateTime) <- "dateTime"
       inputs <- isolate(reactiveValuesToList(input))
