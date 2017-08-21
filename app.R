@@ -408,8 +408,8 @@ this_year <- format(Sys.Date(), format="%Y")
 last_year <- as.numeric(this_year) -  1
 
 # CouchDB Connection
-# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
+couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
+# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 if(Sys.Date() <= as.Date(paste0(this_year,"-10-31")) & Sys.Date() >= as.Date(paste0(this_year,"-10-01"))) {
   # Egg
@@ -653,7 +653,7 @@ server <- shinyServer(function(input, output, session) {
     } else {
       updateActionButton(session = session,
                          inputId = "heatVision",
-                         label = "Ensable Heat Map",
+                         label = "Enable Heat Map",
                          icon = icon("eye"))
       updateSelectInput(session = session,
                         inputId = "basemap_select",
