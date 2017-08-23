@@ -175,13 +175,8 @@ ckanGEO <- function(url) {
   rgdal::readOGR(c, "OGRGeoJSON", verbose = F)
 }
 
-
-# Council
-load.council <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/677930d13af94fd8b70c693c1a6660d0_0.geojson", what = "sp")
-
 # List for Clean Function
-council_list <- paste0(load.council$council, ": ", load.council$councilman)
-council_list <- sort(council_list)
+council_list <- selectGet("council_list", selection_conn)
 
 # Council Clean
 cleanCouncil <- function(data, upper) {
@@ -245,6 +240,10 @@ load.zones$POLICE_ZONE <- load.zones$zone
 load.zones@data <- cleanZone(load.zones@data, TRUE)
 # Fire Zone
 load.firez <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/324584a643a743afba24149a304cc6d3_0.geojson", what = "sp")
+# Council
+load.council <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/9ba815225b1a4d0eada5a00715344095_0.geojson", what = "sp")
+load.council$COUNCIL_DISTRICT <- load.council$council
+load.council@data <- cleanCouncil(load.council@data, TRUE)
 
 # 311 Input & Icons
 request_types <- selectGet("request_types", selection_conn)
@@ -1909,9 +1908,7 @@ server <- shinyServer(function(input, output, session) {
         map <- addPolygons(map, data = council,
                            stroke = TRUE, smoothFactor = 0, weight = 1, color = "#000000", opacity = 0.6,
                            fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0, 
-                           popup = ~paste("<font color='black'><b>District:</b> ", htmlEscape(COUNCIL_DISTRICT),
-                                          "<br><b>Phone #:</b>", htmlEscape(phone),
-                                          "<br><b>Committee:</b>", htmlEscape(committee), "</font>")
+                           popup = ~paste("<font color='black'><b>District:</b> ", htmlEscape(COUNCIL_DISTRICT), "</font>")
         )
       }
       # DPW Divisions

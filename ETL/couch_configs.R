@@ -116,3 +116,7 @@ fires$fire_desc <- paste(fires$incident_type, fires$type_description)
 fire_desc <- unique(fires$fire_desc)
 
 addUpdateDoc("fire_desc", fire_desc)
+
+council_list <- c("1: Darlene Harris", "2: Theresa Kail-Smith", "3: Bruce Kraus", "4: Natalia Rudiak", "5: Corey O'Connor", "6: R. Daniel Lavelle", "7: Deb Gross", "8: Dan Gilman", "9: Reverend Ricky Burgess")
+
+addUpdateDoc("council_list", council_list)
