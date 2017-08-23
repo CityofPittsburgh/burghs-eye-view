@@ -227,9 +227,6 @@ cleanGeo <- function(data, upper) {
 # Load Boundary Files
 # Neighborhoods
 load.hoods <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/87a7e06c5d8440f280ce4b1e4f75cc84_0.geojson", what = "sp")
-# Council Cont.
-load.council$COUNCIL_DISTRICT <- load.council$council
-load.council@data <- cleanCouncil(load.council@data, TRUE)
 # DPW
 load.dpw <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/2d2c30d9633647ddab2f918afc38c35b_0.geojson", what = "sp")
 load.dpw$PUBLIC_WORKS_DIVISION <- load.dpw$division
@@ -407,8 +404,8 @@ this_year <- format(Sys.Date(), format="%Y")
 last_year <- as.numeric(this_year) -  1
 
 # CouchDB Connection
-# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
+couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
+# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 if(Sys.Date() <= as.Date(paste0(this_year,"-10-31")) & Sys.Date() >= as.Date(paste0(this_year,"-10-01"))) {
   # Egg
@@ -1104,9 +1101,14 @@ server <- shinyServer(function(input, output, session) {
   
   # Point Data
   # Crash Data
+  crashesLoad <- reactive({
+    crashes <- ckanQueryCrashes(input$dates[1], input$dates[2])
+    
+    return(crashes)
+  })
   crashesInput <- reactive({
     # Load Crashes
-    crashes <- ckanQueryCrashes(input$dates[1], input$dates[2])
+    crashes <- crashesLoad()
     # Subset
     crashes <- subset(crashes, !is.na(DEC_LONG) & !is.na(DEC_LAT))
     crashes$DEC_LONG <- as.numeric(crashes$DEC_LONG)
@@ -1183,10 +1185,15 @@ server <- shinyServer(function(input, output, session) {
     
     return(crashes)
   })
+  dat311Load <- reactive({
+    dat311 <- ckanQueryDates("40776043-ad00-40f5-9dc8-1fde865ff571", input$dates[1], input$dates[2], "CREATED_ON")
+    
+    return(dat311)
+  })
   # 311 data with filters
   dat311Input <- reactive({
     # Load 311 Requests
-    dat311 <- ckanQueryDates("40776043-ad00-40f5-9dc8-1fde865ff571", input$dates[1], input$dates[2], "CREATED_ON")
+    dat311 <- dat311Load()
     dat311$CREATED_ON <- as.POSIXct(dat311$CREATED_ON, format = '%Y-%m-%dT%H:%M:%S')
     # Clean Geographies
     dat311 <- subset(dat311, select = -REQUEST_ID)
@@ -1246,7 +1253,7 @@ server <- shinyServer(function(input, output, session) {
     return(dat311)
   })
   # Police Blotter data with filters
-  blotterInput <- reactive({
+  blotterLoad <- reactive({
     # Blotter
     archive <- ckanQueryDates("044f2016-1dfd-4ab0-bc1e-065da05fca2e", input$dates[1], input$dates[2], "INCIDENTTIME")
     # Clean for merge
@@ -1258,6 +1265,10 @@ server <- shinyServer(function(input, output, session) {
     # Merge
     archive <- archive[,c(colnames(thirty))]
     blotter <- rbind(archive, thirty)
+  })
+  blotterInput <- reactive({
+    # Load Blotter
+    blotter <- blotterLoad()
     
     # Prepare for Mapping
     blotter$date <- as.Date(blotter$INCIDENTTIME)
@@ -1357,9 +1368,15 @@ server <- shinyServer(function(input, output, session) {
     
     return(blotter)
   })
+  arrestsLoad <- reactive({
+    arrests <- ckanQueryDates("e03a89dd-134a-4ee8-a2bd-62c40aeebc6f", input$dates[1], input$dates[2], "ARRESTTIME")
+    
+    return(arrests)
+  })
   # Arrest data with filters
   arrestsInput <- reactive({
-    arrests <- ckanQueryDates("e03a89dd-134a-4ee8-a2bd-62c40aeebc6f", input$dates[1], input$dates[2], "ARRESTTIME")
+    # Load Arrests
+    arrests <- arrestsLoad()
     arrests$date <- as.Date(arrests$ARRESTTIME)
     # Unify Neighborhoods
     arrests <- transform(arrests, INCIDENTNEIGHBORHOOD = as.factor(mapvalues(INCIDENTNEIGHBORHOOD, c("Golden Triangle/Civic Arena", "Central Northside", "Mt. Oliver Neighborhood", "Troy Hill-Herrs Island"),
@@ -1411,10 +1428,15 @@ server <- shinyServer(function(input, output, session) {
     
     return(arrests)
   })
-  # Citations data with filters
-  citationsInput <- reactive({
+  citationsLoad <- reactive({
     citations <- ckanQueryDates("6b11e87d-1216-463d-bbd3-37460e539d86", input$dates[1], input$dates[2], "CITEDTIME")
     
+    return(citations)
+  })
+  # Citations data with filters
+  citationsInput <- reactive({
+    citations <- citationsLoad()
+    #Fix Date
     citations$date <- as.Date(citations$CITEDTIME)
     # Unify Neighborhoods
     citations <- transform(citations, NEIGHBORHOOD = as.factor(mapvalues(NEIGHBORHOOD, c("Golden Triangle/Civic Arena", "Central Northside", "Mt. Oliver Neighborhood", "Troy Hill-Herrs Island"),
@@ -1463,9 +1485,16 @@ server <- shinyServer(function(input, output, session) {
     
     return(citations) 
   })
+  firesLoad <- reactive({
+    fires <- ckanQueryDates("8d76ac6b-5ae8-4428-82a4-043130d17b02", input$dates[1], input$dates[2], "alarm_time")
+    
+    return(fires)
+  })
   # Fire data with filters
   firesInput <-reactive({
-    fires <- ckanQueryDates("8d76ac6b-5ae8-4428-82a4-043130d17b02", input$dates[1], input$dates[2], "alarm_time")
+    # Load Fires
+    fires <- firesLoad()
+    # Clean
     fires$fire_desc <- paste(fires$incident_type, fires$type_description)
     fires$fire_desc <- as.factor(fires$fire_desc)
     
@@ -1509,10 +1538,16 @@ server <- shinyServer(function(input, output, session) {
     
     return(fires)
   })
+  violationsLoad <- reactive({
+    violations <- ckanQueryDates("4e5374be-1a88-47f7-afee-6a79317019b4", input$dates[1], input$dates[2], "INSPECTION_DATE")
+    
+    return(violations)
+  })
   # Code Violations data with filters
   violationsInput <- reactive({
     # Load Violations
-    violations <- ckanQueryDates("4e5374be-1a88-47f7-afee-6a79317019b4", input$dates[1], input$dates[2], "INSPECTION_DATE")
+    violations <- violationsLoad()
+    # Clean
     violations$date <- as.Date(violations$INSPECTION_DATE)
     violations$INSPECTION_RESULT <- as.factor(violations$INSPECTION_RESULT)
     violations <- transform(violations, icon = as.factor(mapvalues(INSPECTION_RESULT, c('Abated','Violations Found','Voided'),
@@ -1574,9 +1609,15 @@ server <- shinyServer(function(input, output, session) {
     return(violations)
   })
   # Building Permits data with filters
+  permitsLoad <- reactive({
+    permits <- ckanQueryDates("95d69895-e58d-44de-a370-fec6ad2b332e", input$dates[1], input$dates[2], "status_date")
+    
+    return(permits)
+  })
   permitsInput <- reactive({
     # Load Permit Layer
-    permits <- ckanQueryDates("95d69895-e58d-44de-a370-fec6ad2b332e", input$dates[1], input$dates[2], "status_date")
+    permits <- permitsLoad()
+    # Clean Date
     permits$date <- as.Date(permits$intake_date)
     # Full address clean
     permits$full_address <- paste0(ifelse(is.na(permits$street_address) | is.null(permits$street_address), "", paste0(as.character(permits$street_address), " ")),
@@ -1677,11 +1718,16 @@ server <- shinyServer(function(input, output, session) {
     return(permits)
   })
   # Capital Projects data with filters
-  cprojInput <- reactive({
+  cprojLoad <- reactive({
     # Capital Projects
     year1 <- format(as.Date(input$dates[1]), "%Y")
     year2 <- format(as.Date(input$dates[2]), "%Y")
     cproj <- ckanQuery2("2fb96406-813e-4031-acfe-1a82e78dc33c", year1, "fiscal_year", "OR", year2, "fiscal_year")
+    
+    return(cproj)
+  })
+  cprojInput <- reactive({
+    cproj <- cprojLoad()
     
     if (nrow(cproj) > 0){
       # Clean Hood
