@@ -404,8 +404,8 @@ this_year <- format(Sys.Date(), format="%Y")
 last_year <- as.numeric(this_year) -  1
 
 # CouchDB Connection
-couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
+# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
+couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 if(Sys.Date() <= as.Date(paste0(this_year,"-10-31")) & Sys.Date() >= as.Date(paste0(this_year,"-10-01"))) {
   # Egg
@@ -1269,39 +1269,41 @@ server <- shinyServer(function(input, output, session) {
   blotterInput <- reactive({
     # Load Blotter
     blotter <- blotterLoad()
-    
     # Prepare for Mapping
     blotter$date <- as.Date(blotter$INCIDENTTIME)
-    # Reform Hierarchy
-    blotter$HIERARCHY_Num <- blotter$HIERARCHY
-    blotter$HIERARCHY <- case_when(
-      blotter$HIERARCHY_Num == 1 ~ "01 Murder",
-      blotter$HIERARCHY_Num == 2 ~ "02 Rape", 
-      blotter$HIERARCHY_Num == 4 ~ "04 Assault",
-      blotter$HIERARCHY_Num == 5 ~ "05 Burglary",
-      blotter$HIERARCHY_Num == 6 ~ "06 Theft",
-      blotter$HIERARCHY_Num == 7 ~ "07 Vehicle Theft",
-      blotter$HIERARCHY_Num == 8 ~ "08 Arson",
-      blotter$HIERARCHY_Num == 9 ~ "09 Forgery",
-      blotter$HIERARCHY_Num == 10 ~ "10 Simple Assault",
-      blotter$HIERARCHY_Num == 11 ~ "11 Fraud",
-      blotter$HIERARCHY_Num == 12 ~ "12 Embezzlement",
-      blotter$HIERARCHY_Num == 13 ~ "13 Receiving Stolen Prop",
-      blotter$HIERARCHY_Num == 14 ~ "14 Vandalism",
-      blotter$HIERARCHY_Num == 15 ~ "15 Carrying Weapon",
-      blotter$HIERARCHY_Num == 16 ~ "16 Prostitution",
-      blotter$HIERARCHY_Num == 17 ~ "17 Sex Offense",
-      blotter$HIERARCHY_Num == 18 ~ "18 Drug Offense",
-      blotter$HIERARCHY_Num == 19 ~ "19 Gambling",
-      blotter$HIERARCHY_Num == 20 ~ "20 Endangering Children",
-      blotter$HIERARCHY_Num == 21 ~ "21 DUI",
-      blotter$HIERARCHY_Num == 22 ~ "22 Liquor Laws",
-      blotter$HIERARCHY_Num == 23 ~ "23 Public Drunkenness",
-      blotter$HIERARCHY_Num == 24 ~ "24 Disorderly Conduct",
-      blotter$HIERARCHY_Num == 25 ~ "25 Vagrancy",
-      TRUE ~ "26 Other"
-    )
-    blotter$HIERARCHY <- as.factor(blotter$HIERARCHY)
+    
+    if (nrow(blotter) > 0) {
+      # Reform Hierarchy
+      blotter$HIERARCHY_Num <- blotter$HIERARCHY
+      blotter$HIERARCHY <- case_when(
+        blotter$HIERARCHY_Num == 1 ~ "01 Murder",
+        blotter$HIERARCHY_Num == 2 ~ "02 Rape", 
+        blotter$HIERARCHY_Num == 4 ~ "04 Assault",
+        blotter$HIERARCHY_Num == 5 ~ "05 Burglary",
+        blotter$HIERARCHY_Num == 6 ~ "06 Theft",
+        blotter$HIERARCHY_Num == 7 ~ "07 Vehicle Theft",
+        blotter$HIERARCHY_Num == 8 ~ "08 Arson",
+        blotter$HIERARCHY_Num == 9 ~ "09 Forgery",
+        blotter$HIERARCHY_Num == 10 ~ "10 Simple Assault",
+        blotter$HIERARCHY_Num == 11 ~ "11 Fraud",
+        blotter$HIERARCHY_Num == 12 ~ "12 Embezzlement",
+        blotter$HIERARCHY_Num == 13 ~ "13 Receiving Stolen Prop",
+        blotter$HIERARCHY_Num == 14 ~ "14 Vandalism",
+        blotter$HIERARCHY_Num == 15 ~ "15 Carrying Weapon",
+        blotter$HIERARCHY_Num == 16 ~ "16 Prostitution",
+        blotter$HIERARCHY_Num == 17 ~ "17 Sex Offense",
+        blotter$HIERARCHY_Num == 18 ~ "18 Drug Offense",
+        blotter$HIERARCHY_Num == 19 ~ "19 Gambling",
+        blotter$HIERARCHY_Num == 20 ~ "20 Endangering Children",
+        blotter$HIERARCHY_Num == 21 ~ "21 DUI",
+        blotter$HIERARCHY_Num == 22 ~ "22 Liquor Laws",
+        blotter$HIERARCHY_Num == 23 ~ "23 Public Drunkenness",
+        blotter$HIERARCHY_Num == 24 ~ "24 Disorderly Conduct",
+        blotter$HIERARCHY_Num == 25 ~ "25 Vagrancy",
+        TRUE ~ "26 Other"
+      )
+      blotter$HIERARCHY <- as.factor(blotter$HIERARCHY)
+    }
     
     # Unify Neighborhoods
     blotter <- transform(blotter, INCIDENTNEIGHBORHOOD = as.factor(mapvalues(INCIDENTNEIGHBORHOOD, c("Golden Triangle/Civic Arena", "Central Northside", "Mt. Oliver Neighborhood", "Troy Hill-Herrs Island"),
