@@ -45,6 +45,7 @@ couchdb_url <- jsonlite::fromJSON("key.json")$couchdb_url
 
 selection_conn <- cdbIni(serverName = couchdb_url, port = "5984", uname = couchdb_un, pwd = couchdb_pw, DBName = "bev-inputs")
 
+# Input Selection Function
 selectGet <- function(id, conn) {
   conn$id <- id
   r <- cdbGetDoc(conn)$res
@@ -55,6 +56,7 @@ selectGet <- function(id, conn) {
 # Function to read backslashes correctly
 chartr0 <- function(foo) chartr('\\','\\/',foo)
 
+# Function to Check Screenwidth
 getWidth <- '$(document).on("shiny:connected", function(e) {
   var jsWidth = screen.width;
   Shiny.onInputChange("GetScreenWidth",jsWidth);
@@ -312,8 +314,8 @@ icons_permits <- iconList(
 )
 
 # Load Workflow
-load.workflow <- ckan("7e0bf4bf-c7f5-48cd-8177-86f5ce776dfa")
-load.workflow$tool <- paste0("<dt>", load.workflow$status_date, ": ", load.workflow$action_by_dept, "</dt>", "<dd>", load.workflow$task, " - ", load.workflow$status, "</dd>")
+# load.workflow <- ckan("7e0bf4bf-c7f5-48cd-8177-86f5ce776dfa")
+# load.workflow$tool <- paste0("<dt>", load.workflow$status_date, ": ", load.workflow$action_by_dept, "</dt>", "<dd>", load.workflow$task, " - ", load.workflow$status, "</dd>")
 
 violations <- selectGet("violations", selection_conn)
 
@@ -1918,6 +1920,13 @@ server <- shinyServer(function(input, output, session) {
   })
   # Generate Report Table
   output$report.table <- DT::renderDataTable({
+    if (url.exists(paste0(couchdb_url, ":5984/_utils/"))){
+      dateTime <- Sys.time()
+      names(dateTime) <- "dateTime"
+      inputs <- isolate(reactiveValuesToList(input))
+      couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart)
+      cdbAddDoc(couchDB)
+    }
     # Load Report dataset
     reportInput()
   }, escape = FALSE, options = list(scrollX = TRUE), rownames= FALSE)
