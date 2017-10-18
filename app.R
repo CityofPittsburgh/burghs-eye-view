@@ -226,7 +226,7 @@ cleanGeo <- function(data, upper) {
   return(data)
 }
 
-# Load Boundary Files
+# Load Boundary Files from Pittsburgh Shems server. This process may cause the error screen to appear before the application UI loads.
 # Neighborhoods
 load.hoods <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/87a7e06c5d8440f280ce4b1e4f75cc84_0.geojson", what = "sp")
 # DPW
@@ -1021,7 +1021,7 @@ server <- shinyServer(function(input, output, session) {
     if (input$filter_select == "Neighborhood"){
       selectInput("hood_select",
                   label = NULL,
-                  c(`Neighborhood`='', levels(load.hoods$hood)),
+                  c(`Neighborhood`='', levels(load.hoods$hood_1)),
                   multiple = TRUE,
                   selectize=TRUE)
     } else if (input$filter_select == "Public Works Division") {
@@ -1056,7 +1056,7 @@ server <- shinyServer(function(input, output, session) {
     hoods <- load.hoods
     
     if (length(input$hood_select) > 0){
-      hoods <- hoods[hoods$hood %in% input$hood_select,]
+      hoods <- hoods[hoods$hood_1 %in% input$hood_select,]
     }
     
     hoods
@@ -1165,7 +1165,7 @@ server <- shinyServer(function(input, output, session) {
           crashes_sp$POLICE_ZONE <- sp::over(crashes_sp, load.zones)$POLICE_ZONE
           crashes_sp <- crashes_sp[crashes_sp$POLICE_ZONE %in% input$zone_select,]
         } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
-          crashes_sp$hood <- sp::over(crashes_sp, load.hoods)$hood
+          crashes_sp$hood <- sp::over(crashes_sp, load.hoods)$hood_1
           crashes_sp <- crashes_sp[crashes_sp$hood %in% input$hood_select,]
         } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
           crashes_sp$PUBLIC_WORKS_DIVISION <- sp::over(crashes_sp, load.dpw)$PUBLIC_WORKS_DIVISION
@@ -1955,7 +1955,7 @@ server <- shinyServer(function(input, output, session) {
         map <- addPolygons(map, data = hoods,
                            stroke = TRUE, smoothFactor = 0, weight = 1, color = "#000000", opacity = 0.6,
                            fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0, 
-                           popup = ~paste("<font color='black'><b>Neighborhood:</b> ", htmlEscape(hood), "</font>")
+                           popup = ~paste("<font color='black'><b>Neighborhood:</b> ", htmlEscape(hood_1), "</font>")
         )
       }
       # Council Districts
