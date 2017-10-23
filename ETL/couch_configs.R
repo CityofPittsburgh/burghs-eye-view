@@ -2,6 +2,10 @@ require(httr)
 require(jsonlite)
 require(R4CouchDB)
 require(curl)
+require(rgdal)
+require(geojsonio)
+require(plyr)
+require(tools)
 
 httr::set_config(config(ssl_verifypeer = 0L))
 
@@ -14,6 +18,12 @@ ckan <- function(id) {
   x <- paste0("https://data.wprdc.org/datastore/dump/", id)
   r <- GET(x, add_headers(Authorization = ckan_api))
   content(r)
+}
+
+ckanGEO <- function(url) {
+  r <- GET(url, add_headers(Authorization = ckan_api))
+  c <- content(r, as ="text")
+  readOGR(c, "OGRGeoJSON", verbose = F)
 }
 
 addUpdateDoc <- function (id, data) {
@@ -34,11 +44,11 @@ addUpdateDoc <- function (id, data) {
 load311 <- ckan("40776043-ad00-40f5-9dc8-1fde865ff571")
 
 # 311 Inputs List
-request_types <- levels(load311$REQUEST_TYPE)
+request_types <- levels(as.factor(load311$REQUEST_TYPE))
 addUpdateDoc("request_types", request_types)
-departments <- levels(load311$DEPARTMENT)
+departments <- levels(as.factor(load311$DEPARTMENT))
 addUpdateDoc("departments", departments)
-origins <- levels(load311$REQUEST_ORIGIN)
+origins <- levels(as.factor(load311$REQUEST_ORIGIN))
 addUpdateDoc("origins", origins)
 
 # Police Blotter & Archive
@@ -73,7 +83,7 @@ for (i in 1:ncol(offenses)) {
   offenseList <- unique(offenseList)
 }
 
-addUpdateDoc("offenses", levels(offenseList$lvls))
+addUpdateDoc("offenses", levels(as.factor(offenseList$lvls)))
 
 # Violations
 violations <- ckan("4e5374be-1a88-47f7-afee-6a79317019b4")
@@ -99,7 +109,7 @@ for (i in 1:ncol(violations)) {
   violationList <- unique(violationList)
 } 
 
-addUpdateDoc("violations", levels(violationList$lvls))
+addUpdateDoc("violations", levels(as.factor(violationList$lvls)))
 
 # Building Permits
 permits <- ckan("95d69895-e58d-44de-a370-fec6ad2b332e")
@@ -158,7 +168,7 @@ fields <- ckanGEO("https://data.wprdc.org/dataset/87c77ec3-db98-4b2a-8891-d9b577
 parks <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/e95593cb0a2d4ff194be9694b40614dc_0.geojson", what = "sp")
 
 # Rec Tyoes
-rec_types <- sort(c("Greenway", levels(courts@data$type), levels(fields@data$field_usage), levels(recfacilities@data$usage), levels(parks$final_cat), "Playground"))
+rec_types <- sort(c("Greenway", levels(as.factor(courts@data$type)), levels(as.factor(fields@data$field_usage)), levels(as.factor(recfacilities@data$usage)), levels(as.factor(parks$final_cat)), "Playground"))
 addUpdateDoc("rec_types", rec_types)
 
 # Load Pools
@@ -179,14 +189,14 @@ wf <- wf[wf@data$feature_type != "Spray Fountain",]
 wf@data$feature_type <- as.factor(wf@data$feature_type)
 
 # Facility Usage
-facility_usage <- sort(c(levels(wf$feature_type), levels(facilities$usage)))
+facility_usage <- sort(c(levels(as.factor(wf$feature_type)), levels(as.factor(facilities$usage))))
 addUpdateDoc("facility_usage", facility_usage)
 
 # Load Pools
 pools <- ckanGEO("https://data.wprdc.org/dataset/f7067c4e-0c1e-420c-8c31-f62769fcd29a/resource/77288f26-54a1-4c0c-bc59-7873b1109e76/download/poolsimg.geojson")
 
 # Pool Categories
-pool_cat <- sort(unique(c(levels(pools$type) ,levels(poolsfacilities@data$usage), levels(spray$feature_type))))
+pool_cat <- sort(unique(c(levels(as.factor(pools$type)) ,levels(as.factor(poolsfacilities@data$usage)), levels(as.factor(spray$feature_type)))))
 addUpdateDoc("pool_cat", pool_cat)
 
 # Intersections
@@ -206,10 +216,10 @@ si@data$flash_time <- as.factor(si@data$flash_time)
 # Load Crosswalks
 cw <- ckanGEO("https://data.wprdc.org/dataset/31ce085b-87b9-4ffd-adbb-0a9f5b3cf3df/resource/f86f1950-3b73-46f9-8bd4-2991ea99d7c4/download/crosswalksimg.geojson")
 
-intersection_type <- sort(c(levels(cw$type), levels(si$operation_type)))
+intersection_type <- sort(c(as.factor(levels(cw$type)), levels(as.factor(si$operation_type))))
 addUpdateDoc("intersection_type", intersection_type)
 
-flash_times <- levels(si$flash_time)
+flash_times <- levels(as.factor(si$flash_time))
 addUpdateDoc("flash_times", flash_times)
 
 # Steps Walls

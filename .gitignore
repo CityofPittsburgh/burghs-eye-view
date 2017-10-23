@@ -4,3 +4,4 @@ packrat
 key.json
 rsconnect
 .RData
+packrat/lib*/
