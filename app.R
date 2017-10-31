@@ -7,6 +7,7 @@
 # Load required packages
 library(shiny)
 library(shinythemes)
+library(shinyTime)
 library(xml2)
 
 #"Dogfooding" Packages
@@ -376,6 +377,10 @@ icons_cproj <- iconList(
 
 # Collisions
 crash_types <- c("Automobile", "Bicycle", "Bus", "Hit Deer", "Intoxicated Driver", "Motorcycle", "Pedestrian", "Train/Trolley", "Fixed Object")
+
+circumstances_values <- c("LANE_CLOSED", "TAILGATING", "AGGRESSIVE_DRIVING", "SPEEDING_RELATED", "UNLICENSED", "WET_ROAD", "SNOW_SLUSH_ROAD", "ICY_ROAD", "REAR_END", "OVERTURNED", "CELL_PHONE", "VEHICLE_TOWED", "RUNNING_RED_LT", "RUNNING_STOP_SIGN", "FATIGUE_ASLEEP", "WORK_ZONE", "DISTRACTED", "SCH_BUS_IND")
+
+circumstances_types <- c("Lane Closed", "Tailgating", "Aggressive Driving", "Speeding Related", "Unlicensed", "Wet Road", "Snow/Slushy Road", "Icy Road", "Rear Ended", "Overturned Vehicle", "Cellphone Related", "Vehicle Towed", "Ran Red Light", "Ran Stop Sign", "Fatigued/Asleep", "Work Zone", "Distracted", "School Bus")
 
 icons_crashes <- iconList(
   crash = makeIcon("./icons/crashes/crash.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
@@ -828,6 +833,16 @@ server <- shinyServer(function(input, output, session) {
                                 c(`Collision Type`='', crash_types),
                                 multiple = TRUE,
                                 selectize=TRUE),
+                    selectInput("circumstances_select",
+                                label = NULL,
+                                c(`Circumstances`='', circumstances_types),
+                                multiple = TRUE,
+                                selectize = TRUE),
+                    selectInput("dow_select",
+                                label = NULL,
+                                c(`Day of the Week` = '', c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")),
+                                multiple = TRUE,
+                                selectize = TRUE),
                     selectInput("basemap_select",
                                 label = "Basemap",
                                 choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `OSM Dark Matter` = "CartoDB.DarkMatter", `OSM Positron` = "CartoDB.Positron"),
@@ -987,6 +1002,16 @@ server <- shinyServer(function(input, output, session) {
                                  c(`Collision Type`='', crash_types),
                                  multiple = TRUE,
                                  selectize=TRUE),
+                     selectInput("circumstances_select",
+                                 label = NULL,
+                                 c(`Circumstances`='', circumstances_types),
+                                 multiple = TRUE,
+                                 selectize = TRUE),
+                     selectInput("dow_select",
+                                 label = NULL,
+                                 c(`Day of the Week` = '', c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")),
+                                 multiple = TRUE,
+                                 selectize = TRUE),
                      selectInput("basemap_select",
                                  label = "Basemap",
                                  choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `OSM Dark Matter` = "CartoDB.DarkMatter", `OSM Positron` = "CartoDB.Positron"),
@@ -1106,16 +1131,34 @@ server <- shinyServer(function(input, output, session) {
   crashesLoad <- reactive({
     crashes <- ckanQueryCrashes(input$dates[1], input$dates[2])
     
+    # Clean
+    crashes <- subset(crashes, !is.na(DEC_LONG) & !is.na(DEC_LAT))
+    crashes$DEC_LONG <- as.numeric(crashes$DEC_LONG)
+    crashes$DEC_LAT <- as.numeric(crashes$DEC_LAT)
+    crashes <- subset(crashes, DEC_LONG > -80.242767 & DEC_LONG < -79.660492 & DEC_LAT < 40.591014 & DEC_LAT > 40.266428)
+    
     return(crashes)
   })
   crashesInput <- reactive({
     # Load Crashes
     crashes <- crashesLoad()
-    # Subset
-    crashes <- subset(crashes, !is.na(DEC_LONG) & !is.na(DEC_LAT))
-    crashes$DEC_LONG <- as.numeric(crashes$DEC_LONG)
-    crashes$DEC_LAT <- as.numeric(crashes$DEC_LAT)
-    crashes <- subset(crashes, DEC_LONG > -80.242767 & DEC_LONG < -79.660492 & DEC_LAT < 40.591014 & DEC_LAT > 40.266428)
+    
+    if (length(input$circumstances_select) > 0) {
+      cols <- circumstances_values[which(circumstances_types %in% input$circumstances_select)]
+      
+      count <- 1
+      for (i in cols) {
+        temp <- crashes[c(crashes[i] >= 1),]
+        #Create DF
+        if (count == 1) {
+          count <- 2
+          crashes <- temp
+        } else {
+          #Bind DF
+          crashes <- rbind(crashes, temp)
+        }
+      }
+    }
     
     # Icons
     if (nrow(crashes) > 0){
@@ -1142,7 +1185,7 @@ server <- shinyServer(function(input, output, session) {
         crashes$time <- str_pad(crashes$TIME_OF_DAY, 4, pad = "0")
         crashes$date <- paste0(crashes$CRASH_YEAR, crashes$CRASH_MONTH, "01")
         crashes$date_time <- as.POSIXct(paste(crashes$date, crashes$time), format = "%Y%m%d %H%M")
-        crashes$time <- format(crashes$date_time, "%I:%m %p")
+        crashes$time <- format(crashes$date_time, "%I:%M %p")
         crashes$date <- format(as.Date(crashes$date, format = "%Y%m%d"), "%B %Y")
         crashes$day <- as.factor(case_when(
           crashes$DAY_OF_WEEK == "1" ~ "Sunday",
@@ -1153,7 +1196,12 @@ server <- shinyServer(function(input, output, session) {
           crashes$DAY_OF_WEEK == "6" ~ "Friday",
           crashes$DAY_OF_WEEK == "7" ~ "Saturday"
         ))
-      
+        
+        # Day of the Week Filter
+        if (length(input$dow_select) > 0) {
+          crashes <- crashes[crashes$day %in% input$dow_select,]
+        }
+        
         # Spatial for filtering
         coords <- cbind(as.numeric(crashes$DEC_LONG), as.numeric(crashes$DEC_LAT))
         points <- SpatialPoints(coords)

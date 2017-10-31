@@ -217,9 +217,9 @@ si@data$flash_time <- as.factor(si@data$flash_time)
 cw <- ckanGEO("https://data.wprdc.org/dataset/31ce085b-87b9-4ffd-adbb-0a9f5b3cf3df/resource/f86f1950-3b73-46f9-8bd4-2991ea99d7c4/download/crosswalksimg.geojson")
 
 # Load Stop Signs
-stops <- ckan("cbbb69f2-d622-4dce-9587-43965146e436")
+signs <- ckan("d078a6b5-83a3-4723-a3a9-5371cfe1cc0c")
 
-intersection_type <- sort(c(as.factor(levels(cw$type)), levels(as.factor(si$operation_type)), unique(stops$description)))
+intersection_type <- sort(c(levels(as.factor(cw$type)), levels(as.factor(si$operation_type)), unique(signs$description)))
 addUpdateDoc("intersection_type", intersection_type)
 
 flash_times <- levels(as.factor(si$flash_time))
