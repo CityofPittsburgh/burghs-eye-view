@@ -422,19 +422,7 @@ if(Sys.Date() <= as.Date(paste0(this_year,"-10-31")) & Sys.Date() >= as.Date(pas
   load.egg <- data.frame(X,Y,title)
   load.egg$icon <- "halloween"
   load.egg$tt <- "Yarr! There be nuttin' to be found with that search term matey."
-} else if (Sys.Date() <= as.Date(paste0(this_year,"-11-08")) & Sys.Date() >= as.Date(paste0(this_year,"-11-01"))) {
-  load.egg <- ckan("e17e6a67-2bba-4a1a-aa36-87beb2cd0a3b")
-  load.egg <- subset(load.egg, MuniName == "PITTSBURGH")
-  load.egg$icon <- "election"
-  load.egg$tt <- paste0("<font color='black'>No matter who you Vote for, make sure you Vote!
-                        <br><b>Location: </b>", load.egg$LocName,
-                        "<br><b>Ward: </b>", load.egg$Ward,
-                        "<br><b>District: </b>", load.egg$District,
-                        "<br><b>Address: </b>", load.egg$NewAddress,
-                        '<br><center><a href="https://www.pavoterservices.state.pa.us/pages/pollingplaceinfo.aspx" target="_blank">Find your polling place!</a></center>
-                        Clear the search bar to go back to the regular Burgh&#39;s Eye View!</font>'
-  )
-} else if (Sys.Date() <= as.Date(paste0(this_year,"-11-30")) & Sys.Date() >= as.Date(paste0(this_year,"-11-09"))) {
+} else if (Sys.Date() <= as.Date(paste0(this_year,"-11-30")) & Sys.Date() >= as.Date(paste0(this_year,"-11-01"))) {
   X <- c(-79.9773187, -80.0096757, -80.0109521)
   Y <- c(40.4644031, 40.4406418, 40.4416163)
   title <- c("Herr's Island", "Fort Pitt", "Fort Duquesne")
@@ -706,7 +694,7 @@ server <- shinyServer(function(input, output, session) {
           top = 70, left = 50, width = '300px',
           wellPanel(id = "tPanel", style = "overflow-y:auto; max-height: calc(100vh - 90px) !important;",
                     textInput("search",
-                              value = ifelse(Sys.Date() == as.Date(paste0(this_year,"-11-08")), "Election Day!", ""),
+                              value = "",
                               label = NULL, 
                               placeholder = "Search"),
                     # Add background image
@@ -877,7 +865,7 @@ server <- shinyServer(function(input, output, session) {
                      # Inputs
                      div(style="display:inline-block;", 
                          textInput("search", 
-                                   value = ifelse(Sys.Date() == as.Date(paste0(this_year,"-11-08")), "Election Day!", ""),
+                                   value = "",
                                    label = NULL, 
                                    placeholder = "Search")),
                      tags$style(style="text/css", chartr0('#mapPanel #outer .btn .fa:before { content: "\\f056";  }
@@ -2496,11 +2484,7 @@ server <- shinyServer(function(input, output, session) {
     }
     print(recs)
     if (recs < 1) {
-      if (Sys.Date() >= as.Date(paste0(this_year,"-11-01")) & Sys.Date() <= as.Date(paste0(this_year,"-11-08"))) {
-        egg <- load.egg
-      } else {
-        egg <- load.egg[sample(1:nrow(load.egg),1),]
-      }
+      egg <- load.egg[sample(1:nrow(load.egg),1),]
       map <- addMarkers(map, data=egg, ~X, ~Y, icon = ~icons_egg[icon], popup = ~tt) %>% 
           setView(-79.9959, 40.4406, zoom = 10)
     }
