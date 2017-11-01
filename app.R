@@ -419,7 +419,7 @@ eDay <- nov + days(which(dow==2))
 # couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
 couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
-if (Sys.date() == eDay) {
+if (Sys.Date() == eDay) {
   load.egg <- ckan("51efa73c-d4b8-4ac0-b65a-9c9b1f904372")
   load.egg <- subset(load.egg, MuniName == "PITTSBURGH")
   load.egg$icon <- "election"
@@ -710,7 +710,7 @@ server <- shinyServer(function(input, output, session) {
           top = 70, left = 50, width = '300px',
           wellPanel(id = "tPanel", style = "overflow-y:auto; max-height: calc(100vh - 90px) !important;",
                     textInput("search",
-                              value = ifelse(Sys.Date == eDay, "Election Day!", ""),
+                              value = ifelse(Sys.Date() == eDay, "Election Day!", ""),
                               label = NULL, 
                               placeholder = "Search"),
                     # Add background image
@@ -887,7 +887,7 @@ server <- shinyServer(function(input, output, session) {
                      # Inputs
                      div(style="display:inline-block;", 
                          textInput("search", 
-                                   value = ifelse(Sys.Date == eDay, "Election Day!", ""),
+                                   value = ifelse(Sys.Date() == eDay, "Election Day!", ""),
                                    label = NULL, 
                                    placeholder = "Search")),
                      tags$style(style="text/css", chartr0('#mapPanel #outer .btn .fa:before { content: "\\f056";  }
