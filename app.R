@@ -823,7 +823,7 @@ server <- shinyServer(function(input, output, session) {
                                 selectize=TRUE),
                     selectInput("circumstances_select",
                                 label = NULL,
-                                c(`Circumstances`='', circumstances_types),
+                                c(`Special Circumstances`='', circumstances_types),
                                 multiple = TRUE,
                                 selectize = TRUE),
                     selectInput("dow_select",
@@ -831,6 +831,12 @@ server <- shinyServer(function(input, output, session) {
                                 c(`Day of the Week` = '', c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")),
                                 multiple = TRUE,
                                 selectize = TRUE),
+                    sliderInput("times",
+                                label = "Collision Time (24-hour clock)",
+                                min = 0,
+                                max = 24,
+                                value = c(0,24),
+                                step = 1),
                     selectInput("basemap_select",
                                 label = "Basemap",
                                 choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `OSM Dark Matter` = "CartoDB.DarkMatter", `OSM Positron` = "CartoDB.Positron"),
@@ -992,7 +998,7 @@ server <- shinyServer(function(input, output, session) {
                                  selectize=TRUE),
                      selectInput("circumstances_select",
                                  label = NULL,
-                                 c(`Circumstances`='', circumstances_types),
+                                 c(`Special Circumstances`='', circumstances_types),
                                  multiple = TRUE,
                                  selectize = TRUE),
                      selectInput("dow_select",
@@ -1000,6 +1006,12 @@ server <- shinyServer(function(input, output, session) {
                                  c(`Day of the Week` = '', c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")),
                                  multiple = TRUE,
                                  selectize = TRUE),
+                     sliderInput("times",
+                                 label = "Collision Time (24-hour clock)",
+                                 min = 0,
+                                 max = 24,
+                                 value = c(0,24),
+                                 step = 1),
                      selectInput("basemap_select",
                                  label = "Basemap",
                                  choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `OSM Dark Matter` = "CartoDB.DarkMatter", `OSM Positron` = "CartoDB.Positron"),
@@ -1173,7 +1185,8 @@ server <- shinyServer(function(input, output, session) {
         crashes$time <- str_pad(crashes$TIME_OF_DAY, 4, pad = "0")
         crashes$date <- paste0(crashes$CRASH_YEAR, crashes$CRASH_MONTH, "01")
         crashes$date_time <- as.POSIXct(paste(crashes$date, crashes$time), format = "%Y%m%d %H%M")
-        crashes$time <- format(crashes$date_time, "%I:%M %p")
+        crashes$time <- format(crashes$date_time, "%H:%M")
+        crashes$hour <- as.integer(format(crashes$date_time, "%H"))
         crashes$date <- format(as.Date(crashes$date, format = "%Y%m%d"), "%B %Y")
         crashes$day <- as.factor(case_when(
           crashes$DAY_OF_WEEK == "1" ~ "Sunday",
@@ -1184,6 +1197,8 @@ server <- shinyServer(function(input, output, session) {
           crashes$DAY_OF_WEEK == "6" ~ "Friday",
           crashes$DAY_OF_WEEK == "7" ~ "Saturday"
         ))
+        
+        crashes <- subset(crashes, time >= input$times[1] & time <= input$times[2])
         
         # Day of the Week Filter
         if (length(input$dow_select) > 0) {
@@ -2450,7 +2465,7 @@ server <- shinyServer(function(input, output, session) {
                    popup = ~(paste("<font color='black'><b>Collision Type:</b>", crashes$type,
                                    "<br><b>When:</b>", crashes$date,
                                    "<br><b>Day:</b>", crashes$day,
-                                   "<br><b>Time:</b>", crashes$time,
+                                   "<br><b>Time <i>(24-hour clock)</i>:</b>", crashes$time,
                                    "<br><b>Street:</b>", crashes$STREET_NAME,
                                    "<br><b>Speed Limit:</b>", crashes$SPEED_LIMIT,
                                    "<br><b>Vehicles:</b>", crashes$VEHICLE_COUNT,
