@@ -428,7 +428,7 @@ if (Sys.Date() == eDay) {
                         "<br><b>Ward: </b>", load.egg$Ward,
                         "<br><b>District: </b>", load.egg$District,
                         "<br><b>Address: </b>", load.egg$NewAddress,
-                        '<br><center><a href="https://www.pavoterservices.state.pa.us/pages/pollingplaceinfo.aspx" target="_blank">Find your polling place!</a></center>'
+                        '<br><center><a href="https://alleghenycounty.civicengine.com/" target="_blank">Find your polling place!</a></center>'
   )
 } else if(Sys.Date() <= as.Date(paste0(this_year,"-10-31")) & Sys.Date() >= as.Date(paste0(this_year,"-10-01"))) {
   # Egg
