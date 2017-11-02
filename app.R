@@ -1966,9 +1966,13 @@ server <- shinyServer(function(input, output, session) {
     } else if (input$report_select == "Collisions") {
       crashes <- crashesInput()
       
-      crashes <- subset(crashes, select = c(type, date, day, time, STREET_NAME, SPEED_LIMIT, VEHICLE_COUNT, PERSON_COUNT, INJURY_COUNT, FATAL_COUNT, LANE_CLOSED, TAILGATING, AGGRESSIVE_DRIVING, SPEEDING_RELATED, UNLICENSED, WET_ROAD, SNOW_SLUSH_ROAD, ICY_ROAD, REAR_END, OVERTURNED, CELL_PHONE, VEHICLE_TOWED, RUNNING_RED_LT, RUNNING_STOP_SIGN, FATIGUE_ASLEEP, WORK_ZONE, DISTRACTED, SCH_BUS_IND))
+      if (class(crashes) == "SpatialPointsDataFrame") {
+        crashes <- crashes@data
+      }
       
-      colnames(crashes) <- c("Type", "When", "Day", "Time", "Street", "Speed Limit", "Vehicles", "People", "Injuries", "Deaths", "Lane Closed", "Tailgating", "Agreesive Driving", "Speeding", "Unlicensed, Wet Road", "Snow/Slush", "Ice", "Rear Ended", "OVerturned", "Cellphone", "Towed", "Ran Red Light", "Ran Stop Sign", "Fatigue/Asleep", "Work Zone", "Distracted", "School Bus")
+      crashes <- subset(crashes, select = c(type, day, time, STREET_NAME, SPEED_LIMIT, VEHICLE_COUNT, PERSON_COUNT, INJURY_COUNT, FATAL_COUNT, LANE_CLOSED, TAILGATING, AGGRESSIVE_DRIVING, SPEEDING_RELATED, UNLICENSED, WET_ROAD, SNOW_SLUSH_ROAD, ICY_ROAD, REAR_END, OVERTURNED, CELL_PHONE, VEHICLE_TOWED, RUNNING_RED_LT, RUNNING_STOP_SIGN, FATIGUE_ASLEEP, WORK_ZONE, DISTRACTED, SCH_BUS_IND))
+      
+      colnames(crashes) <- c("Type", "Day of the Week", "Time (24-hour clock)", "Street", "Speed Limit", "Vehicles", "People", "Injuries", "Deaths", "Lane Closed", "Tailgating", "Agreesive Driving", "Speeding", "Unlicensed, Wet Road", "Snow/Slush", "Ice", "Rear Ended", "OVerturned", "Cellphone", "Towed", "Ran Red Light", "Ran Stop Sign", "Fatigue/Asleep", "Work Zone", "Distracted", "School Bus")
       
       report <- crashes
     }
