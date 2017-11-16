@@ -7,24 +7,16 @@
 # Load required packages
 library(shiny)
 library(shinythemes)
-library(shinyTime)
-library(xml2)
 
 #"Dogfooding" Packages
 library(httr)
 library(jsonlite)
-library(readr)
-library(curl)
 library(R4CouchDB)
 
 # Visuals Libraries
 library(leaflet)
 library(leaflet.extras)
 library(DT)
-library(maptools)
-library(htmltools)
-library(htmlwidgets)
-library(rgeos)
 library(geojsonio)
 library(sp)
 
@@ -34,7 +26,6 @@ library(dplyr)
 library(zoo)
 library(lubridate)
 library(stringi)
-library(stringr)
 
 # Turn off Scientific Notation
 options(scipen = 999)
