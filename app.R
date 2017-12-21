@@ -238,6 +238,7 @@ load.council@data <- cleanCouncil(load.council@data, TRUE)
 
 # 311 Input & Icons
 request_types <- selectGet("request_types", selection_conn)
+status_types <- c("New", "Open", "Closed")
 
 requests311 <-c("Abandoned Vehicle (parked on street)", "Building Maintenance", "Building Without a Permit", "Drug Enforcement", "Fire Department", "Fire Lane", "Fire Prevention", "Gang Activity", "Graffiti, Documentation", "Graffiti, Removal", "Hydrant - Fire Admin", "Illegal Dumping", "Illegal Parking", "Litter","Noise", "Missed Pick Up", "Panhandling", "Patrol", "Paving Request", "Potholes", "Pruning (city tree)", "Refuse Violations", "Replace/Repair a Sign", "Request New Sign", "Rodent control", "Sidewalk Obstruction", "Sinkhole", "Smoke detectors", "Snow/Ice removal", "Street Cleaning/Sweeping", "Street Light - Repair", "Traffic", "Traffic or Pedestrian Signal, Repair", "Vacant Building", "Weeds/Debris")
 
@@ -733,6 +734,11 @@ server <- shinyServer(function(input, output, session) {
                                 c(`Request Type`='', request_types),
                                 multiple = TRUE,
                                 selectize=TRUE),
+                    selectInput("status_type",
+                                label = NULL,
+                                c(`Request Status`='', status_types),
+                                multiple = TRUE,
+                                selectize=TRUE),
                     selectInput("dept_select",
                                 label = NULL,
                                 c(`Department`='', departments),
@@ -906,6 +912,11 @@ server <- shinyServer(function(input, output, session) {
                      selectInput("req.type",
                                  label = NULL,
                                  c(`Request Type`='', request_types),
+                                 multiple = TRUE,
+                                 selectize=TRUE),
+                     selectInput("status_type",
+                                 label = NULL,
+                                 c(`Request Status`='', status_types),
                                  multiple = TRUE,
                                  selectize=TRUE),
                      selectInput("dept_select",
@@ -1262,6 +1273,10 @@ server <- shinyServer(function(input, output, session) {
     dat311$CREATED_ON <- as.POSIXct(dat311$CREATED_ON, tz = "EST")
     dat311$icon <- as.character(dat311$REQUEST_TYPE)
     dat311$REQUEST_TYPE <- ifelse(dat311$REQUEST_TYPE == "Potholes - 4th Div", "Potholes", dat311$REQUEST_TYPE)
+    # Clean Status
+    dat311$STATUS <- ifelse(dat311$STATUS == 0, "New", dat311$STATUS)
+    dat311$STATUS <- ifelse(dat311$STATUS == 3, "Open", dat311$STATUS)
+    dat311$STATUS <- ifelse(dat311$STATUS == 1, "Closed", dat311$STATUS)
     # Set Icon to Other
     dat311$icon <- ifelse(dat311$icon %in% requests311, dat311$icon, "Other")
     dat311$icon <- as.factor(dat311$icon)
@@ -1285,6 +1300,9 @@ server <- shinyServer(function(input, output, session) {
     }
     if (length(input$req.type) > 0){
       dat311 <- dat311[dat311$REQUEST_TYPE %in% input$req.type,]
+    }
+    if (length(input$status_type) > 0){
+      dat311 <- dat311[dat311$STATUS %in% input$status_type,]
     }
     if (length(input$origin_select) > 0){
       dat311 <- dat311[dat311$REQUEST_ORIGIN %in% input$origin_select,]
@@ -1891,10 +1909,10 @@ server <- shinyServer(function(input, output, session) {
       dat311 <- dat311Input()
       
       # Select display columns
-      dat311 <- subset(dat311, select = c(REQUEST_TYPE, DEPARTMENT, CREATED_ON, NEIGHBORHOOD, COUNCIL_DISTRICT, POLICE_ZONE, PUBLIC_WORKS_DIVISION))
+      dat311 <- subset(dat311, select = c(REQUEST_TYPE, DEPARTMENT, CREATED_ON, STATUS, NEIGHBORHOOD, COUNCIL_DISTRICT, POLICE_ZONE, PUBLIC_WORKS_DIVISION))
       
       # Rename columns for humans
-      colnames(dat311) <- c("Request Type", "Dept", "Create Date", "Neighborhood", "Council District", "Police Zone",  "Public Works Division")
+      colnames(dat311) <- c("Request Type", "Dept", "Create Date", "Status", "Neighborhood", "Council District", "Police Zone",  "Public Works Division")
       
       # Set report data
       report <- dat311
@@ -2191,6 +2209,7 @@ server <- shinyServer(function(input, output, session) {
                           popup = ~(paste("<font color='black'><b>Request:</b>", dat311$REQUEST_TYPE,
                                           "<br><b>Location Accuracy:</b>", dat311$GEO_ACCURACY,
                                           "<br><b>Open Date/Time:</b>", dat311$CREATED_ON,
+                                          "<br><b>Status:</b>", dat311$STATUS,
                                           "<br><b>Dept:</b>", dat311$DEPARTMENT,
                                           "<br><b>Origin:</b>", dat311$REQUEST_ORIGIN2,
                                           "<br><b>Neighborhood:</b>", dat311$NEIGHBORHOOD,
