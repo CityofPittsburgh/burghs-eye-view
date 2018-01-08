@@ -169,6 +169,20 @@ ckanGEO <- function(url) {
   rgdal::readOGR(c, "OGRGeoJSON", verbose = F)
 }
 
+# Query Using SQL
+ckanSQL <- function(url) {
+  r <- GET(url) 
+  c <- content(r, "text")
+  json <- gsub('NaN', '""', c, perl = TRUE)
+  data.frame(jsonlite::fromJSON(json)$result$records)
+}
+
+# Unique values for Resource Field
+ckanUniques <- function(id, field) {
+  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(%22", field, "%22)%20from%20%22", id, "%22")
+  c(ckanSQL(url))
+}
+
 # List for Clean Function
 council_list <- selectGet("council_list", selection_conn)
 
@@ -237,13 +251,16 @@ load.council$COUNCIL_DISTRICT <- load.council$council
 load.council@data <- cleanCouncil(load.council@data, TRUE)
 
 # 311 Input & Icons
-request_types <- selectGet("request_types", selection_conn)
+request_types <- ckanUniques("76fda9d0-69be-4dd5-8108-0de7907fc5a4", "REQUEST_TYPE")
+request_types <- levels(as.factor(request_types$REQUEST_TYPE))
 status_types <- c("New", "Open", "Closed")
 
 requests311 <-c("Abandoned Vehicle (parked on street)", "Building Maintenance", "Building Without a Permit", "Drug Enforcement", "Fire Department", "Fire Lane", "Fire Prevention", "Gang Activity", "Graffiti, Documentation", "Graffiti, Removal", "Hydrant - Fire Admin", "Illegal Dumping", "Illegal Parking", "Litter","Noise", "Missed Pick Up", "Panhandling", "Patrol", "Paving Request", "Potholes", "Pruning (city tree)", "Refuse Violations", "Replace/Repair a Sign", "Request New Sign", "Rodent control", "Sidewalk Obstruction", "Sinkhole", "Smoke detectors", "Snow/Ice removal", "Street Cleaning/Sweeping", "Street Light - Repair", "Traffic", "Traffic or Pedestrian Signal, Repair", "Vacant Building", "Weeds/Debris")
 
-departments <- selectGet("departments", selection_conn)
-origins <- selectGet("origins", selection_conn)
+departments <- ckanUniques("76fda9d0-69be-4dd5-8108-0de7907fc5a4", "DEPARTMENT")
+departments <- levels(as.factor(departments$DEPARTMENT))
+origins <- ckanUniques("76fda9d0-69be-4dd5-8108-0de7907fc5a4", "REQUEST_ORIGIN")
+origins <- levels(as.factor(origins$REQUEST_ORIGIN))
 
 # 311 Selections
 icons_311 <- iconList(
@@ -287,9 +304,9 @@ icons_311 <- iconList(
 # Building Permit Input & Icons
 permit_types <- c("Board of Appeals Application", "Building Permit", "Communication Tower", "Demolition Permit", "Electrical Permit", "Fire Alarm Permit", "HVAC Permit", "Land Operations Permit", "Occupancy Only", "Occupant Load Placard", "Sign Permit", "Sprinkler Permit", "Temporary Occupancy", "Temporary Occupancy Commercial")
 
-permit_status <- selectGet("permit_status", selection_conn)
+# permit_status <- selectGet("permit_status", selection_conn)
 
-# Icons for Permit
+# Icons for Permits
 icons_permits <- iconList(
   appeals = makeIcon("./icons/PLI/appeals.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
   building_permit = makeIcon("./icons/PLI/building.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
@@ -310,10 +327,12 @@ icons_permits <- iconList(
 # load.workflow <- ckan("7e0bf4bf-c7f5-48cd-8177-86f5ce776dfa")
 # load.workflow$tool <- paste0("<dt>", load.workflow$status_date, ": ", load.workflow$action_by_dept, "</dt>", "<dd>", load.workflow$task, " - ", load.workflow$status, "</dd>")
 
+# Building Code Violations
 violations <- selectGet("violations", selection_conn)
 
 inspect_results <- c('Abated','Violations Found','Voided')
 
+# Icons for Building Code Violations
 icons_violations <- iconList(
   violations_abated = makeIcon("./icons/PLI/violations_abated.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
   violations_found = makeIcon("./icons/PLI/violations_found.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
@@ -387,8 +406,10 @@ icons_crashes <- iconList(
 )
 
 # Fires
-fire_desc <- selectGet("fire_desc", selection_conn)
+fire_desc <- ckanSQL("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(%22incident_type%22||%20%27%20%27||%20%22type_description%22)%20from%20%228d76ac6b-5ae8-4428-82a4-043130d17b02%22")
+fire_desc <- levels(as.factor(fire_desc$X.column.))
 
+# Icons for Fires
 icons_fires <- iconList(
   fire = makeIcon("./icons/fire/fire.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
   fire_brush = makeIcon("./icons/fire/fire_brush.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
