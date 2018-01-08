@@ -261,6 +261,8 @@ departments <- ckanUniques("76fda9d0-69be-4dd5-8108-0de7907fc5a4", "DEPARTMENT")
 departments <- levels(as.factor(departments$DEPARTMENT))
 origins <- ckanUniques("76fda9d0-69be-4dd5-8108-0de7907fc5a4", "REQUEST_ORIGIN")
 origins <- levels(as.factor(origins$REQUEST_ORIGIN))
+origins <- levels(as.factor(mapvalues(origins, c("Report2Gov Android", "Report2Gov iOS", "Report2Gov Website"),
+                                                       c("myBurgh (Android)", "myBurgh (iOS)", "Website"))))
 
 # 311 Selections
 icons_311 <- iconList(
