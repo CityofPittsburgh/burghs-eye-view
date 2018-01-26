@@ -7,6 +7,7 @@
 # Load required packages
 library(shiny)
 library(shinythemes)
+library(htmltools)
 
 #"Dogfooding" Packages
 library(httr)
