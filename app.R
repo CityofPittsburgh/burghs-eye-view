@@ -267,41 +267,41 @@ origins <- levels(as.factor(mapvalues(origins, c("Report2Gov Android", "Report2G
 
 # 311 Selections
 icons_311 <- iconList(
-  abandoned_vehicle = makeIcon("./icons/311/abandoned_vehicle.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  building_maintenance = makeIcon("./icons/311/building_maintenance.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  building_nopermit = makeIcon("./icons/311/building_nopermit.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  drug_enforcement = makeIcon("./icons/311/drug_enforcement.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  fire_dept = makeIcon("./icons/311/fire_dept.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  fire_lane = makeIcon("./icons/311/fire_truck.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  fire_prevention = makeIcon("./icons/311/fire_ex.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  gang_activity = makeIcon("./icons/311/gang_activity.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  abandoned_vehicle = makeIcon("./icons/311/abandoned_vehicle.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  building_maintenance = makeIcon("./icons/311/building_maintenance.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  building_nopermit = makeIcon("./icons/311/building_nopermit.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  drug_enforcement = makeIcon("./icons/311/drug_enforcement.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  fire_dept = makeIcon("./icons/311/fire_dept.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  fire_lane = makeIcon("./icons/311/fire_truck.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  fire_prevention = makeIcon("./icons/311/fire_ex.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  gang_activity = makeIcon("./icons/311/gang_activity.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
   graffiti = makeIcon("./icons/311/graffiti.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 18, popupAnchorY = -48),
-  hydrant = makeIcon("./icons/311/fire_hydrant.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  illegal_dumping = makeIcon("./icons/311/illegal_dumping.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
+  hydrant = makeIcon("./icons/311/fire_hydrant.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  illegal_dumping = makeIcon("./icons/311/illegal_dumping.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
   illegal_parking = makeIcon("./icons/311/illegal_parking.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 18, popupAnchorY = -48),
   litter = makeIcon("./icons/311/litter.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 18, popupAnchorY = -48),
-  missed_pickup = makeIcon("./icons/311/missed_pickup.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  noise = makeIcon("./icons/311/noise.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  other311 = makeIcon("./icons/311/other311.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  panhandling = makeIcon("./icons/311/panhandling.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  patrol = makeIcon("./icons/311/patrol.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  paving_request = makeIcon("./icons/311/paving_request.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  pothole = makeIcon("./icons/311/pothole.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  pruning = makeIcon("./icons/311/pruning.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  refuse_violation = makeIcon("./icons/311/refuse_violation.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  replace_sign = makeIcon("./icons/311/replace_sign.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  request_sign = makeIcon("./icons/311/request_sign.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  rodent_control = makeIcon("./icons/311/rodent_control.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  sidewalk_obstruction = makeIcon("./icons/311/sidewalk_obstruction.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  sinkhole = makeIcon("./icons/311/sinkhole.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  smoke_detectors = makeIcon("./icons/311/smoke_detector.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  snow_removal = makeIcon("./icons/311/snow_removal.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  street_sweeper = makeIcon("./icons/311/street_sweeper.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  streetlight_repair = makeIcon("./icons/311/streetlight_repair.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  traffic = makeIcon("./icons/311/traffic.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  trafficlight_repair = makeIcon("./icons/311/trafficlight_repair.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  vacant_building = makeIcon("./icons/311/vacant_building.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  weeds_debris = makeIcon("./icons/311/weeds_debris.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+  missed_pickup = makeIcon("./icons/311/missed_pickup.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  noise = makeIcon("./icons/311/noise.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  other311 = makeIcon("./icons/311/other311.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  panhandling = makeIcon("./icons/311/panhandling.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  patrol = makeIcon("./icons/311/patrol.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  paving_request = makeIcon("./icons/311/paving_request.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  pothole = makeIcon("./icons/311/pothole.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  pruning = makeIcon("./icons/311/pruning.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  refuse_violation = makeIcon("./icons/311/refuse_violation.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  replace_sign = makeIcon("./icons/311/replace_sign.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  request_sign = makeIcon("./icons/311/request_sign.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  rodent_control = makeIcon("./icons/311/rodent_control.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  sidewalk_obstruction = makeIcon("./icons/311/sidewalk_obstruction.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  sinkhole = makeIcon("./icons/311/sinkhole.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  smoke_detectors = makeIcon("./icons/311/smoke_detector.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  snow_removal = makeIcon("./icons/311/snow_removal.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  street_sweeper = makeIcon("./icons/311/street_sweeper.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  streetlight_repair = makeIcon("./icons/311/streetlight_repair.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  traffic = makeIcon("./icons/311/traffic.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  trafficlight_repair = makeIcon("./icons/311/trafficlight_repair.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  vacant_building = makeIcon("./icons/311/vacant_building.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  weeds_debris = makeIcon("./icons/311/weeds_debris.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34)
 )
 
 # Building Permit Input & Icons
@@ -311,19 +311,19 @@ permit_types <- c("Board of Appeals Application", "Building Permit", "Communicat
 
 # Icons for Permits
 icons_permits <- iconList(
-  appeals = makeIcon("./icons/PLI/appeals.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  building_permit = makeIcon("./icons/PLI/building.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  communication_tower = makeIcon("./icons/PLI/comm_tower.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  demolition_permit = makeIcon("./icons/PLI/demolition.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  electrical_permit = makeIcon("./icons/PLI/electrical.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  fire_alarm = makeIcon("./icons/PLI/fire_alarm.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  HVAC_permit = makeIcon("./icons/PLI/hvac.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  land_operations = makeIcon("./icons/PLI/land_operations.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  occupancy = makeIcon("./icons/PLI/occupancy.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  occupant_load_placard = makeIcon("./icons/PLI/occupant_load.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  sign_permit = makeIcon("./icons/PLI/sign.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  sprinkler_permit = makeIcon("./icons/PLI/sprinkler.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  temp_occupancy = makeIcon("./icons/PLI/temp_occupancy_commercial.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+  appeals = makeIcon("./icons/PLI/appeals.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  building_permit = makeIcon("./icons/PLI/building.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  communication_tower = makeIcon("./icons/PLI/comm_tower.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  demolition_permit = makeIcon("./icons/PLI/demolition.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  electrical_permit = makeIcon("./icons/PLI/electrical.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  fire_alarm = makeIcon("./icons/PLI/fire_alarm.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  HVAC_permit = makeIcon("./icons/PLI/hvac.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  land_operations = makeIcon("./icons/PLI/land_operations.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  occupancy = makeIcon("./icons/PLI/occupancy.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  occupant_load_placard = makeIcon("./icons/PLI/occupant_load.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  sign_permit = makeIcon("./icons/PLI/sign.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  sprinkler_permit = makeIcon("./icons/PLI/sprinkler.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  temp_occupancy = makeIcon("./icons/PLI/temp_occupancy_commercial.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34)
 )
 
 # Load Workflow
@@ -337,9 +337,9 @@ inspect_results <- c('Abated','Violations Found','Voided')
 
 # Icons for Building Code Violations
 icons_violations <- iconList(
-  violations_abated = makeIcon("./icons/PLI/violations_abated.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  violations_found = makeIcon("./icons/PLI/violations_found.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  violations_void = makeIcon("./icons/PLI/violations_void.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+  violations_abated = makeIcon("./icons/PLI/violations_abated.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  violations_found = makeIcon("./icons/PLI/violations_found.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  violations_void = makeIcon("./icons/PLI/violations_void.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34)
 )
 
 # Blotter Input & Icons
@@ -349,44 +349,44 @@ offenses <- selectGet("offenses", selection_conn)
 
 # Icons for Blotter
 icons_blotter <- iconList(
-  murder = makeIcon("./icons/police/murder.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  rape = makeIcon("./icons/police/rape.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  robbery = makeIcon("./icons/police/robbery.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  assault = makeIcon("./icons/police/assault.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  burglary = makeIcon("./icons/police/burglary.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48), 
-  theft = makeIcon("./icons/police/theft.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  vehicle_theft = makeIcon("./icons/police/vehicle_theft.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  arson = makeIcon("./icons/police/arson.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  forgery = makeIcon("./icons/police/forgery.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  simple_assault = makeIcon("./icons/police/simple_assault.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  fraud = makeIcon("./icons/police/fraud.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  embezzlement = makeIcon("./icons/police/embezzlement.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  receiving_stolen_property = makeIcon("./icons/police/receiving_stolen_property.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  vandalism = makeIcon("./icons/police/vandalism.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  carrying_weapon = makeIcon("icons/police/carrying_weapon.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  prostitution = makeIcon("./icons/police/prostitution.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  sex_offense = makeIcon("./icons/police/sex_offense.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  drug_offense = makeIcon("./icons/police/drug_offense.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  gambling = makeIcon("./icons/police/gambling.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  endangering_children = makeIcon("./icons/police/endangering_children.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  DUI = makeIcon("./icons/police/DUI.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  liquor_laws = makeIcon("./icons/police/liquor_laws.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  public_drunkenness = makeIcon("./icons/police/public_drunkeness.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  disorderly_conduct= makeIcon("icons/police/disorderly_conduct.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  vagrancy = makeIcon("./icons/police/vagrancy.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  other = makeIcon("./icons/police/other.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+  murder = makeIcon("./icons/police/murder.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  rape = makeIcon("./icons/police/rape.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  robbery = makeIcon("./icons/police/robbery.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  assault = makeIcon("./icons/police/assault.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  burglary = makeIcon("./icons/police/burglary.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34), 
+  theft = makeIcon("./icons/police/theft.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  vehicle_theft = makeIcon("./icons/police/vehicle_theft.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  arson = makeIcon("./icons/police/arson.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  forgery = makeIcon("./icons/police/forgery.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  simple_assault = makeIcon("./icons/police/simple_assault.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  fraud = makeIcon("./icons/police/fraud.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  embezzlement = makeIcon("./icons/police/embezzlement.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  receiving_stolen_property = makeIcon("./icons/police/receiving_stolen_property.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  vandalism = makeIcon("./icons/police/vandalism.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  carrying_weapon = makeIcon("icons/police/carrying_weapon.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  prostitution = makeIcon("./icons/police/prostitution.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  sex_offense = makeIcon("./icons/police/sex_offense.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  drug_offense = makeIcon("./icons/police/drug_offense.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  gambling = makeIcon("./icons/police/gambling.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  endangering_children = makeIcon("./icons/police/endangering_children.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  DUI = makeIcon("./icons/police/DUI.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  liquor_laws = makeIcon("./icons/police/liquor_laws.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  public_drunkenness = makeIcon("./icons/police/public_drunkeness.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  disorderly_conduct= makeIcon("icons/police/disorderly_conduct.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  vagrancy = makeIcon("./icons/police/vagrancy.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  other = makeIcon("./icons/police/other.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34)
 )
 
 # Capital Projects Inputs & Icons
 functional_areas <- c("Administration/Sub-Award", "Engineering and Construction", "Facility Improvement", "Neighborhood and Community Development", "Public Safety","Vehicles and Equipment")
 
 icons_cproj <- iconList(
-  administration = makeIcon("./icons/omb/administration.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  engineering_construction = makeIcon("./icons/omb/engineering_construction.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  facility_improvement = makeIcon("./icons/omb/facility_improvement.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  neighborhood_development = makeIcon("./icons/omb/community_development.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  public_safety = makeIcon("./icons/omb/public_safety.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  vehicles_equipment = makeIcon("./icons/omb/vehicles_equipment.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+  administration = makeIcon("./icons/omb/administration.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  engineering_construction = makeIcon("./icons/omb/engineering_construction.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  facility_improvement = makeIcon("./icons/omb/facility_improvement.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  neighborhood_development = makeIcon("./icons/omb/community_development.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  public_safety = makeIcon("./icons/omb/public_safety.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  vehicles_equipment = makeIcon("./icons/omb/vehicles_equipment.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34)
 )
 
 # Collisions
@@ -397,15 +397,15 @@ circumstances_values <- c("LANE_CLOSED", "TAILGATING", "AGGRESSIVE_DRIVING", "SP
 circumstances_types <- c("Lane Closed", "Tailgating", "Aggressive Driving", "Speeding Related", "Unlicensed", "Wet Road", "Snow/Slushy Road", "Icy Road", "Rear Ended", "Overturned Vehicle", "Cellphone Related", "Vehicle Towed", "Ran Red Light", "Ran Stop Sign", "Fatigued/Asleep", "Work Zone", "Distracted", "School Bus")
 
 icons_crashes <- iconList(
-  crash = makeIcon("./icons/crashes/crash.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  crash_bike = makeIcon("./icons/crashes/crash_bike.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  crash_bus = makeIcon("./icons/crashes/crash_bus.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  crash_deer = makeIcon("./icons/crashes/crash_deer.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  crash_dui = makeIcon("./icons/crashes/crash_dui.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  crash_motorcycle = makeIcon("./icons/crashes/crash_motorcycle.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  crash_pedestrian = makeIcon("./icons/crashes/crash_pedestrian.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  crash_trolley = makeIcon("./icons/crashes/crash_trolley.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  crash_single = makeIcon("./icons/crashes/crash_single.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+  crash = makeIcon("./icons/crashes/crash.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  crash_bike = makeIcon("./icons/crashes/crash_bike.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  crash_bus = makeIcon("./icons/crashes/crash_bus.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  crash_deer = makeIcon("./icons/crashes/crash_deer.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  crash_dui = makeIcon("./icons/crashes/crash_dui.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  crash_motorcycle = makeIcon("./icons/crashes/crash_motorcycle.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  crash_pedestrian = makeIcon("./icons/crashes/crash_pedestrian.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  crash_trolley = makeIcon("./icons/crashes/crash_trolley.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  crash_single = makeIcon("./icons/crashes/crash_single.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34)
 )
 
 # Fires
@@ -414,12 +414,12 @@ fire_desc <- levels(as.factor(fire_desc$X.column.))
 
 # Icons for Fires
 icons_fires <- iconList(
-  fire = makeIcon("./icons/fire/fire.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  fire_brush = makeIcon("./icons/fire/fire_brush.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  fire_building = makeIcon("./icons/fire/fire_building.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  fire_cooking = makeIcon("./icons/fire/fire_cooking.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  fire_trash = makeIcon("./icons/fire/fire_trash.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48),
-  fire_vehicle = makeIcon("./icons/fire/fire_vehicle.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+  fire = makeIcon("./icons/fire/fire.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  fire_brush = makeIcon("./icons/fire/fire_brush.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  fire_building = makeIcon("./icons/fire/fire_building.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  fire_cooking = makeIcon("./icons/fire/fire_cooking.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  fire_trash = makeIcon("./icons/fire/fire_trash.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  fire_vehicle = makeIcon("./icons/fire/fire_vehicle.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34)
 )
 
 # this_year
@@ -520,12 +520,12 @@ icons_egg <- iconList(
 
 # Non-Traffic Citations Icons
 icons_citations <- iconList(
-  citation = makeIcon("./icons/police/nontraffic_citation.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+  citation = makeIcon("./icons/police/nontraffic_citation.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34)
 )
 
 # Arrests Icon
 icons_arrests <- iconList(
-  arrest_made = makeIcon("./icons/police/arrest_made.png", iconAnchorX = 18, iconAnchorY = 48, popupAnchorX = 0, popupAnchorY = -48)
+  arrest_made = makeIcon("./icons/police/arrest_made.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34)
 )
 
 # UI for application
@@ -594,6 +594,7 @@ ui <- navbarPage(id = "navTab",
                  tabPanel(a("Places", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewPlaces/", style = "padding-top: 0px;
     padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
                  tabPanel(a("Parcels", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewParcels/", style = "padding-top: 0px; padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
+                 tabPanel(a("Treess", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewTrees/", style = "padding-top: 0px; padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
                  tabPanel('Data: Points', class = "Data: Points", value = "Data: Points",
                           # Select Dataset for Export
                           inputPanel(
@@ -1826,7 +1827,7 @@ server <- shinyServer(function(input, output, session) {
     # Capital Projects
     year1 <- format(as.Date(input$dates[1]), "%Y")
     year2 <- format(as.Date(input$dates[2]), "%Y")
-    cproj <- ckanQuery2("2fb96406-813e-4031-acfe-1a82e78dc33c", year1, "fiscal_year", "OR", year2, "fiscal_year")
+    cproj <- ckanSQL(paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT*%20FROM%20%222fb96406-813e-4031-acfe-1a82e78dc33c%22%20WHERE%20%22fiscal_year%22=%27", year1, "%27%20OR%20%22fiscal_year%22=%27", year2, "%27%20OR%20%22status%22=%27Planned%27%20OR%20%22status%22=%27In%20Progress%27"))
     
     return(cproj)
   })
