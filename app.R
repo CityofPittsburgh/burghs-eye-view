@@ -594,7 +594,6 @@ ui <- navbarPage(id = "navTab",
                  tabPanel(a("Places", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewPlaces/", style = "padding-top: 0px;
     padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
                  tabPanel(a("Parcels", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewParcels/", style = "padding-top: 0px; padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
-                 tabPanel(a("Treess", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewTrees/", style = "padding-top: 0px; padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
                  tabPanel('Data: Points', class = "Data: Points", value = "Data: Points",
                           # Select Dataset for Export
                           inputPanel(
