@@ -31,6 +31,8 @@ library(stringi)
 # Turn off Scientific Notation
 options(scipen = 999)
 
+httr::set_config(config(ssl_verifypeer = 0L))
+
 ckan_api <- jsonlite::fromJSON("key.json")$ckan_api
 couchdb_un <- jsonlite::fromJSON("key.json")$couchdb_un
 couchdb_pw <- jsonlite::fromJSON("key.json")$couchdb_pw
@@ -68,14 +70,14 @@ dollarsComma <- function(x){
 # Function to download WPRDC Data
 ckan <- function(id) {
   x <- paste0("https://data.wprdc.org/datastore/dump/", id)
-  r <- GET(x, add_headers(Authorization = ckan_api))
+  r <- GET(x, add_headers(Authorization = ckan_api), timeout(600))
   content(r)
 }
 
 # Function to Query WPRDC Data on Time Frame
 ckanQueryDates <- function(id, start, end, column) {
   url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column, "%22%20%3E=%20%27", start, "%27%20AND%20%22", column, "%22%20%3C=%20%27", end, "%27")
-  r <- GET(url, add_headers(Authorization = ckan_api))
+  r <- GET(url, add_headers(Authorization = ckan_api), timeout(600))
   c <- content(r, "text")
   json <- gsub('NaN', '""', c, perl = TRUE)
   if (length(jsonlite::fromJSON(json)$result$records) == 0) {
@@ -88,7 +90,7 @@ ckanQueryDates <- function(id, start, end, column) {
 
 ckanQuery2 <- function(id, query, column, arg, query2, column2) {
   url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column,"%22%20=%20%27", query, "%27%20", arg, "%20%22", column2, "%22%20=%20%27", query2, "%27")
-  r <- GET(url, add_headers(Authorization = ckan_api))
+  r <- GET(url, add_headers(Authorization = ckan_api), timeout(600))
   c <- content(r, "text")
   json <- gsub('NaN', '""', c, perl = TRUE)
   if (length(jsonlite::fromJSON(json)$result$records) == 0) {
@@ -112,7 +114,7 @@ ckanQueryCrashes <- function(start_date, end_date) {
     } else {
       url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20=%20%272301%27%20AND%20%22CRASH_YEAR%22%20=%27", start_year,"%27%20AND%20(%22CRASH_MONTH%22%20BETWEEN%20%27", start_month,"%27%20AND%20%27", end_month, "%27)")
     }
-    r <- GET(url, add_headers(Authorization = ckan_api))
+    r <- GET(url, add_headers(Authorization = ckan_api), timeout(600))
     c <- content(r, "text")
     json <- gsub('NaN', '""', c, perl = TRUE)
     if (length(jsonlite::fromJSON(json)$result$records) == 0) {
@@ -124,7 +126,7 @@ ckanQueryCrashes <- function(start_date, end_date) {
   } else {
     years <- start_year:end_year
     url_start <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20=%20%272301%27%20AND%20%22CRASH_YEAR%22%20=%27", start_year,"%27%20AND%20(%22CRASH_MONTH%22%20BETWEEN%20%27", start_month,"%27%20AND%20%2712%27)")
-    r <- GET(url_start, add_headers(Authorization = ckan_api))
+    r <- GET(url_start, add_headers(Authorization = ckan_api), timeout(600))
     c <- content(r, "text")
     json <- gsub('NaN', '""', c, perl = TRUE)
     if (length(jsonlite::fromJSON(json)$result$records) == 0) {
@@ -134,7 +136,7 @@ ckanQueryCrashes <- function(start_date, end_date) {
       df1 <- jsonlite::fromJSON(json)$result$records
     }
     url_end <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20=%20%272301%27%20AND%20%22CRASH_YEAR%22%20=%27", end_year,"%27%20AND%20(%22CRASH_MONTH%22%20BETWEEN%20%271%27%20AND%20%27", end_month, "%27)")
-    r <- GET(url_end, add_headers(Authorization = ckan_api))
+    r <- GET(url_end, add_headers(Authorization = ckan_api), timeout(600))
     c <- content(r, "text")
     json <- gsub('NaN', '""', c, perl = TRUE)
     if (length(jsonlite::fromJSON(json)$result$records) == 0) {
@@ -147,7 +149,7 @@ ckanQueryCrashes <- function(start_date, end_date) {
     if (length(years) > 2) {
       for (i in years[2]:years[length(years)-1]) {
         url<- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20=%20%272301%27%20AND%20%22CRASH_YEAR%22%20=%27", i,"%27")
-        r <- GET(url, add_headers(Authorization = ckan_api))
+        r <- GET(url, add_headers(Authorization = ckan_api), timeout(600))
         c <- content(r, "text")
         json <- gsub('NaN', '""', c, perl = TRUE)
         if (length(jsonlite::fromJSON(json)$result$records) == 0) {
@@ -165,14 +167,14 @@ ckanQueryCrashes <- function(start_date, end_date) {
 
 #GEO CKAN Json
 ckanGEO <- function(url) {
-  r<- GET(url, add_headers(Authorization = ckan_api))
+  r<- GET(url, add_headers(Authorization = ckan_api), timeout(600))
   c <- content(r, as ="text")
   rgdal::readOGR(c, "OGRGeoJSON", verbose = F)
 }
 
 # Query Using SQL
 ckanSQL <- function(url) {
-  r <- GET(url) 
+  r <- GET(url, timeout(600)) 
   c <- content(r, "text")
   json <- gsub('NaN', '""', c, perl = TRUE)
   data.frame(jsonlite::fromJSON(json)$result$records)
@@ -432,8 +434,8 @@ dow <- sapply(seq(0,6),function(x) wday(nov+days(x)))
 eDay <- nov + days(which(dow==2))
 
 # CouchDB Connection
-# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
+couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
+# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 if (Sys.Date() == eDay) {
   load.egg <- ckan("51efa73c-d4b8-4ac0-b65a-9c9b1f904372")
@@ -1283,40 +1285,49 @@ server <- shinyServer(function(input, output, session) {
   dat311Load <- reactive({
     dat311 <- ckanQueryDates("76fda9d0-69be-4dd5-8108-0de7907fc5a4", input$dates[1], input$dates[2], "CREATED_ON")
     
+    # Date cleaning when there's data
+    if (nrow(dat311) > 0) {
+      dat311$CREATED_ON <- as.POSIXct(dat311$CREATED_ON, format = '%Y-%m-%dT%H:%M:%S', tz = "EST")
+      dat311$date <- as.Date(dat311$CREATED_ON)
+    } else {
+      dat311 <- dat311 %>%
+        mutate(date = CREATED_ON)
+    }
+    
+    # Clean Geographies
+    dat311 <- subset(dat311, select = -REQUEST_ID)
+    dat311 <- cleanGeo(dat311, TRUE)
+    dat311$icon <- as.character(dat311$REQUEST_TYPE)
+    dat311$REQUEST_TYPE <- ifelse(dat311$REQUEST_TYPE == "Potholes - 4th Div", "Potholes", dat311$REQUEST_TYPE)
+    
+    # Clean Status
+    dat311$STATUS <- ifelse(dat311$STATUS == 0, "New", dat311$STATUS)
+    dat311$STATUS <- ifelse(dat311$STATUS == 3, "Open", dat311$STATUS)
+    dat311$STATUS <- ifelse(dat311$STATUS == 1, "Closed", dat311$STATUS)
+    
+    # Set Icon to Other
+    dat311$icon <- ifelse(dat311$icon %in% requests311, dat311$icon, "Other")
+    dat311$icon <- as.factor(dat311$icon)
+    dat311$REQUEST_TYPE <- as.factor(dat311$REQUEST_TYPE)
+    dat311 <- transform(dat311, icon = as.factor(mapvalues(icon, c("Abandoned Vehicle (parked on street)", "Building Maintenance", "Building Without a Permit", "Drug Enforcement", "Fire Department", "Fire Lane", "Fire Prevention", "Gang Activity", "Graffiti, Documentation", "Graffiti, Removal", "Hydrant - Fire Admin", "Illegal Dumping", "Illegal Parking", "Litter","Noise", "Other", "Missed Pick Up", "Panhandling", "Patrol", "Paving Request", "Potholes", "Pruning (city tree)", "Refuse Violations", "Replace/Repair a Sign", "Request New Sign", "Rodent control", "Sidewalk Obstruction", "Sinkhole", "Smoke detectors", "Snow/Ice removal", "Street Cleaning/Sweeping", "Street Light - Repair", "Traffic", "Traffic or Pedestrian Signal, Repair", "Vacant Building", "Weeds/Debris"),
+                                                           c("abandoned_vehicle", "building_maintenance", "building_nopermit", "drug_enforcement", "fire_dept", "fire_lane", "fire_prevention",  "gang_activity", "graffiti", "graffiti", "hydrant", "illegal_dumping", "illegal_parking", "litter", "noise","other311", "missed_pickup","panhandling", "patrol", "paving_request", "pothole", "pruning", "refuse_violation", "replace_sign", "request_sign", "rodent_control", "sidewalk_obstruction", "sinkhole", "smoke_detectors", "snow_removal", "street_sweeper", "streetlight_repair", "traffic", "trafficlight_repair", "vacant_building", "weeds_debris"))))
+    # Origin Clean
+    dat311 <- transform(dat311, REQUEST_ORIGIN = as.factor(mapvalues(REQUEST_ORIGIN, c("Report2Gov Android", "Report2Gov iOS", "Report2Gov Website"),
+                                                                     c("myBurgh (Android)", "myBurgh (iOS)", "Website"))))
+    dat311 <- transform(dat311, REQUEST_ORIGIN2 = as.factor(mapvalues(REQUEST_ORIGIN, c("myBurgh (Android)", "myBurgh (iOS)", "Website"),
+                                                                      c('<a href="https://play.google.com/store/apps/details?id=com.qscend.report2gov.myburgh&hl=en" target="_blank">myBurgh (Android)</a>','<a href="https://itunes.apple.com/us/app/myburgh/id1021606996?mt=8" target="_blank">myBurgh (iOS)</a>', '<a href="http://pittsburghpa.gov/311/form" target="_blank">Website</a>'))))
+    dat311$DEPARTMENT <- ifelse(is.na(dat311$DEPARTMENT), "Other", dat311$DEPARTMENT)
+    dat311$DEPARTMENT <- as.factor(dat311$DEPARTMENT)
+    dat311$NEIGHBORHOOD <- as.factor(dat311$NEIGHBORHOOD)
+    # Sort
+    dat311 <- dat311[rev(order(as.Date(dat311$date, format="%d/%m/%Y"))),]
+    
     return(dat311)
   })
   # 311 data with filters
   dat311Input <- reactive({
     # Load 311 Requests
     dat311 <- dat311Load()
-    dat311$CREATED_ON <- as.POSIXct(dat311$CREATED_ON, format = '%Y-%m-%dT%H:%M:%S')
-    # Clean Geographies
-    dat311 <- subset(dat311, select = -REQUEST_ID)
-    dat311 <- cleanGeo(dat311, TRUE)
-    dat311$date <- as.Date(dat311$CREATED_ON)
-    dat311$CREATED_ON <- as.POSIXct(dat311$CREATED_ON, tz = "EST")
-    dat311$icon <- as.character(dat311$REQUEST_TYPE)
-    dat311$REQUEST_TYPE <- ifelse(dat311$REQUEST_TYPE == "Potholes - 4th Div", "Potholes", dat311$REQUEST_TYPE)
-    # Clean Status
-    dat311$STATUS <- ifelse(dat311$STATUS == 0, "New", dat311$STATUS)
-    dat311$STATUS <- ifelse(dat311$STATUS == 3, "Open", dat311$STATUS)
-    dat311$STATUS <- ifelse(dat311$STATUS == 1, "Closed", dat311$STATUS)
-    # Set Icon to Other
-    dat311$icon <- ifelse(dat311$icon %in% requests311, dat311$icon, "Other")
-    dat311$icon <- as.factor(dat311$icon)
-    dat311$REQUEST_TYPE <- as.factor(dat311$REQUEST_TYPE)
-    dat311 <- transform(dat311, icon = as.factor(mapvalues(icon, c("Abandoned Vehicle (parked on street)", "Building Maintenance", "Building Without a Permit", "Drug Enforcement", "Fire Department", "Fire Lane", "Fire Prevention", "Gang Activity", "Graffiti, Documentation", "Graffiti, Removal", "Hydrant - Fire Admin", "Illegal Dumping", "Illegal Parking", "Litter","Noise", "Other", "Missed Pick Up", "Panhandling", "Patrol", "Paving Request", "Potholes", "Pruning (city tree)", "Refuse Violations", "Replace/Repair a Sign", "Request New Sign", "Rodent control", "Sidewalk Obstruction", "Sinkhole", "Smoke detectors", "Snow/Ice removal", "Street Cleaning/Sweeping", "Street Light - Repair", "Traffic", "Traffic or Pedestrian Signal, Repair", "Vacant Building", "Weeds/Debris"),
-                                                             c("abandoned_vehicle", "building_maintenance", "building_nopermit", "drug_enforcement", "fire_dept", "fire_lane", "fire_prevention",  "gang_activity", "graffiti", "graffiti", "hydrant", "illegal_dumping", "illegal_parking", "litter", "noise","other311", "missed_pickup","panhandling", "patrol", "paving_request", "pothole", "pruning", "refuse_violation", "replace_sign", "request_sign", "rodent_control", "sidewalk_obstruction", "sinkhole", "smoke_detectors", "snow_removal", "street_sweeper", "streetlight_repair", "traffic", "trafficlight_repair", "vacant_building", "weeds_debris"))))
-    # Origin Clean
-    dat311 <- transform(dat311, REQUEST_ORIGIN = as.factor(mapvalues(REQUEST_ORIGIN, c("Report2Gov Android", "Report2Gov iOS", "Report2Gov Website"),
-                                                                       c("myBurgh (Android)", "myBurgh (iOS)", "Website"))))
-    dat311 <- transform(dat311, REQUEST_ORIGIN2 = as.factor(mapvalues(REQUEST_ORIGIN, c("myBurgh (Android)", "myBurgh (iOS)", "Website"),
-                                                                        c('<a href="https://play.google.com/store/apps/details?id=com.qscend.report2gov.myburgh&hl=en" target="_blank">myBurgh (Android)</a>','<a href="https://itunes.apple.com/us/app/myburgh/id1021606996?mt=8" target="_blank">myBurgh (iOS)</a>', '<a href="http://pittsburghpa.gov/311/form" target="_blank">Website</a>'))))
-    dat311$DEPARTMENT <- ifelse(is.na(dat311$DEPARTMENT), "Other", dat311$DEPARTMENT)
-    dat311$DEPARTMENT <- as.factor(dat311$DEPARTMENT)
-    dat311$NEIGHBORHOOD <- as.factor(dat311$NEIGHBORHOOD)
-    # Sort
-    dat311 <- dat311[rev(order(as.Date(dat311$date, format="%d/%m/%Y"))),]
     
     # 311 Filters
     if (length(input$dept_select) > 0){
@@ -1367,10 +1378,7 @@ server <- shinyServer(function(input, output, session) {
     # Merge
     archive <- archive[,c(colnames(thirty))]
     blotter <- rbind(archive, thirty)
-  })
-  blotterInput <- reactive({
-    # Load Blotter
-    blotter <- blotterLoad()
+    
     # Prepare for Mapping
     blotter$date <- as.Date(blotter$INCIDENTTIME)
     
@@ -1409,10 +1417,10 @@ server <- shinyServer(function(input, output, session) {
     
     # Unify Neighborhoods
     blotter <- transform(blotter, INCIDENTNEIGHBORHOOD = as.factor(mapvalues(INCIDENTNEIGHBORHOOD, c("Golden Triangle/Civic Arena", "Central Northside", "Mt. Oliver Neighborhood", "Troy Hill-Herrs Island"),
-                                                                                       c("Central Business District", "Central North Side", "Mount Oliver", "Troy Hill"))))
+                                                                             c("Central Business District", "Central North Side", "Mount Oliver", "Troy Hill"))))
     
     blotter <- transform(blotter, icon = as.factor(mapvalues(HIERARCHY, levels(hierarchies), 
-                                                                       c("murder",  "rape", "robbery", "assault", "burglary", "theft", "vehicle_theft", "arson", "forgery", "simple_assault", "fraud", "embezzlement",  "receiving_stolen_property", "vandalism", "carrying_weapon", "prostitution", "sex_offense", "drug_offense", "gambling", "endangering_children", "DUI", "liquor_laws", "public_drunkenness", "disorderly_conduct", "vagrancy", "other"))))
+                                                             c("murder",  "rape", "robbery", "assault", "burglary", "theft", "vehicle_theft", "arson", "forgery", "simple_assault", "fraud", "embezzlement",  "receiving_stolen_property", "vandalism", "carrying_weapon", "prostitution", "sex_offense", "drug_offense", "gambling", "endangering_children", "DUI", "liquor_laws", "public_drunkenness", "disorderly_conduct", "vagrancy", "other"))))
     
     # Clean Geographies
     blotter$HIERARCHY <- as.factor(blotter$HIERARCHY)
@@ -1420,6 +1428,12 @@ server <- shinyServer(function(input, output, session) {
     blotter <- cleanGeo(blotter, TRUE)
     # Clean Flag
     blotter$CLEAREDFLAG <- ifelse(blotter$CLEAREDFLAG == "Y", "Yes", "No")
+    
+    return(blotter)
+  })
+  blotterInput <- reactive({
+    # Load Blotter
+    blotter <- blotterLoad()
     
     # Offenses Columns
     blotter$OFFENSES <- as.character(blotter$OFFENSES)
@@ -1475,19 +1489,21 @@ server <- shinyServer(function(input, output, session) {
   arrestsLoad <- reactive({
     arrests <- ckanQueryDates("e03a89dd-134a-4ee8-a2bd-62c40aeebc6f", input$dates[1], input$dates[2], "ARRESTTIME")
     
+    # Date Col
+    arrests$date <- as.Date(arrests$ARRESTTIME)
+    # Unify Neighborhoods
+    arrests <- transform(arrests, INCIDENTNEIGHBORHOOD = as.factor(mapvalues(INCIDENTNEIGHBORHOOD, c("Golden Triangle/Civic Arena", "Central Northside", "Mt. Oliver Neighborhood", "Troy Hill-Herrs Island"),
+                                                                             c("Central Business District", "Central North Side", "Mount Oliver", "Troy Hill"))))
+    # Clean Geographies
+    names(arrests)[names(arrests)=="INCIDENTZONE"] <- "POLICE_ZONE"
+    arrests <- cleanGeo(arrests, TRUE)
+    
     return(arrests)
   })
   # Arrest data with filters
   arrestsInput <- reactive({
     # Load Arrests
     arrests <- arrestsLoad()
-    arrests$date <- as.Date(arrests$ARRESTTIME)
-    # Unify Neighborhoods
-    arrests <- transform(arrests, INCIDENTNEIGHBORHOOD = as.factor(mapvalues(INCIDENTNEIGHBORHOOD, c("Golden Triangle/Civic Arena", "Central Northside", "Mt. Oliver Neighborhood", "Troy Hill-Herrs Island"),
-                                                                                       c("Central Business District", "Central North Side", "Mount Oliver", "Troy Hill"))))
-    # Clean Geographies
-    names(arrests)[names(arrests)=="INCIDENTZONE"] <- "POLICE_ZONE"
-    arrests <- cleanGeo(arrests, TRUE)
     
     # Offenses Columns
     arrests$OFFENSES <- as.character(arrests$OFFENSES)
@@ -1535,11 +1551,6 @@ server <- shinyServer(function(input, output, session) {
   citationsLoad <- reactive({
     citations <- ckanQueryDates("6b11e87d-1216-463d-bbd3-37460e539d86", input$dates[1], input$dates[2], "CITEDTIME")
     
-    return(citations)
-  })
-  # Citations data with filters
-  citationsInput <- reactive({
-    citations <- citationsLoad()
     #Fix Date
     citations$date <- as.Date(citations$CITEDTIME)
     # Unify Neighborhoods
@@ -1548,6 +1559,12 @@ server <- shinyServer(function(input, output, session) {
     # Clean Geographies
     names(citations)[names(citations)=="ZONE"] <- "POLICE_ZONE"
     citations <- cleanGeo(citations, TRUE)
+    
+    return(citations)
+  })
+  # Citations data with filters
+  citationsInput <- reactive({
+    citations <- citationsLoad()
 
     # Offenses Columns
     citations$OFFENSES <- as.character(citations$OFFENSES)
@@ -1592,15 +1609,16 @@ server <- shinyServer(function(input, output, session) {
   firesLoad <- reactive({
     fires <- ckanQueryDates("8d76ac6b-5ae8-4428-82a4-043130d17b02", input$dates[1], input$dates[2], "alarm_time")
     
+    # Clean
+    fires$fire_desc <- paste(fires$incident_type, fires$type_description)
+    fires$fire_desc <- as.factor(fires$fire_desc)
+    
     return(fires)
   })
   # Fire data with filters
   firesInput <-reactive({
     # Load Fires
     fires <- firesLoad()
-    # Clean
-    fires$fire_desc <- paste(fires$incident_type, fires$type_description)
-    fires$fire_desc <- as.factor(fires$fire_desc)
     
     # Type Description Filter
     if (length(input$fire_desc_select) > 0) {
@@ -1645,12 +1663,6 @@ server <- shinyServer(function(input, output, session) {
   violationsLoad <- reactive({
     violations <- ckanQueryDates("4e5374be-1a88-47f7-afee-6a79317019b4", input$dates[1], input$dates[2], "INSPECTION_DATE")
     
-    return(violations)
-  })
-  # Code Violations data with filters
-  violationsInput <- reactive({
-    # Load Violations
-    violations <- violationsLoad()
     # Clean
     violations$date <- as.Date(violations$INSPECTION_DATE)
     violations$INSPECTION_RESULT <- as.factor(violations$INSPECTION_RESULT)
@@ -1660,6 +1672,19 @@ server <- shinyServer(function(input, output, session) {
     # Create Parcel URL
     violations$full_address <- paste(violations$STREET_NUM, violations$STREET_NAME)
     violations$url <-  paste0('<a href="http://www2.county.allegheny.pa.us/RealEstate/GeneralInfo.aspx?ParcelID=',violations$PARCEL, '" target="_blank">', violations$PARCEL, '</a>')
+    
+    # Clean Geographies
+    violations <- cleanGeo(violations, TRUE)
+    # Sort
+    violations <- violations[rev(order(as.Date(violations$date, format="%d/%m/%Y"))),]
+    
+    return(violations)
+  })
+  # Code Violations data with filters
+  violationsInput <- reactive({
+    # Load Violations
+    violations <- violationsLoad()
+    
     # Prepare 
     violations1 <- ncol(violations) + 1
     list <- as.data.frame(do.call(rbind, strsplit(violations$VIOLATION, ":: ", fixed = FALSE)))
@@ -1668,12 +1693,6 @@ server <- shinyServer(function(input, output, session) {
     violations$VIOLATION <- as.character(violations$VIOLATION)
     violations$VIOLATION <- gsub("::", "/", violations$VIOLATION)
     violations$CORRECTIVE_ACTION <- gsub("::", "/", violations$CORRECTIVE_ACTION)
-    
-    # Clean Geographies
-    violations <- cleanGeo(violations, TRUE)
-
-    # Sort
-    violations <- violations[rev(order(as.Date(violations$date, format="%d/%m/%Y"))),]
     
     # Violation Filter
     if (length(input$violation_select) > 0) { 
