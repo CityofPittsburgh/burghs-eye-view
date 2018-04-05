@@ -88,6 +88,13 @@ ckanQueryDates <- function(id, start, end, column) {
   }
 }
 
+ckanSQL <- function(url) {
+  r <- GET(url) 
+  c <- content(r, "text")
+  json <- gsub('NaN', '""', c, perl = TRUE)
+  data.frame(jsonlite::fromJSON(json)$result$records)
+}
+
 ckanQuery2 <- function(id, query, column, arg, query2, column2) {
   url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column,"%22%20=%20%27", query, "%27%20", arg, "%20%22", column2, "%22%20=%20%27", query2, "%27")
   r <- GET(url, add_headers(Authorization = ckan_api), timeout(600))
@@ -172,19 +179,15 @@ ckanGEO <- function(url) {
   rgdal::readOGR(c, "OGRGeoJSON", verbose = F)
 }
 
-# Query Using SQL
-ckanSQL <- function(url) {
-  r <- GET(url, timeout(600)) 
-  c <- content(r, "text")
-  json <- gsub('NaN', '""', c, perl = TRUE)
-  data.frame(jsonlite::fromJSON(json)$result$records)
-}
-
 # Unique values for Resource Field
 ckanUniques <- function(id, field) {
   url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(%22", field, "%22)%20from%20%22", id, "%22")
   c(ckanSQL(url))
 }
+
+# CouchDB Connection
+# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
+couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 # List for Clean Function
 council_list <- selectGet("council_list", selection_conn)
@@ -428,18 +431,27 @@ icons_fires <- iconList(
 this_year <- format(Sys.Date(), format="%Y")
 last_year <- as.numeric(this_year) -  1
 
+# Election/Primary Day
+presidential_years <- seq(2020, 2050, 4)
+
+# Check if Presidential Year for Primary
+if (this_year %in% presidential_years) {
+  apr <- as.Date(paste0(this_year, "-04-01"))
+  dow <- sapply(seq(0,31),function(x) format(apr+x, "%a"))
+  pDay <- apr + which(dow=="Tue")[4] - 1
+} else {
+  may <- as.Date(paste0(this_year, "-05-01"))
+  dow <- sapply(seq(0,31),function(x) format(may+x, "%a"))
+  pDay <- may + which(dow=="Tue")[3] - 1
+}
+
 # Election Day
 nov <- ymd(as.Date(paste0(this_year, "-11-01")))
-dow <- sapply(seq(0,6),function(x) wday(nov+days(x)))
-eDay <- nov + days(which(dow==2))
+dow <- sapply(seq(0,7),function(x) format(nov+x, "%a"))
+eDay <- nov + which(dow=="Mon")[1]
 
-# CouchDB Connection
-couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
-
-if (Sys.Date() == eDay) {
-  load.egg <- ckan("51efa73c-d4b8-4ac0-b65a-9c9b1f904372")
-  load.egg <- subset(load.egg, MuniName == "PITTSBURGH")
+if (Sys.Date() == eDay | Sys.Date() == pDay) {
+  load.egg <- ckanSQL("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%2251efa73c-d4b8-4ac0-b65a-9c9b1f904372%22%20WHERE%22MuniName%22%20=%20%27PITTSBURGH%27")
   load.egg$icon <- "election"
   load.egg$tt <- paste0("<font color='black'>No matter who you Vote for, make sure you Vote!
                         <br><b>Location: </b>", load.egg$LocName,
