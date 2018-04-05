@@ -700,9 +700,11 @@ server <- shinyServer(function(input, output, session) {
     }
   })
   # Tracking Info
-  sessionStart <- as.numeric(Sys.time())
+  sessionStart <- as.character(Sys.time())
   names(sessionStart) <- "sessionStart"
   sessionID <- paste(stri_rand_strings(1, 5), gsub("\\.", "-", sessionStart) , "points", sep="-")
+  userName <- Sys.getenv("SHINYPROXY_USERNAME")
+  names(userName) <- "userName"
   names(sessionID) <- "sessionID"
   observe({
     # Trigger this observer every time an input changes
@@ -2059,7 +2061,7 @@ server <- shinyServer(function(input, output, session) {
       dateTime <- Sys.time()
       names(dateTime) <- "dateTime"
       inputs <- isolate(reactiveValuesToList(input))
-      couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart)
+      couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart, userName)
       cdbAddDoc(couchDB)
     }
     # Load Report dataset
@@ -2604,7 +2606,7 @@ server <- shinyServer(function(input, output, session) {
       dateTime <- Sys.time()
       names(dateTime) <- "dateTime"
       inputs <- isolate(reactiveValuesToList(input))
-      couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart)
+      couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart, userName)
       cdbAddDoc(couchDB)
     }
     #Generate Map
