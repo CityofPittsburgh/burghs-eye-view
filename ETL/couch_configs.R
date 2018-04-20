@@ -115,13 +115,14 @@ addUpdateDoc("council_list", council_list)
 # Places Updates
 
 # Park Types
-parks <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/e95593cb0a2d4ff194be9694b40614dc_0.geojson", what = "sp")
-park_types <- levels(as.factor(parks$final_cat))
-addUpdateDoc("park_types", park_types)
+# 
+# parks <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/e95593cb0a2d4ff194be9694b40614dc_0.geojson", what = "sp")
+# park_types <- levels(as.factor(parks$final_cat))
+# addUpdateDoc("park_types", park_types)
 
 #Trees
-all <- ckanGEO("https://data.wprdc.org/dataset/9ce31f01-1dfa-4a14-9969-a5c5507a4b40/resource/d876927a-d3da-44d1-82e1-24310cdb7baf/download/treesimg.geojson")
-all <- all[all@data$scientific_name != "_CALLS",]
+# all <- ckanGEO("https://data.wprdc.org/dataset/9ce31f01-1dfa-4a14-9969-a5c5507a4b40/resource/d876927a-d3da-44d1-82e1-24310cdb7baf/download/treesimg.geojson")
+# all <- all[all@data$scientific_name != "_CALLS",]
 
 # Make Icon
 all$icon <- tolower(as.character(all$common_name))

@@ -1861,6 +1861,11 @@ server <- shinyServer(function(input, output, session) {
     year2 <- format(as.Date(input$dates[2]), "%Y")
     cproj <- ckanSQL(paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT*%20FROM%20%222fb96406-813e-4031-acfe-1a82e78dc33c%22%20WHERE%20%22fiscal_year%22=%27", year1, "%27%20OR%20%22fiscal_year%22=%27", year2, "%27%20OR%20%22status%22=%27Planned%27%20OR%20%22status%22=%27In%20Progress%27"))
     
+    cproj <- transform(cproj, icon = as.factor(mapvalues(area, functional_areas, c("administration", "engineering_construction", "facility_improvement", "neighborhood_development", "public_safety", "vehicles_equipment"))))
+    
+    # Formatting
+    cproj$budgeted_amount <- dollarsComma(as.numeric(cproj$budgeted_amount))
+    
     return(cproj)
   })
   cprojInput <- reactive({
@@ -1887,11 +1892,6 @@ server <- shinyServer(function(input, output, session) {
         cproj$public_works_division <- gsub(as.character(i), rep, cproj$public_works_division)
       }
       cproj$public_works_division <- gsub("\\|", ", ", cproj$public_works_division)
-      
-      # Formatting
-      cproj$budgeted_amount <- dollarsComma(as.numeric(cproj$budgeted_amount))
-      
-      cproj <- transform(cproj, icon = as.factor(mapvalues(area, functional_areas, c("administration", "engineering_construction", "facility_improvement", "neighborhood_development", "public_safety", "vehicles_equipment"))))
       
       if (length(input$funcarea_select) > 0) {
         cproj <- cproj[cproj$area %in% input$funcarea_select,]
@@ -2001,8 +2001,8 @@ server <- shinyServer(function(input, output, session) {
     } else if (input$report_select == "Fire Incidents") {
       fires <- firesInput()
 
-      fires <- subset(fires, select = c(call_no, fire_desc, alarm_time, arrival_time, primary_unit, alarms, address, fire_zone, neighborhood, council_district))
-      colnames(fires) <- c("Call #", "Type", "Alarm Time", "Arrival Time", "Primary Unit", "Alarms", "Location", "Fire Zone", "Neighborhood", "Council District")
+      fires <- subset(fires, select = c(call_no, fire_desc, alarm_time, primary_unit, alarms, address, fire_zone, neighborhood, council_district))
+      colnames(fires) <- c("Call #", "Type", "Alarm Time", "Primary Unit", "Alarms", "Location", "Fire Zone", "Neighborhood", "Council District")
       
       report <- fires
     } else if (input$report_select == "Building Permits") {
@@ -2417,7 +2417,6 @@ server <- shinyServer(function(input, output, session) {
         }")), ~longitude, ~latitude, icon = ~icons_fires[icon],
                             popup = ~(paste("<font color='black'><b>Fire Description:</b>", fires$fire_desc,
                                             "<br><b>Alarm Time:</b>", fires$alarm_time,
-                                            "<br><b>Arrival Time:</b>", fires$arrival_time,
                                             "<br><b>Primary Unit:</b>", fires$primary_unit,
                                             "<br><b># of Alarms:</b>", fires$alarms,
                                             "<br><b>Location:</b>", fires$address,
