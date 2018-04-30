@@ -89,7 +89,7 @@ ckanQueryDates <- function(id, start, end, column) {
 }
 
 ckanSQL <- function(url) {
-  r <- GET(url) 
+  r <- GET(url, add_headers(Authorization = ckan_api), timeout(600)) 
   c <- content(r, "text")
   json <- gsub('NaN', '""', c, perl = TRUE)
   data.frame(jsonlite::fromJSON(json)$result$records)
@@ -425,6 +425,27 @@ icons_fires <- iconList(
   fire_cooking = makeIcon("./icons/fire/fire_cooking.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
   fire_trash = makeIcon("./icons/fire/fire_trash.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
   fire_vehicle = makeIcon("./icons/fire/fire_vehicle.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34)
+)
+
+# ROW Stuff
+row_types <- levels(as.factor(ckanSQL(paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(%22type%22)FROM%20%22cc17ee69-b4c8-4b0c-8059-23af341c9214%22%20WHERE%20%22open_date%22<%27", Sys.Date() - 730, "%27"))$type))
+
+
+# ROW Icons
+# Icons for Fires
+icons_row <- iconList(
+  barricade = makeIcon("./icons/domi/barricade.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  bridge_permit = makeIcon("./icons/domi/bridge_permit.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  cafe = makeIcon("./icons/domi/cafe.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  curb_cut = makeIcon("./icons/domi/curb_cut.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  dumpster = makeIcon("./icons/domi/dumpster.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  machinery = makeIcon("./icons/domi/machinery.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  opening_permit = makeIcon("./icons/domi/opening_permit.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  sidewalk_repair = makeIcon("./icons/domi/sidewalk_repair.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  tele_pole = makeIcon("./icons/domi/tele_pole.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  traffic_obstruction = makeIcon("./icons/domi/traffic_obstruction2.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  valet_parking = makeIcon("./icons/domi/valet_parking.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34),
+  other = makeIcon("./icons/domi/other.png", iconAnchorX = 18, iconAnchorY = 41, popupAnchorX = 1, popupAnchorY = -34)
 )
 
 # this_year
@@ -864,6 +885,16 @@ server <- shinyServer(function(input, output, session) {
                                 c(`Functional Area`='', functional_areas),
                                 multiple = TRUE,
                                 selectize=TRUE),
+                    HTML('<font color="#2F9997">'),
+                    checkboxInput("toggleROW",
+                                  label = "Right of Way Permits",
+                                  value = FALSE),
+                    HTML('</font>'),
+                    selectInput("row_select",
+                                label = NULL,
+                                c(`ROW Permit Type`='', row_types),
+                                multiple = TRUE,
+                                selectize=TRUE),
                     HTML('<font color="#F9C13D">'),
                     checkboxInput("toggleCrashes",
                                   label = "Traffic Collisions",
@@ -1044,6 +1075,16 @@ server <- shinyServer(function(input, output, session) {
                                  c(`Functional Area`='', functional_areas),
                                  multiple = TRUE,
                                  selectize=TRUE),
+                     HTML('<font color="#2F9997">'),
+                     checkboxInput("toggleROW",
+                                   label = "Right of Way Permits",
+                                   value = FALSE),
+                     HTML('</font>'),
+                     selectInput("row_select",
+                                 label = NULL,
+                                 c(`ROW Permit Type`='', row_types),
+                                 multiple = TRUE,
+                                 selectize=TRUE),
                      HTML('<font color="#F9C13D">'),
                      checkboxInput("toggleCrashes",
                                    label = "Traffic Collisions",
@@ -1183,8 +1224,59 @@ server <- shinyServer(function(input, output, session) {
     
     firez
   })
-  
   # Point Data
+  # Load Right of Way Data
+  rowLoad <- reactive({
+    row <- ckanSQL(paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT*%20FROM%20%22cc17ee69-b4c8-4b0c-8059-23af341c9214%22%20WHERE%20%22from_date%22%20BETWEEN%20%27", input$dates[1], "%27%20AND%20%27", input$dates[2], "%27%20OR%20%22to_date%22%20BETWEEN%20%27",  input$dates[1], "%27%20AND%20%27", input$dates[2], "%27%20OR%20%22restoration_date%22%20BETWEEN%20%27", input$dates[1], "%27%20AND%20%27", input$dates[2], "%27")) %>%
+      mutate(icon = as.factor(case_when(type == "Barricade Permit" ~ "barricade",
+                                        type == "Annual Bridge Permit" ~ "bridge_permit",
+                                        type == "Sidewalk Cafe Permit" ~ "cafe",
+                                        grepl("curb cut", type, ignore.case = T) ~ "curb_cut",
+                                        grepl("dumpster", type, ignore.case = T) ~ "dumpster",
+                                        grepl("machinery", type, ignore.case = T) ~ "machinery",
+                                        type == "Opening Permit" ~ "opening_permit",
+                                        grepl("sidewalk repair", type, ignore.case = T) ~ "sidewalk_repair",
+                                        type == "Pole Permit" ~ "tele_pole",
+                                        type == "Traffic Obstruction Permit" ~ "traffic_obstruction",
+                                        type == "Valet Parking Permit" ~ "valet_parking",
+                                        TRUE ~ "other")),
+             map_lat = case_when(!is.na(from_lat) ~ from_lat,
+                                 !is.na(to_lat) ~ to_lat,
+                                 TRUE ~ address_lat),
+             map_lon = case_when(!is.na(from_lon) ~ from_lon,
+                                 !is.na(to_lon) ~ to_lon,
+                                 TRUE ~ address_lon))
+    
+    return(row)
+  })
+  rowInput <- reactive({
+    row <- rowLoad()
+    
+    # ROW Filters
+    if (length(input$row_select) > 0){
+      row <- row[row$type %in% input$row_select,]
+    }
+    
+    # Geographic Filters
+    if (length(input$zone_select) > 0 & input$filter_select == "Police Zone") {
+      row <- row[row$police_zone %in% input$zone_select,]
+    } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
+      row <- row[row$neighborhood %in% input$hood_select,]
+    } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
+      row <- row[row$public_works_division %in% input$DPW_select,]
+    } else if (length(input$council_select) > 0 & input$filter_select == "Council District") {
+      row <- row[row$council_district %in% input$council_select,]
+    } else if (length(input$firez_select) > 0 & input$filter_select == "Fire Zone") {
+      row <- row[row$fire_zone %in% input$firez_select,]
+    }
+    
+    # Search Filter
+    if (!is.null(input$search) && input$search != "") {
+      row <- row[apply(row, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
+    }
+    
+    return(row)
+  })
   # Crash Data
   crashesLoad <- reactive({
     crashes <- ckanQueryCrashes(input$dates[1], input$dates[2])
@@ -1369,8 +1461,6 @@ server <- shinyServer(function(input, output, session) {
     } else if (length(input$firez_select) > 0 & input$filter_select == "Fire Zone") {
       dat311 <- dat311[dat311$FIRE_ZONE %in% input$firez_select,]
     }
-    
-    dat311 <- subset(dat311, date >= input$dates[1] & date <= input$dates[2])
     
     # Search Filter
     if (!is.null(input$search) && input$search != "") {
@@ -2242,6 +2332,15 @@ server <- shinyServer(function(input, output, session) {
           allData <- rbind(crashes, allData)
         }
       }
+      if (input$toggleROW) {
+        row <- rowInput() %>%
+          filter(!is.na(map_lat) & !is.na(map_lon)) %>%
+          rename(Y = map_lat,
+                 X = map_lon) %>%
+          select(X, Y)
+        
+        allData <- rbind(row, allData)
+      }
       # Create Heat Map
       recs <- ifelse(is.null(allData), 0, nrow(allData))
       if (recs > 0) {
@@ -2585,6 +2684,35 @@ server <- shinyServer(function(input, output, session) {
                                    "</ul>"))
           )
           recs <- recs + nrow(crashes@data)
+        }
+      }
+      if (input$toggleROW) {
+        row <- rowInput()
+        if (nrow(row) > 0) {
+          map <- addMarkers(map, data=row,
+                            clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
+                                                                                        var childCount = cluster.getChildCount();
+                                                                                        if (childCount < 10) {  
+                                                                                            c = 'rgba(138, 219, 218, 1);'
+                                                                                        } else if (childCount < 100) {  
+                                                                                        c = 'rgba(60, 195, 193, 1);'  
+                                                                                        } else { 
+                                                                                        c = 'rgba(47, 153, 151, 1);'  
+                                                                                        }   
+                                                                                        return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
+        }")), ~map_lon, ~map_lat, icon = ~icons_row[icon],
+                            popup = ~paste("<font color='black'><b>Collision Type:</b>", row$type,
+                                           "<br><b>Permit ID:</b>", row$id,
+                                           "<br><b>Open Date:</b>", row$open_date,
+                                           "<br><b>Valid From:</b>", row$from_date,
+                                           "<br><b>Valid To:</b>", row$from_date,
+                                           ifelse(is.na(row$restoration_date), "", paste("<br><b>Restoration By:</b>", row$restoration_date)),
+                                           "<br><b>Primary Address:</b>", row$address,
+                                           ifelse(is.na(row$street_or_location), "", paste("<br><b>Street/Location:</b>", row$street_or_location)),
+                                           ifelse(is.na(row$from_street),  "", paste("<br><b>From Street:</b>", row$from_street)),
+                                           ifelse(is.na(row$to_street),  "", paste("<br><b>To Street:</b>", row$to_street)))
+          )
+          recs <- recs + nrow(row)
         }
       }
     }
