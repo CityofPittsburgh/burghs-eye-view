@@ -27,6 +27,7 @@ library(dplyr)
 library(zoo)
 library(lubridate)
 library(stringi)
+library(stringr)
 
 # Turn off Scientific Notation
 options(scipen = 999)
@@ -240,19 +241,19 @@ cleanGeo <- function(data, upper) {
 
 # Load Boundary Files from Pittsburgh Shems server. This process may cause the error screen to appear before the application UI loads.
 # Neighborhoods
-load.hoods <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/87a7e06c5d8440f280ce4b1e4f75cc84_0.geojson", what = "sp")
+load.hoods <- geojson_read("https://opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0.geojson", what = "sp")
 # DPW
-load.dpw <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/2d2c30d9633647ddab2f918afc38c35b_0.geojson", what = "sp")
+load.dpw <- geojson_read("https://opendata.arcgis.com/datasets/524ecda73d354ca0aa4a0640bd6b8bd5_0.geojson", what = "sp")
 load.dpw$PUBLIC_WORKS_DIVISION <- load.dpw$division
 load.dpw@data <- cleanDPW(load.dpw@data, TRUE)
 # Zone
-load.zones <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/7e95f0914283472e83e8000c0af33110_0.geojson", what = "sp")
+load.zones <- geojson_read("https://opendata.arcgis.com/datasets/230d80a6f1a2479faf501025f10ba903_0.geojson", what = "sp")
 load.zones$POLICE_ZONE <- load.zones$zone
 load.zones@data <- cleanZone(load.zones@data, TRUE)
 # Fire Zone
-load.firez <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/324584a643a743afba24149a304cc6d3_0.geojson", what = "sp")
+load.firez <- geojson_read("https://opendata.arcgis.com/datasets/da92100723d1400cb7e68753a505d2d3_0.geojson", what = "sp")
 # Council
-load.council <- geojson_read("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/9ba815225b1a4d0eada5a00715344095_0.geojson", what = "sp")
+load.council <- geojson_read("https://opendata.arcgis.com/datasets/019101970961451890680bcc1862cb68_0.geojson", what = "sp")
 load.council$COUNCIL_DISTRICT <- load.council$council
 load.council@data <- cleanCouncil(load.council@data, TRUE)
 
@@ -1145,7 +1146,7 @@ server <- shinyServer(function(input, output, session) {
     if (input$filter_select == "Neighborhood"){
       selectInput("hood_select",
                   label = NULL,
-                  c(`Neighborhood`='', levels(load.hoods$hood_1)),
+                  c(`Neighborhood`='', levels(load.hoods$hood)),
                   multiple = TRUE,
                   selectize=TRUE)
     } else if (input$filter_select == "Public Works Division") {
@@ -1180,7 +1181,7 @@ server <- shinyServer(function(input, output, session) {
     hoods <- load.hoods
     
     if (length(input$hood_select) > 0){
-      hoods <- hoods[hoods$hood_1 %in% input$hood_select,]
+      hoods <- hoods[hoods$hood %in% input$hood_select,]
     }
     
     hoods
@@ -1367,7 +1368,7 @@ server <- shinyServer(function(input, output, session) {
           crashes_sp$POLICE_ZONE <- sp::over(crashes_sp, load.zones)$POLICE_ZONE
           crashes_sp <- crashes_sp[crashes_sp$POLICE_ZONE %in% input$zone_select,]
         } else if (length(input$hood_select) > 0 & input$filter_select == "Neighborhood") {
-          crashes_sp$hood <- sp::over(crashes_sp, load.hoods)$hood_1
+          crashes_sp$hood <- sp::over(crashes_sp, load.hoods)$hood
           crashes_sp <- crashes_sp[crashes_sp$hood %in% input$hood_select,]
         } else if (length(input$DPW_select) > 0 & input$filter_select == "Public Works Division") {
           crashes_sp$PUBLIC_WORKS_DIVISION <- sp::over(crashes_sp, load.dpw)$PUBLIC_WORKS_DIVISION
@@ -2207,7 +2208,7 @@ server <- shinyServer(function(input, output, session) {
         map <- addPolygons(map, data = hoods,
                            stroke = TRUE, smoothFactor = 0, weight = 1, color = "#000000", opacity = 0.6,
                            fill = TRUE, fillColor = "#00FFFFFF", fillOpacity = 0, 
-                           popup = ~paste("<font color='black'><b>Neighborhood:</b> ", htmlEscape(hood_1), "</font>")
+                           popup = ~paste("<font color='black'><b>Neighborhood:</b> ", htmlEscape(hood), "</font>")
         )
       }
       # Council Districts
