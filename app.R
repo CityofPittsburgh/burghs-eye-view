@@ -428,7 +428,7 @@ icons_fires <- iconList(
 )
 
 # ROW Stuff
-row_types <- levels(as.factor(ckanSQL(paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(%22type%22)FROM%20%22cc17ee69-b4c8-4b0c-8059-23af341c9214%22%20WHERE%20%22open_date%22<%27", Sys.Date() - 730, "%27"))$type))
+row_types <- levels(as.factor(ckanSQL(paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(%22type%22)FROM%20%22cc17ee69-b4c8-4b0c-8059-23af341c9214%22%20WHERE%20%22open_date%22>%27", Sys.Date() - 365, "%27"))$type))
 
 
 # ROW Icons
@@ -1227,7 +1227,7 @@ server <- shinyServer(function(input, output, session) {
   # Point Data
   # Load Right of Way Data
   rowLoad <- reactive({
-    row <- ckanSQL(paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT*%20FROM%20%22cc17ee69-b4c8-4b0c-8059-23af341c9214%22%20WHERE%20%22from_date%22%20BETWEEN%20%27", input$dates[1], "%27%20AND%20%27", input$dates[2], "%27%20OR%20%22to_date%22%20BETWEEN%20%27",  input$dates[1], "%27%20AND%20%27", input$dates[2], "%27%20OR%20%22restoration_date%22%20BETWEEN%20%27", input$dates[1], "%27%20AND%20%27", input$dates[2], "%27")) %>%
+    row <- ckanSQL(paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT*%20FROM%20%22cc17ee69-b4c8-4b0c-8059-23af341c9214%22%20WHERE%20(%22from_date%22%20>=%20%27", input$dates[1], "%27%20AND%20%22from_date%22<=%27", input$dates[2], "%27)%20OR%20(%22to_date%22%20>=%20%27",  input$dates[1], "%27%20AND%20%22to_date%22<=%27", input$dates[2], "%27)%20OR%20(%22restoration_date%22>=%20%27", input$dates[1], "%27%20AND%20%22restoration_date%22<=%20%27", input$dates[2], "%27)")) %>%
       mutate(icon = as.factor(case_when(type == "Barricade Permit" ~ "barricade",
                                         type == "Annual Bridge Permit" ~ "bridge_permit",
                                         type == "Sidewalk Cafe Permit" ~ "cafe",
@@ -1245,7 +1245,8 @@ server <- shinyServer(function(input, output, session) {
                                  TRUE ~ address_lat),
              map_lon = case_when(!is.na(from_lon) ~ from_lon,
                                  !is.na(to_lon) ~ to_lon,
-                                 TRUE ~ address_lon))
+                                 TRUE ~ address_lon)) %>%
+      select(-description, -X_full_text)
     
     return(row)
   })
@@ -2131,9 +2132,28 @@ server <- shinyServer(function(input, output, session) {
       colnames(crashes) <- c("Type", "Day of the Week", "Time (24-hour clock)", "Street", "Speed Limit", "Vehicles", "People", "Injuries", "Deaths", "Lane Closed", "Tailgating", "Agreesive Driving", "Speeding", "Unlicensed, Wet Road", "Snow/Slush", "Ice", "Rear Ended", "OVerturned", "Cellphone", "Towed", "Ran Red Light", "Ran Stop Sign", "Fatigue/Asleep", "Work Zone", "Distracted", "School Bus")
       
       report <- crashes
+    } else if (input$report_select == "Right of Way Permits") {
+      report <- rowInput() %>%
+        rename(`Permit ID` = id,
+               `Permit Type` = type,
+               `Open Date` = open_date,
+               `Valid From` = from_date,
+               `Valid To` = to_date,
+               `Restoration By` = restoration_date,
+               `Primary Address` = address,
+               `Street/Location` = street_or_location,
+               `From Street` = from_street,
+               `To Street` = to_street,
+               `Contractor/Utility` = business_name,
+               License = license_type,
+               Neighborhood = neighborhood,
+               `Council Distrct` = council_district,
+               `Public Works Division` = public_works_division) %>%
+        select(`Permit ID`, `Permit Type`, `Open Date`, `Valid From`, `Valid To`, `Restoration By`, `Primary Address`, `Street/Location`, `From Street`, `To Street`, `Contractor/Utility`, License, Neighborhood, `Council District`, `Public Works Division`)
     }
+    
     # Return Data
-    report
+    return(report)
   })
   downloadInput <- reactive({
     report <- reportInput()
@@ -2701,8 +2721,10 @@ server <- shinyServer(function(input, output, session) {
                                                                                         }   
                                                                                         return new L.DivIcon({ html: '<div style=\"background-color:'+c+'\"><span>' + childCount + '</span></div>', className: 'marker-cluster', iconSize: new L.Point(40, 40) });
         }")), ~map_lon, ~map_lat, icon = ~icons_row[icon],
-                            popup = ~paste("<font color='black'><b>Collision Type:</b>", row$type,
+                            popup = ~paste("<font color='black'><b>Permit Type:</b>", row$type,
                                            "<br><b>Permit ID:</b>", row$id,
+                                           ifelse(is.na(row$business_name), "", paste("<br><b>Contractor/Utility:</b>", row$business_name)),
+                                           ifelse(is.na(row$license_type), "", paste("<br><b>License:</b>", row$license_type)),
                                            "<br><b>Open Date:</b>", row$open_date,
                                            "<br><b>Valid From:</b>", row$from_date,
                                            "<br><b>Valid To:</b>", row$from_date,
@@ -2710,7 +2732,12 @@ server <- shinyServer(function(input, output, session) {
                                            "<br><b>Primary Address:</b>", row$address,
                                            ifelse(is.na(row$street_or_location), "", paste("<br><b>Street/Location:</b>", row$street_or_location)),
                                            ifelse(is.na(row$from_street),  "", paste("<br><b>From Street:</b>", row$from_street)),
-                                           ifelse(is.na(row$to_street),  "", paste("<br><b>To Street:</b>", row$to_street)))
+                                           ifelse(is.na(row$to_street),  "", paste("<br><b>To Street:</b>", row$to_street)),
+                                           "<br><b>Neighborhood:</b>", row$neighborhood,
+                                           "<br><b>Council District:</b>", row$council_district,
+                                           "<br><b>Public Works Division:</b>", row$public_works_division,
+                                           "<br><b>Police Zone:</b>", row$police_zone,
+                                           "<br><b>Fire Zone:</b>", row$fire_zone)
           )
           recs <- recs + nrow(row)
         }
