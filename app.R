@@ -173,13 +173,6 @@ ckanQueryCrashes <- function(start_date, end_date) {
   return(df)
 }
 
-#GEO CKAN Json
-ckanGEO <- function(url) {
-  r<- GET(url, add_headers(Authorization = ckan_api), timeout(600))
-  c <- content(r, as ="text")
-  rgdal::readOGR(c, "OGRGeoJSON", verbose = F)
-}
-
 # Unique values for Resource Field
 ckanUniques <- function(id, field) {
   url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(%22", field, "%22)%20from%20%22", id, "%22")
@@ -527,7 +520,7 @@ if (Sys.Date() == eDay | Sys.Date() == pDay) {
   load.egg$icon <- "july_4"
   load.egg$tt <- "<i>Happy Independence Day! Looks like you need to try another search term.</i>"
 } else if (Sys.Date() >= as.Date(paste0(this_year,"-05-01")) & Sys.Date() <= as.Date(paste0(this_year,"-08-31"))) {
-  load.pools <- ckanGEO("https://data.wprdc.org/dataset/8186cabb-aa90-488c-b894-2d4a1b019155/resource/6f836153-ada7-4b18-b9c9-7a290c569ea9/download/pools.geojson")
+  load.pools <- geojson_read("https://data.wprdc.org/dataset/f7067c4e-0c1e-420c-8c31-f62769fcd29a/resource/77288f26-54a1-4c0c-bc59-7873b1109e76/download/poolsimg.geojson", what = "sp")
   load.egg <- data.frame(coordinates(load.pools))
   colnames(load.egg) <- c("X","Y")
   load.egg$icon <- "summer"
@@ -635,7 +628,7 @@ ui <- navbarPage(id = "navTab",
                           inputPanel(
                             selectInput("report_select", 
                                         tagList(shiny::icon("map-marker"), "Select Layer:"),
-                                        choices = c("311 Requests", "Arrests", "Blotter", "Capital Projects", "Code Violations", "Collisions", "Fire Incidents", "Non-Traffic Citations"), #  , "Building Permits"
+                                        choices = c("311 Requests", "Arrests", "Blotter", "Capital Projects", "Code Violations", "Collisions", "Fire Incidents", "Non-Traffic Citations", "Right of Way Permits"), #  , "Building Permits"
                                         selected= "311 Requests"),
                             # Define Button Position
                             uiOutput("buttonStyle")
@@ -780,7 +773,7 @@ server <- shinyServer(function(input, output, session) {
                                    start = Sys.Date()-10,
                                    end = Sys.Date(),
                                    min = as.Date("2004-01-01"),
-                                   max = Sys.Date(),
+                                   max = Sys.Date() + 30,
                                    startview = "day"),
                     tags$br(),
                     actionButton("heatVision",
@@ -1228,7 +1221,9 @@ server <- shinyServer(function(input, output, session) {
   # Point Data
   # Load Right of Way Data
   rowLoad <- reactive({
-    row <- ckanSQL(paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT*%20FROM%20%22cc17ee69-b4c8-4b0c-8059-23af341c9214%22%20WHERE%20(%22from_date%22%20>=%20%27", input$dates[1], "%27%20AND%20%22from_date%22<=%27", input$dates[2], "%27)%20OR%20(%22to_date%22%20>=%20%27",  input$dates[1], "%27%20AND%20%22to_date%22<=%27", input$dates[2], "%27)%20OR%20(%22restoration_date%22>=%20%27", input$dates[1], "%27%20AND%20%22restoration_date%22<=%20%27", input$dates[2], "%27)")) %>%
+    query <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT*%20FROM%20%22cc17ee69-b4c8-4b0c-8059-23af341c9214%22%20WHERE%20((%22from_date%22%20BETWEEN%20%27", input$dates[1], "%27%20AND%20%27", input$dates[2], "%27)%20OR%20(%22to_date%22%20BETWEEN%20%27",  input$dates[1], "%27%20AND%20%27", input$dates[2], "%27)%20OR%20(%22from_date%22<=%27", input$dates[1], "%27%20AND%20%22to_date%22>=%27", input$dates[2], "%27)%20OR%20(%22restoration_date%22%20BETWEEN%20%27", input$dates[1], "%27%20AND%20%27", input$dates[2], "%27))%20AND%20%22open_date%22>=%27", as.Date(input$dates[1]) - 365, "%27")
+
+    row <- ckanSQL(query) %>%
       mutate(icon = as.factor(case_when(type == "Barricade Permit" ~ "barricade",
                                         type == "Annual Bridge Permit" ~ "bridge_permit",
                                         type == "Sidewalk Cafe Permit" ~ "cafe",
@@ -1392,6 +1387,7 @@ server <- shinyServer(function(input, output, session) {
   })
   dat311Load <- reactive({
     dat311 <- ckanQueryDates("76fda9d0-69be-4dd5-8108-0de7907fc5a4", input$dates[1], input$dates[2], "CREATED_ON")
+    
     
     # Date cleaning when there's data
     if (nrow(dat311) > 0) {
@@ -1768,21 +1764,18 @@ server <- shinyServer(function(input, output, session) {
   })
   violationsLoad <- reactive({
     violations <- ckanQueryDates("4e5374be-1a88-47f7-afee-6a79317019b4", input$dates[1], input$dates[2], "INSPECTION_DATE")
-    
-    # Clean
-    violations$date <- as.Date(violations$INSPECTION_DATE)
-    violations$INSPECTION_RESULT <- as.factor(violations$INSPECTION_RESULT)
-    violations <- transform(violations, icon = as.factor(mapvalues(INSPECTION_RESULT, c('Abated','Violations Found','Voided'),
+
+      violations <- violations %>%
+        mutate(date = as.Date(INSPECTION_DATE),
+               url = paste0('<a href="http://www2.county.allegheny.pa.us/RealEstate/GeneralInfo.aspx?ParcelID=', PARCEL, '" target="_blank">', PARCEL, '</a>'),
+               INSPECTION_RESULT = as.factor(INSPECTION_RESULT),
+               full_address = paste(STREET_NUM, STREET_NAME)) %>%
+        transform(icon = as.factor(mapvalues(INSPECTION_RESULT, c('Abated','Violations Found','Voided'),
                                                                              c('violations_abated', 'violations_found', 'violations_void'))))
     violations$FullAddress <- paste(ifelse(is.na(violations$STREET_NUM) | is.null(violations$STREET_NUM) | violations$STREET_NUM == 0, "", violations$STREET_NUM) , ifelse(is.na(violations$STREET_NAME) | is.null(violations$STREET_NAME), "", violations$STREET_NAME))
-    # Create Parcel URL
-    violations$full_address <- paste(violations$STREET_NUM, violations$STREET_NAME)
-    violations$url <-  paste0('<a href="http://www2.county.allegheny.pa.us/RealEstate/GeneralInfo.aspx?ParcelID=',violations$PARCEL, '" target="_blank">', violations$PARCEL, '</a>')
-    
+
     # Clean Geographies
     violations <- cleanGeo(violations, TRUE)
-    # Sort
-    violations <- violations[rev(order(as.Date(violations$date, format="%d/%m/%Y"))),]
     
     return(violations)
   })
@@ -1791,26 +1784,28 @@ server <- shinyServer(function(input, output, session) {
     # Load Violations
     violations <- violationsLoad()
     
-    # Prepare 
-    violations1 <- ncol(violations) + 1
-    list <- as.data.frame(do.call(rbind, strsplit(violations$VIOLATION, ":: ", fixed = FALSE)))
-    violations <- cbind(violations, list)
-    violationsCol <- ncol(violations)
-    violations$VIOLATION <- as.character(violations$VIOLATION)
-    violations$VIOLATION <- gsub("::", "/", violations$VIOLATION)
-    violations$CORRECTIVE_ACTION <- gsub("::", "/", violations$CORRECTIVE_ACTION)
+    if (nrow(violations) > 0) {
+      # Prepare 
+      violations1 <- ncol(violations) + 1
+      list <- as.data.frame(do.call(rbind, strsplit(violations$VIOLATION, ":: ", fixed = FALSE)))
+      violations <- cbind(violations, list)
+      violationsCol <- ncol(violations)
+      violations$VIOLATION <- as.character(violations$VIOLATION)
+      violations$VIOLATION <- gsub("::", "/", violations$VIOLATION)
+      violations$CORRECTIVE_ACTION <- gsub("::", "/", violations$CORRECTIVE_ACTION)
     
-    # Violation Filter
-    if (length(input$violation_select) > 0) { 
-      for (i in violations1:violationsCol) {
-        if (i == violations1) {
-          out <- violations[violations[,i] %in% input$violation_select,]
-        } else {
-          new <- violations[violations[,i] %in% input$violation_select,]
-          out <- rbind(out, new)
+      # Violation Filter
+      if (length(input$violation_select) > 0) { 
+        for (i in violations1:violationsCol) {
+          if (i == violations1) {
+            out <- violations[violations[,i] %in% input$violation_select,]
+          } else {
+            new <- violations[violations[,i] %in% input$violation_select,]
+            out <- rbind(out, new)
+          }
         }
+        violations <- unique(out)
       }
-      violations <- unique(out)
     }
     
     # Result Filter
@@ -2148,11 +2143,10 @@ server <- shinyServer(function(input, output, session) {
                `Contractor/Utility` = business_name,
                License = license_type,
                Neighborhood = neighborhood,
-               `Council Distrct` = council_district,
+               `Council District` = council_district,
                `Public Works Division` = public_works_division) %>%
         select(`Permit ID`, `Permit Type`, `Open Date`, `Valid From`, `Valid To`, `Restoration By`, `Primary Address`, `Street/Location`, `From Street`, `To Street`, `Contractor/Utility`, License, Neighborhood, `Council District`, `Public Works Division`)
     }
-    
     # Return Data
     return(report)
   })
