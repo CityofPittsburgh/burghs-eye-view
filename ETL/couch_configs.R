@@ -108,7 +108,7 @@ permit_status <- unique(permits$current_status)
 addUpdateDoc("permit_status", permit_status)
 
 # Council List
-council_list <- c("1: Darlene Harris", "2: Theresa Kail-Smith", "3: Bruce Kraus", "4: Anthony Coghill", "5: Corey O'Connor", "6: R. Daniel Lavelle", "7: Deb Gross", "8: Vacant", "9: Reverend Ricky Burgess")
+council_list <- c("1: Darlene Harris", "2: Theresa Kail-Smith", "3: Bruce Kraus", "4: Anthony Coghill", "5: Corey O'Connor", "6: R. Daniel Lavelle", "7: Deb Gross", "8: Erika Strassburger", "9: Reverend Ricky Burgess")
 
 addUpdateDoc("council_list", council_list)
 
