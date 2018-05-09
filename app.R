@@ -54,8 +54,8 @@ chartr0 <- function(foo) chartr('\\','\\/',foo)
 
 # Function to Check Screenwidth
 getWidth <- '$(document).on("shiny:connected", function(e) {
-  var jsWidth = screen.width;
-  Shiny.onInputChange("GetScreenWidth",jsWidth);
+var jsWidth = screen.width;
+Shiny.onInputChange("GetScreenWidth",jsWidth);
 });'
 
 # Make it work when Downloading stuff
@@ -262,7 +262,7 @@ departments <- levels(as.factor(departments$DEPARTMENT))
 origins <- ckanUniques("76fda9d0-69be-4dd5-8108-0de7907fc5a4", "REQUEST_ORIGIN")
 origins <- levels(as.factor(origins$REQUEST_ORIGIN))
 origins <- levels(as.factor(mapvalues(origins, c("Report2Gov Android", "Report2Gov iOS", "Report2Gov Website"),
-                                                       c("myBurgh (Android)", "myBurgh (iOS)", "Website"))))
+                                      c("myBurgh (Android)", "myBurgh (iOS)", "Website"))))
 
 # 311 Selections
 icons_311 <- iconList(
@@ -573,13 +573,13 @@ ui <- navbarPage(id = "navTab",
                           tags$head(includeScript("tag-manager-head.js")),
                           # Notification Centered and Color Fix
                           tags$head(tags$style(HTML(".shiny-notification {
-                                                     position: fixed;
-                                                     background: #2c3e50;
-                                                     top: calc(50%);;
-                                                     left: calc(50%);;
-                                                     width: calc(25%);;
-                                                     min-width: 200px;
-                                                     transform: translate(-50%, 0);}"))),
+                                                    position: fixed;
+                                                    background: #2c3e50;
+                                                    top: calc(50%);;
+                                                    left: calc(50%);;
+                                                    width: calc(25%);;
+                                                    min-width: 200px;
+                                                    transform: translate(-50%, 0);}"))),
                           tags$head(tags$style(HTML(".shiny-notification-close { color: white; }"))),
                           # Set favicon
                           tags$head(tags$link(rel = "icon", type = "image/png", href="favicon.png")),
@@ -610,7 +610,7 @@ ui <- navbarPage(id = "navTab",
                           tags$style(type="text/css", ".navbar-static-top {margin-bottom:0;}"),
                           tags$style(type="text/css", ".navbar-brand {height:60px; padding:0;}"),
                           tags$style(type="text/css", ".navbar {border-right-width: 20px;
-                                                                border-left-width: 65px;}"),
+                                     border-left-width: 65px;}"),
                           # Set max height for pop-ups
                           tags$style(type="text/css", ".leaflet-popup-content {overflow-y: auto; max-height: 400px !important;}"),
                           # Edit top bar
@@ -621,7 +621,7 @@ ui <- navbarPage(id = "navTab",
                           uiOutput("mapPanel")
                           ),
                  tabPanel(a("Places", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewPlaces/", style = "padding-top: 0px;
-    padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
+                            padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
                  tabPanel(a("Parcels", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewParcels/", style = "padding-top: 0px; padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
                  tabPanel('Data: Points', class = "Data: Points", value = "Data: Points",
                           # Select Dataset for Export
@@ -653,7 +653,7 @@ ui <- navbarPage(id = "navTab",
                                            js.src=p+'://platform.twitter.com/widgets.js';
                                            fjs.parentNode.insertBefore(js,fjs);
                                            }
-                          }(document, 'script', 'twitter-wjs');")),
+                                           }(document, 'script', 'twitter-wjs');")),
                 # Facebook Button
                 HTML('<div id="fb-root"></div>'),
                 tags$script(HTML("(function(d, s, id) {
@@ -662,11 +662,11 @@ ui <- navbarPage(id = "navTab",
                                  js = d.createElement(s); js.id = id;
                                  js.src = \"//connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.8\";
                                  fjs.parentNode.insertBefore(js, fjs);
-                          }(document, 'script', 'facebook-jssdk'));")),
+                                 }(document, 'script', 'facebook-jssdk'));")),
                 tags$script(HTML('header.append(\'<div class="fb-share-button" style="float:right;margin-top: 15px;margin-right: 5px;" data-href="http://pittsburghpa.shinyapps.io/BurghsEyeView/?utm_source=facebook_button&amp;utm_campaign=facebook_button&amp;utm_medium=facebook%2Fsocial\" data-layout="button" data-size="large" data-mobile-iframe="true"><a class="fb-xfbml-parse-ignore" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Fpittsburghpa.shinyapps.io%2FBurghsEyeView%2F%23utm_source%3Dfacebook_button%26utm_campaign%3Dfacebook_button%26utm_medium%3Dfacebook%252Fsocial&amp;src=sdkpreparse">Share</a></div>\');
                                  console.log(header)'))
                 )
-             )
+                 )
 
 # Define server
 server <- shinyServer(function(input, output, session) {
@@ -746,10 +746,10 @@ server <- shinyServer(function(input, output, session) {
       tagList(
         # Generate Map
         div(class="mapBack", style="position: absolute;
-                                    width: 100%;
-                                    z-index: -1;
-                                    left: 0px;
-                                    top: 55px;", leafletOutput("map")),
+            width: 100%;
+            z-index: -1;
+            left: 0px;
+            top: 55px;", leafletOutput("map")),
         # Map size for Desktop CSS
         tags$style(type = "text/css", "#map {height: calc(100vh - 55px) !important;}"),
         absolutePanel(
@@ -762,11 +762,11 @@ server <- shinyServer(function(input, output, session) {
                               placeholder = "Search"),
                     # Add background image
                     tags$head(tags$style(type="text/css", '.mapBack {
-                                               background-image: url("loading.png");
-                                               background-repeat: no-repeat;
-                                               background-position: center;
-                                               background-size: contain;
-                                               }')),
+                                         background-image: url("loading.png");
+                                         background-repeat: no-repeat;
+                                         background-position: center;
+                                         background-size: contain;
+    }')),
                     HTML('<small style="font-size:11px;margin-left:3px">Locations are not exact. (See &rsquo;About&rsquo; for details.)</small><br><br>'),
                     dateRangeInput("dates",
                                    label = NULL,
@@ -925,214 +925,214 @@ server <- shinyServer(function(input, output, session) {
                                 selectize = TRUE,
                                 selected = ""),
                     uiOutput("filter_UI")
-          ), style = "opacity: 0.88"
+                    ), style = "opacity: 0.88"
+          )
         )
-      )
-    } else {
-      tagList(
-        # Input panel for Mobile (stationary at top)
-        absolutePanel(top = 65, left = 0, width = '100%' ,
-                      wellPanel(id = "tPanel", style ="padding-left: 5px; padding-right: 5px;",
-                     # Remove padding from Search Bar
-                     tags$style(type= "text/css", "#tPanel {margin-bottom:0px; padding:0px; overflow-y:scroll; max-height: calc(100vh - 60px); !important; min-height: 55px;}"),
-                     # Set background color to match panels
-                     tags$style(type = "text/css", "body {background-color: #ecf0f1}"),
-                     tags$style(type= "text/css", "{width:100%;
-                                margin-bottom:5px;
-                                text-align: center;}
-                                .inner
-                                {display: inline-block;}"),
-                     # Div for Search Bar and Expansion
-                     HTML('<div id="outer" style="position:absolute;z-index: 9; background-color:#ecf0f1; width:100%;">'),
-                     # Set Searchvar width optimal for device
-                     tags$style(type = "text/css", paste0('#search {width: calc(100vw - 85px); margin-left:10px;}')),
-                     # Inputs
-                     div(style="display:inline-block;", 
-                         textInput("search", 
-                                   value = ifelse(Sys.Date() == eDay, "Election Day!", ""),
-                                   label = NULL, 
-                                   placeholder = "Search")),
-                     tags$style(style="text/css", chartr0('#mapPanel #outer .btn .fa:before { content: "\\f056";  }
-                                                          #mapPanel #outer .btn.collapsed .fa:before { content: "\\f055";  }')),
-                     HTML('<button class="btn collapsed" data-toggle="collapse" data-target="#mobile"><i class="fa fa-search-plus" aria-hidden="true"></i></button></div>
-                          <div id="mobile" class="collapse" style="margin-top:55px;">
-                            <small style="font-size:11px;margin-left:3px">Not all locations are exact. (See &rsquo;About&rsquo; for details.)</small>
-                          <br>'),
-                     dateRangeInput("dates",
-                                    label = NULL,
-                                    start = Sys.Date()-10,
-                                    end = Sys.Date(),
-                                    min = as.Date("2004-01-01"),
-                                    max = Sys.Date(),
-                                    startview = "day"),
-                     tags$br(),
-                     actionButton("heatVision",
-                                  label = "Enable Heat Map",
-                                  icon = icon("eye")),
-                     HTML('<font color="#F47B25">'),
-                     checkboxInput("toggle311",
-                                   label = "311 Requests",
-                                   value = TRUE),
-                     HTML('</font>'),
-                     selectInput("req.type",
-                                 label = NULL,
-                                 c(`Request Type`='', request_types),
-                                 multiple = TRUE,
-                                 selectize=TRUE),
-                     selectInput("status_type",
-                                 label = NULL,
-                                 c(`Request Status`='', status_types),
-                                 multiple = TRUE,
-                                 selectize=TRUE),
-                     selectInput("dept_select",
-                                 label = NULL,
-                                 c(`Department`='', departments),
-                                 multiple = TRUE,
-                                 selectize=TRUE),
-                     selectInput("origin_select",
-                                 label = NULL,
-                                 c(`Request Origin`='', origins),
-                                 multiple = TRUE,
-                                 selectize=TRUE),
-                     HTML('<font color="#3663AD">'),
-                     checkboxInput("toggleBlotter",
-                                   label = "Police Blotter",
-                                   value= TRUE),
-                     HTML('</font>'),
-                     selectInput("hier",
-                                 label = NULL,
-                                 c(`Hierarchy`='', levels(hierarchies)),
-                                 multiple = TRUE,
-                                 selectize = TRUE),
-                     selectInput("offense_select",
-                                 label = NULL,
-                                 c(`Offense Type`='', offenses),
-                                 multiple = TRUE,
-                                 selectize=TRUE),
-                     HTML('<font color="#474545">'),
-                     checkboxInput("toggleArrests",
-                                   label = "Arrests",
-                                   value = TRUE),
-                     HTML('</font>'),
-                     HTML('<font color="#ED2393">'),
-                     checkboxInput("toggleCitations",
-                                   label = "Non-Traffic Citations",
-                                   value = TRUE),
-                     HTML('</font>'),
-                     HTML('<font color="#BA1924">'),
-                     checkboxInput("toggleFires",
-                                   label = "Fire Incidents",
-                                   value = TRUE),
-                     HTML('</font>'),
-                     selectInput("fire_desc_select",
-                                 label = NULL,
-                                 c(`Fire Type` = '', fire_desc),
-                                 multiple = TRUE,
-                                 selectize = TRUE),
-                     # HTML('<font color="#009FE1">'),
-                     # checkboxInput("togglePermits",
-                     #               label = "Building Permits",
-                     #               value = TRUE),
-                     # HTML('</font>'),
-                     # selectInput("permit_select",
-                     #             label = NULL,
-                     #             c(`Permit Type`='', permit_types),
-                     #             multiple = TRUE,
-                     #             selectize=TRUE),
-                     # selectInput("status_select",
-                     #             label = NULL,
-                     #             c(`Permit Status`='', permit_status),
-                     #             multiple = TRUE,
-                     #             selectize=TRUE),
-                     HTML('<font color="#0B9444">'),
-                     checkboxInput("toggleViolations",
-                                   label = "Code Violations", 
-                                   value = TRUE),
-                     HTML('</font>'),
-                     selectInput("violation_select",
-                                 label = NULL,
-                                 c(`Violation`='', violations),
-                                 multiple = TRUE,
-                                 selectize=TRUE),
-                     selectInput("result_select",
-                                 label = NULL,
-                                 c(`Inspection Result`='', inspect_results),
-                                 multiple = TRUE,
-                                 selectize=TRUE),
-                     HTML('<font color="#b9a5c1">'),
-                     checkboxInput("toggleCproj",
-                                   label = "Capital Projects",
-                                   value = TRUE),
-                     HTML('</font>'),
-                     selectInput("funcarea_select",
-                                 label = NULL,
-                                 c(`Functional Area`='', functional_areas),
-                                 multiple = TRUE,
-                                 selectize=TRUE),
-                     HTML('<font color="#2F9997">'),
-                     checkboxInput("toggleROW",
-                                   label = "Right of Way Permits",
-                                   value = FALSE),
-                     HTML('</font>'),
-                     selectInput("row_select",
-                                 label = NULL,
-                                 c(`ROW Permit Type`='', row_types),
-                                 multiple = TRUE,
-                                 selectize=TRUE),
-                     HTML('<font color="#F9C13D">'),
-                     checkboxInput("toggleCrashes",
-                                   label = "Traffic Collisions",
-                                   value = FALSE),
-                     HTML('</font>'),
-                     selectInput("crash_select",
-                                 label = NULL,
-                                 c(`Collision Type`='', crash_types),
-                                 multiple = TRUE,
-                                 selectize=TRUE),
-                     selectInput("circumstances_select",
-                                 label = NULL,
-                                 c(`Special Circumstances`='', circumstances_types),
-                                 multiple = TRUE,
-                                 selectize = TRUE),
-                     selectInput("dow_select",
-                                 label = NULL,
-                                 c(`Day of the Week` = '', c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")),
-                                 multiple = TRUE,
-                                 selectize = TRUE),
-                     sliderInput("times",
-                                 label = "Collision Time (24-hour clock)",
-                                 min = 0,
-                                 max = 24,
-                                 value = c(0,24),
-                                 step = 1),
-                     selectInput("basemap_select",
-                                 label = "Basemap",
-                                 choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `Code for Pittsburgh` = "mapStack", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `OSM Dark Matter` = "CartoDB.DarkMatter", `OSM Positron` = "CartoDB.Positron"),
-                                 selected = "OpenStreetMap.Mapnik"),
-                     uiOutput("filter_UI"),
-                     selectInput("filter_select",
-                                 "Filter by Area",
-                                 c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Fire Zone", "Public Works Division")),
-                                 selectize = TRUE,
-                                 selected = ""),
-                     
-                     HTML('</div>')
-                     ),
-                  # Generate Map
-                  div(class="mapBack", style="position: absolute;
-                                              width: 100%;z-index: -1;
-                                              left: 0px;
-                                              top: 55px;", leafletOutput("map")),
-                  # Set map to style for Mobile
-                  tags$style(type = "text/css", "#map {height: calc(100vh - 115px) !important;}"),
-                  tags$head(tags$style(type="text/css", '.mapBack {
-                                             background-image: url("loading.png");
-                                             background-repeat: no-repeat;
-                                             background-position: center;
-                                             background-size: contain;}'))
-        )
-      )
-  }
+  } else {
+    tagList(
+      # Input panel for Mobile (stationary at top)
+      absolutePanel(top = 65, left = 0, width = '100%' ,
+                    wellPanel(id = "tPanel", style ="padding-left: 5px; padding-right: 5px;",
+                              # Remove padding from Search Bar
+                              tags$style(type= "text/css", "#tPanel {margin-bottom:0px; padding:0px; overflow-y:scroll; max-height: calc(100vh - 60px); !important; min-height: 55px;}"),
+                              # Set background color to match panels
+                              tags$style(type = "text/css", "body {background-color: #ecf0f1}"),
+                              tags$style(type= "text/css", "{width:100%;
+                                         margin-bottom:5px;
+                                         text-align: center;}
+                                         .inner
+                                         {display: inline-block;}"),
+                              # Div for Search Bar and Expansion
+                              HTML('<div id="outer" style="position:absolute;z-index: 9; background-color:#ecf0f1; width:100%;">'),
+                              # Set Searchvar width optimal for device
+                              tags$style(type = "text/css", paste0('#search {width: calc(100vw - 85px); margin-left:10px;}')),
+                              # Inputs
+                              div(style="display:inline-block;", 
+                                  textInput("search", 
+                                            value = ifelse(Sys.Date() == eDay, "Election Day!", ""),
+                                            label = NULL, 
+                                            placeholder = "Search")),
+                              tags$style(style="text/css", chartr0('#mapPanel #outer .btn .fa:before { content: "\\f056";  }
+                                                                   #mapPanel #outer .btn.collapsed .fa:before { content: "\\f055";  }')),
+                              HTML('<button class="btn collapsed" data-toggle="collapse" data-target="#mobile"><i class="fa fa-search-plus" aria-hidden="true"></i></button></div>
+                                   <div id="mobile" class="collapse" style="margin-top:55px;">
+                                   <small style="font-size:11px;margin-left:3px">Not all locations are exact. (See &rsquo;About&rsquo; for details.)</small>
+                                   <br>'),
+                              dateRangeInput("dates",
+                                             label = NULL,
+                                             start = Sys.Date()-10,
+                                             end = Sys.Date(),
+                                             min = as.Date("2004-01-01"),
+                                             max = Sys.Date(),
+                                             startview = "day"),
+                              tags$br(),
+                              actionButton("heatVision",
+                                           label = "Enable Heat Map",
+                                           icon = icon("eye")),
+                              HTML('<font color="#F47B25">'),
+                              checkboxInput("toggle311",
+                                            label = "311 Requests",
+                                            value = TRUE),
+                              HTML('</font>'),
+                              selectInput("req.type",
+                                          label = NULL,
+                                          c(`Request Type`='', request_types),
+                                          multiple = TRUE,
+                                          selectize=TRUE),
+                              selectInput("status_type",
+                                          label = NULL,
+                                          c(`Request Status`='', status_types),
+                                          multiple = TRUE,
+                                          selectize=TRUE),
+                              selectInput("dept_select",
+                                          label = NULL,
+                                          c(`Department`='', departments),
+                                          multiple = TRUE,
+                                          selectize=TRUE),
+                              selectInput("origin_select",
+                                          label = NULL,
+                                          c(`Request Origin`='', origins),
+                                          multiple = TRUE,
+                                          selectize=TRUE),
+                              HTML('<font color="#3663AD">'),
+                              checkboxInput("toggleBlotter",
+                                            label = "Police Blotter",
+                                            value= TRUE),
+                              HTML('</font>'),
+                              selectInput("hier",
+                                          label = NULL,
+                                          c(`Hierarchy`='', levels(hierarchies)),
+                                          multiple = TRUE,
+                                          selectize = TRUE),
+                              selectInput("offense_select",
+                                          label = NULL,
+                                          c(`Offense Type`='', offenses),
+                                          multiple = TRUE,
+                                          selectize=TRUE),
+                              HTML('<font color="#474545">'),
+                              checkboxInput("toggleArrests",
+                                            label = "Arrests",
+                                            value = TRUE),
+                              HTML('</font>'),
+                              HTML('<font color="#ED2393">'),
+                              checkboxInput("toggleCitations",
+                                            label = "Non-Traffic Citations",
+                                            value = TRUE),
+                              HTML('</font>'),
+                              HTML('<font color="#BA1924">'),
+                              checkboxInput("toggleFires",
+                                            label = "Fire Incidents",
+                                            value = TRUE),
+                              HTML('</font>'),
+                              selectInput("fire_desc_select",
+                                          label = NULL,
+                                          c(`Fire Type` = '', fire_desc),
+                                          multiple = TRUE,
+                                          selectize = TRUE),
+                              # HTML('<font color="#009FE1">'),
+                              # checkboxInput("togglePermits",
+                              #               label = "Building Permits",
+                              #               value = TRUE),
+                              # HTML('</font>'),
+                              # selectInput("permit_select",
+                              #             label = NULL,
+                              #             c(`Permit Type`='', permit_types),
+                              #             multiple = TRUE,
+                              #             selectize=TRUE),
+                              # selectInput("status_select",
+                              #             label = NULL,
+                              #             c(`Permit Status`='', permit_status),
+                              #             multiple = TRUE,
+                              #             selectize=TRUE),
+                              HTML('<font color="#0B9444">'),
+                              checkboxInput("toggleViolations",
+                                            label = "Code Violations", 
+                                            value = TRUE),
+                              HTML('</font>'),
+                              selectInput("violation_select",
+                                          label = NULL,
+                                          c(`Violation`='', violations),
+                                          multiple = TRUE,
+                                          selectize=TRUE),
+                              selectInput("result_select",
+                                          label = NULL,
+                                          c(`Inspection Result`='', inspect_results),
+                                          multiple = TRUE,
+                                          selectize=TRUE),
+                              HTML('<font color="#b9a5c1">'),
+                              checkboxInput("toggleCproj",
+                                            label = "Capital Projects",
+                                            value = TRUE),
+                              HTML('</font>'),
+                              selectInput("funcarea_select",
+                                          label = NULL,
+                                          c(`Functional Area`='', functional_areas),
+                                          multiple = TRUE,
+                                          selectize=TRUE),
+                              HTML('<font color="#2F9997">'),
+                              checkboxInput("toggleROW",
+                                            label = "Right of Way Permits",
+                                            value = FALSE),
+                              HTML('</font>'),
+                              selectInput("row_select",
+                                          label = NULL,
+                                          c(`ROW Permit Type`='', row_types),
+                                          multiple = TRUE,
+                                          selectize=TRUE),
+                              HTML('<font color="#F9C13D">'),
+                              checkboxInput("toggleCrashes",
+                                            label = "Traffic Collisions",
+                                            value = FALSE),
+                              HTML('</font>'),
+                              selectInput("crash_select",
+                                          label = NULL,
+                                          c(`Collision Type`='', crash_types),
+                                          multiple = TRUE,
+                                          selectize=TRUE),
+                              selectInput("circumstances_select",
+                                          label = NULL,
+                                          c(`Special Circumstances`='', circumstances_types),
+                                          multiple = TRUE,
+                                          selectize = TRUE),
+                              selectInput("dow_select",
+                                          label = NULL,
+                                          c(`Day of the Week` = '', c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")),
+                                          multiple = TRUE,
+                                          selectize = TRUE),
+                              sliderInput("times",
+                                          label = "Collision Time (24-hour clock)",
+                                          min = 0,
+                                          max = 24,
+                                          value = c(0,24),
+                                          step = 1),
+                              selectInput("basemap_select",
+                                          label = "Basemap",
+                                          choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `Code for Pittsburgh` = "mapStack", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `OSM Dark Matter` = "CartoDB.DarkMatter", `OSM Positron` = "CartoDB.Positron"),
+                                          selected = "OpenStreetMap.Mapnik"),
+                              uiOutput("filter_UI"),
+                              selectInput("filter_select",
+                                          "Filter by Area",
+                                          c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Fire Zone", "Public Works Division")),
+                                          selectize = TRUE,
+                                          selected = ""),
+                              
+                              HTML('</div>')
+                              ),
+                    # Generate Map
+                    div(class="mapBack", style="position: absolute;
+                        width: 100%;z-index: -1;
+                        left: 0px;
+                        top: 55px;", leafletOutput("map")),
+                    # Set map to style for Mobile
+                    tags$style(type = "text/css", "#map {height: calc(100vh - 115px) !important;}"),
+                    tags$head(tags$style(type="text/css", '.mapBack {
+                                         background-image: url("loading.png");
+                                         background-repeat: no-repeat;
+                                         background-position: center;
+                                         background-size: contain;}'))
+                    )
+                    )
+}
 })
   # Filter by Area Display Options
   output$filter_UI <- renderUI({
@@ -1222,7 +1222,7 @@ server <- shinyServer(function(input, output, session) {
   # Load Right of Way Data
   rowLoad <- reactive({
     query <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT*%20FROM%20%22cc17ee69-b4c8-4b0c-8059-23af341c9214%22%20WHERE%20((%22from_date%22%20BETWEEN%20%27", input$dates[1], "%27%20AND%20%27", input$dates[2], "%27)%20OR%20(%22to_date%22%20BETWEEN%20%27",  input$dates[1], "%27%20AND%20%27", input$dates[2], "%27)%20OR%20(%22from_date%22<=%27", input$dates[1], "%27%20AND%20%22to_date%22>=%27", input$dates[2], "%27)%20OR%20(%22restoration_date%22%20BETWEEN%20%27", input$dates[1], "%27%20AND%20%27", input$dates[2], "%27))%20AND%20%22open_date%22>=%27", as.Date(input$dates[1]) - 365, "%27")
-
+    
     row <- ckanSQL(query) %>%
       mutate(icon = as.factor(case_when(type == "Barricade Permit" ~ "barricade",
                                         type == "Annual Bridge Permit" ~ "bridge_permit",
@@ -1314,22 +1314,22 @@ server <- shinyServer(function(input, output, session) {
     # Icons
     if (nrow(crashes) > 0){
       crashes$icon <- as.factor(case_when(
-      crashes$BICYCLE == "1" ~ "crash_bike",
-      crashes$BUS_COUNT >= 1 ~ "crash_bus",
-      crashes$MOTORCYCLE == "1" ~ "crash_motorcycle",
-      crashes$PEDESTRIAN == "1" ~ "crash_pedestrian",
-      crashes$ALCOHOL_RELATED == "1" | crashes$DRUGGED_DRIVER == "1" ~ "crash_dui",
-      crashes$TRAIN_TROLLEY == "1" ~ "crash_trolley",
-      crashes$HIT_DEER == "1" ~ "crash_deer",
-      crashes$HIT_FIXED_OBJECT == "1" | crashes$HIT_POLE  == "1" | crashes$HIT_GDRAIL  == "1" | crashes$HIT_BARRIER  == "1" | crashes$HIT_TREE_SHRUB == "1" | crashes$HIT_PARKED_VEHICLE  == "1" | crashes$HIT_GDRAIL_END == "1" ~ "crash_single",
-      TRUE ~ "crash"))
+        crashes$BICYCLE == "1" ~ "crash_bike",
+        crashes$BUS_COUNT >= 1 ~ "crash_bus",
+        crashes$MOTORCYCLE == "1" ~ "crash_motorcycle",
+        crashes$PEDESTRIAN == "1" ~ "crash_pedestrian",
+        crashes$ALCOHOL_RELATED == "1" | crashes$DRUGGED_DRIVER == "1" ~ "crash_dui",
+        crashes$TRAIN_TROLLEY == "1" ~ "crash_trolley",
+        crashes$HIT_DEER == "1" ~ "crash_deer",
+        crashes$HIT_FIXED_OBJECT == "1" | crashes$HIT_POLE  == "1" | crashes$HIT_GDRAIL  == "1" | crashes$HIT_BARRIER  == "1" | crashes$HIT_TREE_SHRUB == "1" | crashes$HIT_PARKED_VEHICLE  == "1" | crashes$HIT_GDRAIL_END == "1" ~ "crash_single",
+        TRUE ~ "crash"))
       
       crashes <- transform(crashes, type = as.factor(mapvalues(icon, c("crash", "crash_bike", "crash_bus", "crash_deer", "crash_dui", "crash_motorcycle", "crash_pedestrian", "crash_trolley", "crash_single"),
-                                                                        crash_types)))
-    # Type Select
-    if (length(input$crash_select) > 0){
-      crashes <- crashes[crashes$type %in% input$crash_select,]
-    }
+                                                               crash_types)))
+      # Type Select
+      if (length(input$crash_select) > 0){
+        crashes <- crashes[crashes$type %in% input$crash_select,]
+      }
       if (nrow(crashes) > 0) {
         # Clean
         crashes$CRASH_MONTH <- str_pad(as.character(crashes$CRASH_MONTH), 2, pad = "0")
@@ -1671,14 +1671,14 @@ server <- shinyServer(function(input, output, session) {
   # Citations data with filters
   citationsInput <- reactive({
     citations <- citationsLoad()
-
+    
     # Offenses Columns
     citations$OFFENSES <- as.character(citations$OFFENSES)
     incidents2 <- as.data.frame(do.call(rbind, strsplit(citations$OFFENSES, " / ", fixed = FALSE)))
     citations <- cbind(citations, incidents2)
     offensesColCit <- as.numeric(ncol(citations))
     offensesCit1 <- as.numeric(which(colnames(citations)=="V1"))
-
+    
     # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
       citations <- citations[citations$POLICE_ZONE %in% input$zone_select,]
@@ -1691,7 +1691,7 @@ server <- shinyServer(function(input, output, session) {
     } else if (length(input$firez_select) > 0 & input$filter_select == "Fire Zone") {
       citations <- citations[citations$FIRE_ZONE %in% input$firez_select,]
     }
-
+    
     # Offense Filter
     if (length(input$offense_select) > 0) {
       for (i in offensesCit1:offensesColCit) {
@@ -1704,7 +1704,7 @@ server <- shinyServer(function(input, output, session) {
       }
       citations <- unique(out)
     }
-
+    
     # Search Filter
     if (!is.null(input$search) && input$search != "") {
       citations <- citations[apply(citations, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
@@ -1755,11 +1755,11 @@ server <- shinyServer(function(input, output, session) {
     # Icons
     if (nrow(fires) > 0) {
       fires$icon <- case_when(fires$incident_type %in% c(111, 112) ~ "fire_building",
-                         fires$incident_type %in% c(113, 123) ~ "fire_cooking",
-                         fires$incident_type %in% c(130, 131, 132, 133, 134, 137) ~ "fire_vehicle",
-                         fires$incident_type %in% c(140, 141, 142, 143, 171, 173) ~ "fire_brush",
-                         fires$incident_type %in% c(118, 117, 150, 151, 152, 154, 155) ~ "fire_trash",
-                         TRUE ~ "fire")
+                              fires$incident_type %in% c(113, 123) ~ "fire_cooking",
+                              fires$incident_type %in% c(130, 131, 132, 133, 134, 137) ~ "fire_vehicle",
+                              fires$incident_type %in% c(140, 141, 142, 143, 171, 173) ~ "fire_brush",
+                              fires$incident_type %in% c(118, 117, 150, 151, 152, 154, 155) ~ "fire_trash",
+                              TRUE ~ "fire")
     } else {
       fires <- read.table(text = "", col.names =  c(names(fires), "icon"))
     }
@@ -1768,16 +1768,16 @@ server <- shinyServer(function(input, output, session) {
   })
   violationsLoad <- reactive({
     violations <- ckanQueryDates("4e5374be-1a88-47f7-afee-6a79317019b4", input$dates[1], input$dates[2], "INSPECTION_DATE")
-
-      violations <- violations %>%
-        mutate(date = as.Date(INSPECTION_DATE),
-               url = paste0('<a href="http://www2.county.allegheny.pa.us/RealEstate/GeneralInfo.aspx?ParcelID=', PARCEL, '" target="_blank">', PARCEL, '</a>'),
-               INSPECTION_RESULT = as.factor(INSPECTION_RESULT),
-               full_address = paste(STREET_NUM, STREET_NAME)) %>%
-        transform(icon = as.factor(mapvalues(INSPECTION_RESULT, c('Abated','Violations Found','Voided'),
-                                                                             c('violations_abated', 'violations_found', 'violations_void'))))
+    
+    violations <- violations %>%
+      mutate(date = as.Date(INSPECTION_DATE),
+             url = paste0('<a href="http://www2.county.allegheny.pa.us/RealEstate/GeneralInfo.aspx?ParcelID=', PARCEL, '" target="_blank">', PARCEL, '</a>'),
+             INSPECTION_RESULT = as.factor(INSPECTION_RESULT),
+             full_address = paste(STREET_NUM, STREET_NAME)) %>%
+      transform(icon = as.factor(mapvalues(INSPECTION_RESULT, c('Abated','Violations Found','Voided'),
+                                           c('violations_abated', 'violations_found', 'violations_void'))))
     violations$FullAddress <- paste(ifelse(is.na(violations$STREET_NUM) | is.null(violations$STREET_NUM) | violations$STREET_NUM == 0, "", violations$STREET_NUM) , ifelse(is.na(violations$STREET_NAME) | is.null(violations$STREET_NAME), "", violations$STREET_NAME))
-
+    
     # Clean Geographies
     violations <- cleanGeo(violations, TRUE)
     
@@ -1797,7 +1797,7 @@ server <- shinyServer(function(input, output, session) {
       violations$VIOLATION <- as.character(violations$VIOLATION)
       violations$VIOLATION <- gsub("::", "/", violations$VIOLATION)
       violations$CORRECTIVE_ACTION <- gsub("::", "/", violations$CORRECTIVE_ACTION)
-    
+      
       # Violation Filter
       if (length(input$violation_select) > 0) { 
         for (i in violations1:violationsCol) {
@@ -1849,9 +1849,9 @@ server <- shinyServer(function(input, output, session) {
     permits$date <- as.Date(permits$intake_date)
     # Full address clean
     permits$full_address <- paste0(ifelse(is.na(permits$street_address) | is.null(permits$street_address), "", paste0(as.character(permits$street_address), " ")),
-                                        ifelse(is.na(permits$city) | is.null(permits$city), "",  paste0(permits$city, ", ")),
-                                        ifelse(is.na(permits$state) | is.null(permits$state), "",  paste0(permits$state, " ")),
-                                        ifelse(is.na(permits$zip) | is.null(permits$zip), "",  paste0(permits$zip, " ")))
+                                   ifelse(is.na(permits$city) | is.null(permits$city), "",  paste0(permits$city, ", ")),
+                                   ifelse(is.na(permits$state) | is.null(permits$state), "",  paste0(permits$state, " ")),
+                                   ifelse(is.na(permits$zip) | is.null(permits$zip), "",  paste0(permits$zip, " ")))
     types <- as.data.frame(do.call(rbind, strsplit(permits$permit_type, " - ", fixed = FALSE)))
     permits$primary_type <- types$V1
     permits$record_category <- ifelse(is.na(permits$record_category), "None", permits$record_category)
@@ -1865,13 +1865,13 @@ server <- shinyServer(function(input, output, session) {
     permits$url <-  paste0('<a href="http://www2.county.allegheny.pa.us/RealEstate/GeneralInfo.aspx?ParcelID=',permits$parcel_id, '" target="_blank">', permits$parcel_id, '</a>')
     
     permits <- transform(permits, icon = as.factor(mapvalues(primary_type, permit_types,
-                                                                       c('appeals', 'building_permit', 'communication_tower', 'demolition_permit', 'electrical_permit', 'fire_alarm', 'HVAC_permit', 'land_operations', 'occupancy', 'occupant_load_placard', 'sign_permit', 'sprinkler_permit', 'temp_occupancy', 'temp_occupancy'))))
+                                                             c('appeals', 'building_permit', 'communication_tower', 'demolition_permit', 'electrical_permit', 'fire_alarm', 'HVAC_permit', 'land_operations', 'occupancy', 'occupant_load_placard', 'sign_permit', 'sprinkler_permit', 'temp_occupancy', 'temp_occupancy'))))
     # Clean Geograhies
     permits <- cleanGeo(permits)
-
+    
     # Sort
     permits <- permits[rev(order(as.Date(permits$date, format="%d/%m/%Y"))),]
-
+    
     # Permit Filters
     if (length(input$permit_select) > 0) {
       permits <- permits[permits$permit_type %in% input$permit_select,]
@@ -1882,7 +1882,7 @@ server <- shinyServer(function(input, output, session) {
     if (length(input$category_select) > 0) {
       permits <- permits[permits$record_category %in% input$category_select,]
     }
-
+    
     # Geographic Filters
     if (length(input$zone_select) > 0 & input$filter_select == "Police Zone"){
       permits <- permits[permits$police_zone %in% input$zone_select,]
@@ -1895,18 +1895,18 @@ server <- shinyServer(function(input, output, session) {
     } else if (length(input$firez_select) > 0 & input$filter_select == "Fire Zone") {
       permits <- permits[permits$fire_zone %in% input$firez_select,]
     }
-
+    
     # Search Filter
     if (!is.null(input$search) && input$search != "") {
       permits <- permits[apply(permits, 1, function(row){any(grepl(input$search, row, ignore.case = TRUE))}), ]
     }
-
+    
     # Append Workflows
     workflow <- load.workflow
     # Select Workflows
     workflow <- workflow[workflow$permit_id %in% permits$permit_id,]
     workflow$permit_id <- as.factor(workflow$permit_id)
-
+    
     if (nrow(permits) > 0) {
       # Loop which aggregates appropriate Workflows
       for (i in  levels(workflow$permit_id)){
@@ -1928,21 +1928,21 @@ server <- shinyServer(function(input, output, session) {
         # Check for first Workflow
         if (i == levels(workflow$permit_id)[1]){
           tt.df <- df
-        # Merge to other tooltips
+          # Merge to other tooltips
         } else {
           tt.df <- rbind(tt.df, df)
         }
       }
-
-    # Rename Columns for Merge
-    colnames(tt.df) <- c("permit_id", "tt")
-    # Merge Workflow Tooltip to Permits
-    permits <- merge(permits, tt.df, by = "permit_id", all.x = TRUE)
-    # Make Unsuccessful tooltips blank instead of NA
-    permits$tt <- as.character(permits$tt)
-    permits$tt[is.na(permits$tt)] <- ""
+      
+      # Rename Columns for Merge
+      colnames(tt.df) <- c("permit_id", "tt")
+      # Merge Workflow Tooltip to Permits
+      permits <- merge(permits, tt.df, by = "permit_id", all.x = TRUE)
+      # Make Unsuccessful tooltips blank instead of NA
+      permits$tt <- as.character(permits$tt)
+      permits$tt[is.na(permits$tt)] <- ""
     }
-
+    
     return(permits)
   })
   # Capital Projects data with filters
@@ -2091,7 +2091,7 @@ server <- shinyServer(function(input, output, session) {
       report <- citations
     } else if (input$report_select == "Fire Incidents") {
       fires <- firesInput()
-
+      
       fires <- subset(fires, select = c(call_no, fire_desc, alarm_time, primary_unit, alarms, address, fire_zone, neighborhood, council_district))
       colnames(fires) <- c("Call #", "Type", "Alarm Time", "Primary Unit", "Alarms", "Location", "Fire Zone", "Neighborhood", "Council District")
       
@@ -2290,7 +2290,7 @@ server <- shinyServer(function(input, output, session) {
         blotter <- subset(blotter, X >= -80.242767 & X <= -79.660492 & Y <= 40.591014 & Y >= 40.266428)
         # Remove non-pittsburgh incidents for map (these incidents still appear in data extracts)
         blotter <- subset(blotter, POLICE_ZONE != "OSC" | INCIDENTNEIGHBORHOOD != "Outside City" | INCIDENTNEIGHBORHOOD != "Outside County")
-       
+        
         allData <- rbind(blotter[,c("X", "Y")], allData) 
       }
       # Fire Incidents Layer
@@ -2365,7 +2365,7 @@ server <- shinyServer(function(input, output, session) {
       if (recs > 0) {
         map <- addHeatmap(map, data = allData, lng = ~X, lat = ~Y, radius = 8)
       }
-    # Point Layers  
+      # Point Layers  
     } else {
       # 311 Data
       if (input$toggle311) {
@@ -2412,7 +2412,7 @@ server <- shinyServer(function(input, output, session) {
           arrests$icon <- "arrest_made"
           map <- addMarkers(map, data=arrests,
                             clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {    
-                                                                                      var childCount = cluster.getChildCount();  
+                                                                                        var childCount = cluster.getChildCount();  
                                                                                         if (childCount < 10) {  
                                                                                         c = 'rgba(217, 217, 224, 1);'
                                                                                         } else if (childCount < 100) {  
@@ -2435,8 +2435,8 @@ server <- shinyServer(function(input, output, session) {
                                             "<br><b>CCR:</b>", arrests$CCR, "</font>"))
           )
           recs <- recs + nrow(arrests)
-                  }
-        }
+  }
+  }
       # Non-Traffic Citations
       if (input$toggleCitations) {
         citations <- citationsInput()
@@ -2470,7 +2470,7 @@ server <- shinyServer(function(input, output, session) {
                                             "<br><b>CCR:</b>", citations$CCR, "</font>"))
           )
           recs <- recs + nrow(citations)
-          }
+                }
         }
       # Police Blotter Layer
       if (input$toggleBlotter) {
@@ -2512,7 +2512,7 @@ server <- shinyServer(function(input, output, session) {
           )
           recs <- recs + nrow(blotter)
           }
-      }
+        }
       # Fire Incidents Layer
       if (input$toggleFires) {
         fires <- firesInput()
@@ -2546,8 +2546,8 @@ server <- shinyServer(function(input, output, session) {
                                             "<br><b>Call #:</b>", fires$call_no, "</font>"))
           )
           recs <- recs + nrow(fires)                 
+          }
         }
-      }
       # Building Permits Layer
       # if(input$togglePermits) {
       #   permits <- permitsInput()
@@ -2653,8 +2653,8 @@ server <- shinyServer(function(input, output, session) {
                             ))
           )
           recs <- recs + nrow(cproj)
-        }
-      }
+          }
+}
       # Crashes
       if (input$toggleCrashes) {
         crashes <- crashesInput()
@@ -2663,7 +2663,7 @@ server <- shinyServer(function(input, output, session) {
                             clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
                                                                                         var childCount = cluster.getChildCount();
                                                                                         if (childCount < 10) {  
-                                                                                            c = 'rgba(252, 247, 220, 1);'
+                                                                                        c = 'rgba(252, 247, 220, 1);'
                                                                                         } else if (childCount < 100) {  
                                                                                         c = 'rgba(251, 227, 136, 1);'  
                                                                                         } else { 
@@ -2682,29 +2682,29 @@ server <- shinyServer(function(input, output, session) {
                                    "<br><b>Injuries:</b>", crashes$INJURY_COUNT,
                                    "<br><b>Deaths:</b>", crashes$FATAL_COUNT,
                                    "<br><br><b>Special Circumstances:</b><ul>",
-                                    ifelse(crashes$LANE_CLOSED == 1, "<li>Lane Closed", ""),
-                                    ifelse(crashes$TAILGATING== 1, "<li>Tailgating", ""),
-                                    ifelse(crashes$AGGRESSIVE_DRIVING == 1, "<li>Aggressive Driving", ""),
-                                    ifelse(crashes$SPEEDING_RELATED == 1, "<li>Speeding Related", ""),
-                                    ifelse(crashes$UNLICENSED == 1, "<li>Unlicensed", ""),
-                                    ifelse(crashes$WET_ROAD == 1, "<li>Wet Road", ""),
-                                    ifelse(crashes$SNOW_SLUSH_ROAD == 1, "<li>Snow/Slushy Road", ""),
-                                    ifelse(crashes$ICY_ROAD == 1, "<li>Icy Road", ""),
-                                    ifelse(crashes$REAR_END == 1, "<li>Rear Ended", ""),
-                                    ifelse(crashes$OVERTURNED == 1, "<li>Overturned Vehicle", ""),
-                                    ifelse(crashes$CELL_PHONE == 1, "<li>Cellphone Related", ""),
-                                    ifelse(crashes$VEHICLE_TOWED == 1, "<li>Vehicle Towed", ""),
-                                    ifelse(crashes$RUNNING_RED_LT == 1, "<li>Ran Red Light", ""),
-                                    ifelse(crashes$RUNNING_STOP_SIGN == 1, "<li>Ran Stop Sign", ""),
-                                    ifelse(crashes$FATIGUE_ASLEEP == 1, "<li>Fatigued/Asleep", ""),
-                                    ifelse(crashes$WORK_ZONE == 1, "<li>Work Zone", ""),
-                                    ifelse(crashes$DISTRACTED == 1, "<li>Distracted", ""),
-                                    ifelse(crashes$SCH_BUS_IND == 1, "<li>School Bus", ""),
+                                   ifelse(crashes$LANE_CLOSED == 1, "<li>Lane Closed", ""),
+                                   ifelse(crashes$TAILGATING== 1, "<li>Tailgating", ""),
+                                   ifelse(crashes$AGGRESSIVE_DRIVING == 1, "<li>Aggressive Driving", ""),
+                                   ifelse(crashes$SPEEDING_RELATED == 1, "<li>Speeding Related", ""),
+                                   ifelse(crashes$UNLICENSED == 1, "<li>Unlicensed", ""),
+                                   ifelse(crashes$WET_ROAD == 1, "<li>Wet Road", ""),
+                                   ifelse(crashes$SNOW_SLUSH_ROAD == 1, "<li>Snow/Slushy Road", ""),
+                                   ifelse(crashes$ICY_ROAD == 1, "<li>Icy Road", ""),
+                                   ifelse(crashes$REAR_END == 1, "<li>Rear Ended", ""),
+                                   ifelse(crashes$OVERTURNED == 1, "<li>Overturned Vehicle", ""),
+                                   ifelse(crashes$CELL_PHONE == 1, "<li>Cellphone Related", ""),
+                                   ifelse(crashes$VEHICLE_TOWED == 1, "<li>Vehicle Towed", ""),
+                                   ifelse(crashes$RUNNING_RED_LT == 1, "<li>Ran Red Light", ""),
+                                   ifelse(crashes$RUNNING_STOP_SIGN == 1, "<li>Ran Stop Sign", ""),
+                                   ifelse(crashes$FATIGUE_ASLEEP == 1, "<li>Fatigued/Asleep", ""),
+                                   ifelse(crashes$WORK_ZONE == 1, "<li>Work Zone", ""),
+                                   ifelse(crashes$DISTRACTED == 1, "<li>Distracted", ""),
+                                   ifelse(crashes$SCH_BUS_IND == 1, "<li>School Bus", ""),
                                    "</ul>"))
           )
           recs <- recs + nrow(crashes@data)
-        }
-      }
+  }
+    }
       if (input$toggleROW) {
         row <- rowInput()
         if (nrow(row) > 0) {
@@ -2712,7 +2712,7 @@ server <- shinyServer(function(input, output, session) {
                             clusterOptions = markerClusterOptions(iconCreateFunction=JS("function (cluster) {
                                                                                         var childCount = cluster.getChildCount();
                                                                                         if (childCount < 10) {  
-                                                                                            c = 'rgba(138, 219, 218, 1);'
+                                                                                        c = 'rgba(138, 219, 218, 1);'
                                                                                         } else if (childCount < 100) {  
                                                                                         c = 'rgba(60, 195, 193, 1);'  
                                                                                         } else { 
@@ -2725,8 +2725,7 @@ server <- shinyServer(function(input, output, session) {
                                            ifelse(is.na(row$business_name), "", paste("<br><b>Contractor/Utility:</b>", row$business_name)),
                                            ifelse(is.na(row$license_type), "", paste("<br><b>License:</b>", row$license_type)),
                                            "<br><b>Open Date:</b>", row$open_date,
-                                           "<br><b>Valid From:</b>", row$from_date,
-                                           "<br><b>Valid To:</b>", row$to_date,
+                                           ifelse(row$from_date == row$to_date, paste("<br><b>Valid:</b>", row$from_date), paste("<br><b>Valid:</b>", row$from_date,  "-", row$to_date)),
                                            ifelse(is.na(row$restoration_date), "", paste("<br><b>Restoration By:</b>", row$restoration_date)),
                                            "<br><b>Primary Address:</b>", row$address,
                                            ifelse(is.na(row$street_or_location), "", paste("<br><b>Street/Location:</b>", row$street_or_location)),
@@ -2734,14 +2733,12 @@ server <- shinyServer(function(input, output, session) {
                                            ifelse(is.na(row$to_street),  "", paste("<br><b>To Street:</b>", row$to_street)),
                                            "<br><b>Neighborhood:</b>", row$neighborhood,
                                            "<br><b>Council District:</b>", row$council_district,
-                                           "<br><b>Public Works Division:</b>", row$public_works_division,
-                                           "<br><b>Police Zone:</b>", row$police_zone,
-                                           "<br><b>Fire Zone:</b>", row$fire_zone)
-          )
+                                           "<br><b>Public Works Division:</b>", row$public_works_division)
+                            )
           recs <- recs + nrow(row)
-        }
-      }
     }
+  }
+  }
     print(recs)
     if (recs < 1) {
       
@@ -2752,7 +2749,7 @@ server <- shinyServer(function(input, output, session) {
       }
       
       map <- addMarkers(map, data=egg, ~X, ~Y, icon = ~icons_egg[icon], popup = ~tt) %>% 
-          setView(-79.9959, 40.4406, zoom = 10)
+        setView(-79.9959, 40.4406, zoom = 10)
     }
     #Write inputs to Couch
     if (url.exists(paste0(couchdb_url, ":5984/_utils/"))){
@@ -2765,7 +2762,7 @@ server <- shinyServer(function(input, output, session) {
     #Generate Map
     map
     })
-  })
+    })
 
 # Run the application 
 shinyApp(ui = ui, server = server, enableBookmarking = "url")
