@@ -111,64 +111,17 @@ ckanQuery2 <- function(id, query, column, arg, query2, column2) {
 
 # Query Crash Dataset
 ckanQueryCrashes <- function(start_date, end_date) {
-  start_year <- as.numeric(format(as.Date(start_date), "%Y"))
-  end_year <- as.numeric(format(as.Date(end_date), "%Y"))
-  start_month <- as.numeric(format(as.Date(start_date), "%m"))
-  end_month <- as.numeric(format(as.Date(end_date), "%m"))
-  if (start_year == end_year) {
-    months <- start_month:end_month
-    if (length(months) == 1) {
-      url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20=%20%272301%27%20AND%20%22CRASH_YEAR%22%20=%27", start_year,"%27%20AND%20%22CRASH_MONTH%22%20=%20%27", start_month, "%27")
-    } else {
-      url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20=%20%272301%27%20AND%20%22CRASH_YEAR%22%20=%27", start_year,"%27%20AND%20(%22CRASH_MONTH%22%20BETWEEN%20%27", start_month,"%27%20AND%20%27", end_month, "%27)")
-    }
-    r <- GET(url, add_headers(Authorization = ckan_api), timeout(600))
-    c <- content(r, "text")
-    json <- gsub('NaN', '""', c, perl = TRUE)
-    if (length(jsonlite::fromJSON(json)$result$records) == 0) {
-      fields <- jsonlite::fromJSON(json)$result$fields$id
-      df <- data.frame(t(data.frame(1:length(fields), row.names = fields))[0,])
-    } else {
-      df <- jsonlite::fromJSON(json)$result$records
-    }
+  start_month <- format(as.Date(start_date), "%Y-%m-01")
+  end_month <- format(as.Date(end_date), "%Y-%m-01")
+  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20LIKE%20%27%%252301%27%20AND%20TO_DATE(%22CRASH_YEAR%22%20||%20%27-%27%20||%20%22CRASH_MONTH%22%20||%20%27-01%27,%20%27YYYY-MM-DD%27)%20BETWEEN%20%27", start_month, "%27%20AND%27", end_month, "%27")
+  r <- GET(url, add_headers(Authorization = ckan_api), timeout(600))
+  c <- content(r, "text")
+  json <- gsub('NaN', '""', c, perl = TRUE)
+  if (length(jsonlite::fromJSON(json)$result$records) == 0) {
+    fields <- jsonlite::fromJSON(json)$result$fields$id
+    df <- data.frame(t(data.frame(1:length(fields), row.names = fields))[0,])
   } else {
-    years <- start_year:end_year
-    url_start <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20=%20%272301%27%20AND%20%22CRASH_YEAR%22%20=%27", start_year,"%27%20AND%20(%22CRASH_MONTH%22%20BETWEEN%20%27", start_month,"%27%20AND%20%2712%27)")
-    r <- GET(url_start, add_headers(Authorization = ckan_api), timeout(600))
-    c <- content(r, "text")
-    json <- gsub('NaN', '""', c, perl = TRUE)
-    if (length(jsonlite::fromJSON(json)$result$records) == 0) {
-      fields <- jsonlite::fromJSON(json)$result$fields$id
-      df1 <- data.frame(t(data.frame(1:length(fields), row.names = fields))[0,])
-    } else {
-      df1 <- jsonlite::fromJSON(json)$result$records
-    }
-    url_end <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20=%20%272301%27%20AND%20%22CRASH_YEAR%22%20=%27", end_year,"%27%20AND%20(%22CRASH_MONTH%22%20BETWEEN%20%271%27%20AND%20%27", end_month, "%27)")
-    r <- GET(url_end, add_headers(Authorization = ckan_api), timeout(600))
-    c <- content(r, "text")
-    json <- gsub('NaN', '""', c, perl = TRUE)
-    if (length(jsonlite::fromJSON(json)$result$records) == 0) {
-      fields <- jsonlite::fromJSON(json)$result$fields$id
-      df2 <- data.frame(t(data.frame(1:length(fields), row.names = fields))[0,])
-    } else {
-      df2 <- jsonlite::fromJSON(json)$result$records
-    }
-    df <- rbind(df1, df2)
-    if (length(years) > 2) {
-      for (i in years[2]:years[length(years)-1]) {
-        url<- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20=%20%272301%27%20AND%20%22CRASH_YEAR%22%20=%27", i,"%27")
-        r <- GET(url, add_headers(Authorization = ckan_api), timeout(600))
-        c <- content(r, "text")
-        json <- gsub('NaN', '""', c, perl = TRUE)
-        if (length(jsonlite::fromJSON(json)$result$records) == 0) {
-          fields <- jsonlite::fromJSON(json)$result$fields$id
-          df_new <- data.frame(t(data.frame(1:length(fields), row.names = fields))[0,])
-        } else {
-          df_new <- jsonlite::fromJSON(json)$result$records
-        }
-        df <- rbind(df, df_new)
-      }
-    }
+    df <- jsonlite::fromJSON(json)$result$records
   }
   return(df)
 }
