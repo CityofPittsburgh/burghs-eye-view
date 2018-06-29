@@ -34,10 +34,11 @@ options(scipen = 999)
 
 httr::set_config(config(ssl_verifypeer = 0L))
 
-ckan_api <- jsonlite::fromJSON("key.json")$ckan_api
-couchdb_un <- jsonlite::fromJSON("key.json")$couchdb_un
-couchdb_pw <- jsonlite::fromJSON("key.json")$couchdb_pw
-couchdb_url <- jsonlite::fromJSON("key.json")$couchdb_url
+keys <- jsonlite::fromJSON("key.json")
+ckan_api <- keys$ckan_api
+couchdb_un <- keys$couchdb_un
+couchdb_pw <- keys$couchdb_pw
+couchdb_url <- keys$couchdb_url
 
 selection_conn <- cdbIni(serverName = couchdb_url, port = "5984", uname = couchdb_un, pwd = couchdb_pw, DBName = "bev-inputs")
 
