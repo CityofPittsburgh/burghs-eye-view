@@ -284,7 +284,7 @@ icons_permits <- iconList(
 # load.workflow$tool <- paste0("<dt>", load.workflow$status_date, ": ", load.workflow$action_by_dept, "</dt>", "<dd>", load.workflow$task, " - ", load.workflow$status, "</dd>")
 
 # Building Code Violations
-violations <- selectGet("violations", selection_conn)
+violations <- as.factor(trimws(ckanSQL("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(SPLIT_PART(%22VIOLATION%22,%27::%27,1))%20FROM%20%224e5374be-1a88-47f7-afee-6a79317019b4%22")$split_part))
 
 inspect_results <- c('Abated','Violations Found','Voided')
 
@@ -298,7 +298,7 @@ icons_violations <- iconList(
 # Blotter Input & Icons
 hierarchies <- as.factor(c("01 Murder", "02 Rape", "03 Robbery", "04 Assault", "05 Burglary", "06 Theft", "07 Vehicle Theft", "08 Arson", "09 Forgery", "10 Simple Assault", "11 Fraud", "12 Embezzlement", "13 Receiving Stolen Prop", "14 Vandalism", "15 Carrying Weapon", "16 Prostitution", "17 Sex Offense", "18 Drug Offense", "19 Gambling", "20 Endangering Children", "21 DUI", "22 Liquor Laws", "23 Public Drunkenness", "24 Disorderly Conduct", "25 Vagrancy", "26 Other"))
 
-offenses <- selectGet("offenses", selection_conn)
+offenses <- as.factor(trimws(ckanSQL("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(SPLIT_PART(%22OFFENSES%22,%27%20/%20%27,1))%20FROM%20%22044f2016-1dfd-4ab0-bc1e-065da05fca2e%22")$split_part))
 
 # Icons for Blotter
 icons_blotter <- iconList(
@@ -770,7 +770,7 @@ server <- shinyServer(function(input, output, session) {
                                 selectize = TRUE),
                     selectInput("offense_select",
                                 label = NULL,
-                                c(`Offense Type`='', offenses),
+                                c(`Offense Type`='', levels(offenses)),
                                 multiple = TRUE,
                                 selectize = TRUE),
                     HTML('<font color="#474545">'),
