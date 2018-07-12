@@ -134,8 +134,8 @@ ckanUniques <- function(id, field) {
 }
 
 # CouchDB Connection
-# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
+couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
+# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 # List for Clean Function
 council_list <- selectGet("council_list", selection_conn)
@@ -815,7 +815,7 @@ server <- shinyServer(function(input, output, session) {
                     HTML('</font>'),
                     selectInput("violation_select",
                                 label = NULL,
-                                c(`Violation`='', violations),
+                                c(`Violation`='', levels(violations)),
                                 multiple = TRUE,
                                 selectize=TRUE),
                     selectInput("result_select",
