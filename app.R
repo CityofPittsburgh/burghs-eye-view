@@ -71,15 +71,15 @@ dollarsComma <- function(x){
 
 # Function to download WPRDC Data
 ckan <- function(id) {
-  x <- paste0("https://data.wprdc.org/datastore/dump/", id)
-  r <- GET(x, add_headers(Authorization = ckan_api), timeout(600))
+  url <- paste0("https://data.wprdc.org/datastore/dump/", id)
+  r <- RETRY("GET", url)
   content(r)
 }
 
 # Function to Query WPRDC Data on Time Frame
 ckanQueryDates <- function(id, start, end, column) {
   url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column, "%22%20%3E=%20%27", start, "%27%20AND%20%22", column, "%22%20%3C=%20%27", end, "%27")
-  r <- GET(url, add_headers(Authorization = ckan_api), timeout(600))
+  r <- RETRY("GET", url)
   c <- content(r, "text")
   json <- gsub('NaN', '""', c, perl = TRUE)
   if (length(jsonlite::fromJSON(json)$result$records) == 0) {
@@ -91,7 +91,7 @@ ckanQueryDates <- function(id, start, end, column) {
 }
 
 ckanSQL <- function(url) {
-  r <- GET(url, add_headers(Authorization = ckan_api), timeout(600)) 
+  r <- RETRY("GET", url)
   c <- content(r, "text")
   json <- gsub('NaN', '""', c, perl = TRUE)
   data.frame(jsonlite::fromJSON(json)$result$records)
@@ -99,7 +99,7 @@ ckanSQL <- function(url) {
 
 ckanQuery2 <- function(id, query, column, arg, query2, column2) {
   url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column,"%22%20=%20%27", query, "%27%20", arg, "%20%22", column2, "%22%20=%20%27", query2, "%27")
-  r <- GET(url, add_headers(Authorization = ckan_api), timeout(600))
+  r <- RETRY("GET", url)
   c <- content(r, "text")
   json <- gsub('NaN', '""', c, perl = TRUE)
   if (length(jsonlite::fromJSON(json)$result$records) == 0) {
@@ -115,7 +115,7 @@ ckanQueryCrashes <- function(start_date, end_date) {
   start_month <- format(as.Date(start_date), "%Y-%m-01")
   end_month <- format(as.Date(end_date), "%Y-%m-01")
   url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20LIKE%20%27%%252301%27%20AND%20TO_DATE(%22CRASH_YEAR%22%20||%20%27-%27%20||%20%22CRASH_MONTH%22%20||%20%27-01%27,%20%27YYYY-MM-DD%27)%20BETWEEN%20%27", start_month, "%27%20AND%27", end_month, "%27")
-  r <- GET(url, add_headers(Authorization = ckan_api), timeout(600))
+  r <- RETRY("GET", url)
   c <- content(r, "text")
   json <- gsub('NaN', '""', c, perl = TRUE)
   if (length(jsonlite::fromJSON(json)$result$records) == 0) {
