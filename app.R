@@ -134,8 +134,8 @@ ckanUniques <- function(id, field) {
 }
 
 # CouchDB Connection
-couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
+# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
+couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 # List for Clean Function
 council_list <- selectGet("council_list", selection_conn)
@@ -512,7 +512,8 @@ icons_arrests <- iconList(
 )
 
 # UI for application
-ui <- navbarPage(id = "navTab",
+ui <- ui <- function(request) {
+      navbarPage(id = "navTab",
                  windowTitle = "Burgh's Eye View Points",
                  selected = "Points",
                  collapsible = TRUE,
@@ -552,175 +553,80 @@ ui <- navbarPage(id = "navTab",
                           tags$head(includeScript("google-analytics.js")),
                           # Add Tag Manager Script to Body
                           tags$body(tags$noscript(tags$iframe(src='https://www.googletagmanager.com/ns.html?id=GTM-TCTCQVD', height = 0, width = 0, style="display:none;visibility:hidden"))),
-                          # Hide error codes that may appear
-                          tags$style(type="text/css",
-                                     ".shiny-output-error { visibility: hidden; }",
-                                     ".shiny-output-error:before { visibility: hidden; }"),
-                          # Background of report.table
-                          tags$style(type="text/css", '.report.table {background-color: #fff;}'),
                           # Remove unwanted padding and margins
-                          tags$style(type="text/css", ".container-fluid {padding:0;}"),
-                          tags$style(type="text/css", ".navbar-header {margin:auto;"),
-                          tags$style(type="text/css", ".navbar-static-top {margin-bottom:0;}"),
-                          tags$style(type="text/css", ".navbar-brand {height:60px; padding:0;}"),
-                          tags$style(type="text/css", ".navbar {border-right-width: 20px;
-                                     border-left-width: 65px;}"),
-                          # Set max height for pop-ups
-                          tags$style(type="text/css", ".leaflet-popup-content {overflow-y: auto; max-height: 400px !important;}"),
-                          # Edit top bar
-                          tags$style(type= "text/css", ".form-group {
-                                     margin-bottom: 0px;
-                                     }"),
-                          # Generate search & layer panel & Map (checks for mobile devices)
-                          uiOutput("mapPanel")
-                          ),
-                 tabPanel(a("Places", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewPlaces/", style = "padding-top: 0px;
-                            padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
-                 tabPanel(a("Parcels", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewParcels/", style = "padding-top: 0px; padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
-                 tabPanel('Data: Points', class = "Data: Points", value = "Data: Points",
-                          # Select Dataset for Export
-                          inputPanel(
-                            selectInput("report_select", 
-                                        tagList(shiny::icon("map-marker"), "Select Layer:"),
-                                        choices = c("311 Requests", "Arrests", "Blotter", "Capital Projects", "Code Violations", "Collisions", "Fire Incidents", "Non-Traffic Citations", "Right of Way Permits"), #  , "Building Permits"
-                                        selected= "311 Requests"),
-                            # Define Button Position
-                            uiOutput("buttonStyle")
-                          ),
-                          # Clean up the Data Table CSS
-                          tags$style(type = "text/css", ".dataTables_length {margin-left: 10px;}"),
-                          tags$style(type = "text/css", ".dataTables_info {margin-left: 10px;}"),
-                          tags$style(type = "text/css", ".dataTables_filter {margin-right: 5px;}"),
-                          dataTableOutput("report.table")
-                 ),
-                 tabPanel('About', class = "About", value = "About",
-                          includeHTML('about.html'),
-                          # Twitter Button
-                          tags$script(HTML("var header = $('.navbar > .container-fluid > .navbar-collapse');
-                                           header.append('<div class =\"twit\" style=\"float:right;margin-top: 15px;\"><a href=\"https://twitter.com/share\" class=\"twitter-share-button\" align=\"middle\" data-url=\"data.pittsburghpa.gov/BurghsEyeView\" data-text=\"Check out Burgh&#39;s Eye View! A new tool to view city data in Pittsburgh: https://goo.gl/z4cZ30\" data-size=\"large\">Tweet</a></div>');
-                                           console.log(header)")),
-                          tags$script(HTML("!function(d,s,id){
-                                           var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';
-                                           if(!d.getElementById(id)){
-                                           js=d.createElement(s);
-                                           js.id=id;
-                                           js.src=p+'://platform.twitter.com/widgets.js';
-                                           fjs.parentNode.insertBefore(js,fjs);
-                                           }
-                                           }(document, 'script', 'twitter-wjs');")),
-                # Facebook Button
-                HTML('<div id="fb-root"></div>'),
-                tags$script(HTML("(function(d, s, id) {
-                                 var js, fjs = d.getElementsByTagName(s)[0];
-                                 if (d.getElementById(id)) return;
-                                 js = d.createElement(s); js.id = id;
-                                 js.src = \"//connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.8\";
-                                 fjs.parentNode.insertBefore(js, fjs);
-                                 }(document, 'script', 'facebook-jssdk'));")),
-                tags$script(HTML('header.append(\'<div class="fb-share-button" style="float:right;margin-top: 15px;margin-right: 5px;" data-href="http://pittsburghpa.shinyapps.io/BurghsEyeView/?utm_source=facebook_button&amp;utm_campaign=facebook_button&amp;utm_medium=facebook%2Fsocial\" data-layout="button" data-size="large" data-mobile-iframe="true"><a class="fb-xfbml-parse-ignore" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Fpittsburghpa.shinyapps.io%2FBurghsEyeView%2F%23utm_source%3Dfacebook_button%26utm_campaign%3Dfacebook_button%26utm_medium%3Dfacebook%252Fsocial&amp;src=sdkpreparse">Share</a></div>\');
-                                 console.log(header)'))
-                )
-                 )
-
-# Define server
-server <- shinyServer(function(input, output, session) {
-  # Observe changes to the dates function, if not default include in bookmark/url
-  observeEvent(input$dates,  {
-    if (input$dates[1] != Sys.Date()-10 | input$dates[2] != Sys.Date()){
-      setBookmarkExclude(c("GetScreenWidth", "report.table_rows_all", "report.table_rows_current"))
-    } else {
-      setBookmarkExclude(c("GetScreenWidth", "dates", "report.table_rows_all", "report.table_rows_current"))
-    }
-  })
-  # Crashes Event Message
-  observeEvent(input$toggleCrashes, {
-    if (input$toggleCrashes & format(input$dates[1], "%Y") == this_year) {
-      showNotification(HTML(paste0('<center><font color="white">Because Traffic Collision are reported by the State of Pennslyvania annually the Date Range has been set to last year.</font></center>')), type = "message", duration = 10, id = "crashmessage")
-      updateDateRangeInput(session = session,
-                           inputId = "dates",
-                           start = as.Date(input$dates[1]) - 365,
-                           end = as.Date(input$dates[2]) - 365,
-                           min = as.Date("2004-01-01"),
-                           max = Sys.Date())
-    }
-  })
-  # Night Vision Button Text
-  observeEvent(input$heatVision, {
-    if (input$heatVision %% 2){
-      updateActionButton(session = session,
-                         inputId = "heatVision",
-                         label = "Disable Heat Map",
-                         icon = icon("low-vision"))
-      updateSelectInput(session = session,
-                        inputId = "basemap_select",
-                        label = "Basemap",
-                        choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `Code for Pittsburgh` = "mapStack", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `OSM Dark Matter` = "CartoDB.DarkMatter", `OSM Positron` = "CartoDB.Positron"),
-                        selected = "CartoDB.DarkMatter")
-    } else {
-      updateActionButton(session = session,
-                         inputId = "heatVision",
-                         label = "Enable Heat Map",
-                         icon = icon("eye"))
-      updateSelectInput(session = session,
-                        inputId = "basemap_select",
-                        label = "Basemap",
-                        choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `Code for Pittsburgh` = "mapStack", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `OSM Dark Matter` = "CartoDB.DarkMatter", `OSM Positron` = "CartoDB.Positron"),
-                        selected = "OpenStreetMap.Mapnik")
-    }
-  })
-  # Tracking Info
-  sessionStart <- as.character(Sys.time())
-  names(sessionStart) <- "sessionStart"
-  sessionID <- paste(stri_rand_strings(1, 5), gsub("\\.", "-", sessionStart) , "points", sep="-")
-  userName <- Sys.getenv("SHINYPROXY_USERNAME")
-  names(userName) <- "userName"
-  names(sessionID) <- "sessionID"
-  observe({
-    # Trigger this observer every time an input changes
-    reactiveValuesToList(input)
-    session$doBookmark()
-  })
-  # Update page URL
-  onBookmarked(function(url) {
-    updateQueryString(url)
-  })
-  output$buttonStyle <- renderUI({
-    # Generate search & layer panel & Map (checks for mobile devices)
-    if (as.numeric(input$GetScreenWidth) > 800) {
-      div(style="margin-top: 20px", downloadButton("downloadData", paste("Export" , input$report_select), class = "dlBut"))
-    } else {
-      div(downloadButton("downloadData", paste("Export" , input$report_select), class = "dlBut"))
-    }
-  })
-  # Map Tab UI
-  output$mapPanel <- renderUI({
-    # UI for Desktop Users
-    #
-    if (as.numeric(input$GetScreenWidth) > 800) {
-      tagList(
-        # Generate Map
-        div(class="mapBack", style="position: absolute;
-            width: 100%;
-            z-index: -1;
-            left: 0px;
-            top: 55px;", leafletOutput("map")),
-        # Map size for Desktop CSS
-        tags$style(type = "text/css", "#map {height: calc(100vh - 55px) !important;}"),
+                          tags$style(type="text/css", ".report.table {background-color: #fff;}
+                                                       .shiny-output-error { visibility: hidden;}
+                                                       .shiny-output-error:before { visibility: hidden; }
+                                                       .container-fluid {padding:0;}
+                                                       .navbar-header {margin:auto;}
+                                                       .navbar-static-top {margin-bottom:0;}
+                                                       .navbar-brand {height:60px; 
+                                                                      padding:0;}
+                                                       .navbar {border-right-width: 20px;
+                                                                border-left-width: 65px;}
+                                                       .leaflet-popup-content {overflow-y: auto; 
+                                                                               max-height: 400px !important;}
+                                                       .form-group {margin-bottom: 0px;}
+                                                       @media only screen and (min-width: 600px) {
+                                                         #map {height: calc(100vh - 60px) !important; 
+                                                               z-index: 0;}
+                                                         #tPanel {opacity: 0.88;
+                                                                  max-height: calc(100vh - 90px);}
+                                                         .btn.collapsed {display: none;}
+                                                         #mobile {display: initial;}
+                                                         #outer {position: relative; padding-bottom: 0px;}
+                                                         #search {width: 275px;}
+                                                       }
+                                                       @media only screen and (max-width: 600px) {
+                                                         #map {height: calc(100vh - 115px) !important;
+                                                               position: absolute !important;
+                                                               top: 115px;
+                                                               z-index: 0;}
+                                                         #aPanel {top: 60px !important; 
+                                                                  left: 0px !important; 
+                                                                  width: 100% !important;}
+                                                         .assetsBack {position: absolute;
+                                                                      width: 100%;
+                                                                      z-index: -1;
+                                                                      left: 0px;
+                                                                      top: 55px;}
+                                                         #tPanel {margin-bottom:0px; 
+                                                                  padding:0px !important; 
+                                                                  overflow-y:scroll !important; 
+                                                                  max-height: calc(100vh - 65) !important; 
+                                                                  min-height: 55px !important; 
+                                                                  padding-left: 10px !important; 
+                                                                  padding-right: 10px !important;
+                                                                  border: none;
+                                                                  width: 100%;
+                                                                  opacity: 1 !important;}
+                                                         #search {width: calc(100vw - 85px) !important; margin-left:10px !important;}
+                                                         #outer {margin-top: 5px !important; position: absolute;}
+                                                         .btn.collapsed {display: in-line !important;}
+                                                       }"),
+                          # Generate Map
+                          leafletOutput("map"),
+                          # Add background image
+                          tags$head(tags$style(type="text/css", '.Points {
+                                               background-image: url("loading.png");
+                                               background-repeat: no-repeat;
+                                               background-position: center;
+                                               background-size: contain;
+                                               }')),
         absolutePanel(
           # Input panel for Desktops (alpha'd)
-          top = 70, left = 50, width = '300px',
-          wellPanel(id = "tPanel", style = "overflow-y:auto; max-height: calc(100vh - 90px) !important;",
-                    textInput("search",
-                              value = ifelse(Sys.Date() == eDay, "Election Day!", ""),
-                              label = NULL, 
-                              placeholder = "Search"),
-                    # Add background image
-                    tags$head(tags$style(type="text/css", '.mapBack {
-                                         background-image: url("loading.png");
-                                         background-repeat: no-repeat;
-                                         background-position: center;
-                                         background-size: contain;
-    }')),
+          top = 70, left = 50, width = '325px', style = "z-index: 1000", id = "aPanel",
+          wellPanel(id = "tPanel", style = "overflow-y:auto; min-height: 65px;",
+                    HTML('<div id="outer" style="z-index: 9; background-color:#ecf0f1;">'),
+                    div(style="display:inline-block;", 
+                        textInput("search", 
+                                  value = "",
+                                  label = NULL, 
+                                  placeholder = "Search")),
+                    tags$style(style="text/css", chartr0('#tPanel #outer .btn .fa:before { content: "\\f056";  }
+                                                         #tPanel #outer .btn.collapsed .fa:before { content: "\\f055";  }')),
+                    HTML('<button class="btn collapsed" data-toggle="collapse" data-target="#mobile" stye="display: block;"><i class="fa fa-search-plus" aria-hidden="true"></i></button></div>
+                         <div id="mobile" class="collapse" style="margin-top:55px;">'),
                     HTML('<small style="font-size:11px;margin-left:3px">Locations are not exact. (See &rsquo;About&rsquo; for details.)</small><br><br>'),
                     dateRangeInput("dates",
                                    label = NULL,
@@ -742,7 +648,7 @@ server <- shinyServer(function(input, output, session) {
                                 label = NULL,
                                 c(`Request Type`='', request_types),
                                 multiple = TRUE,
-                                selectize=TRUE),
+                                selectize = TRUE),
                     selectInput("status_type",
                                 label = NULL,
                                 c(`Request Status`='', status_types),
@@ -878,216 +784,130 @@ server <- shinyServer(function(input, output, session) {
                                 c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Fire Zone", "Public Works Division")),
                                 selectize = TRUE,
                                 selected = ""),
-                    uiOutput("filter_UI")
-                    ), style = "opacity: 0.88"
-          )
-        )
-  } else {
-    tagList(
-      # Input panel for Mobile (stationary at top)
-      absolutePanel(top = 65, left = 0, width = '100%' ,
-                    wellPanel(id = "tPanel", style ="padding-left: 5px; padding-right: 5px;",
-                              # Remove padding from Search Bar
-                              tags$style(type= "text/css", "#tPanel {margin-bottom:0px; padding:0px; overflow-y:scroll; max-height: calc(100vh - 60px); !important; min-height: 55px;}"),
-                              # Set background color to match panels
-                              tags$style(type = "text/css", "body {background-color: #ecf0f1}"),
-                              tags$style(type= "text/css", "{width:100%;
-                                         margin-bottom:5px;
-                                         text-align: center;}
-                                         .inner
-                                         {display: inline-block;}"),
-                              # Div for Search Bar and Expansion
-                              HTML('<div id="outer" style="position:absolute;z-index: 9; background-color:#ecf0f1; width:100%;">'),
-                              # Set Searchvar width optimal for device
-                              tags$style(type = "text/css", paste0('#search {width: calc(100vw - 85px); margin-left:10px;}')),
-                              # Inputs
-                              div(style="display:inline-block;", 
-                                  textInput("search", 
-                                            value = ifelse(Sys.Date() == eDay, "Election Day!", ""),
-                                            label = NULL, 
-                                            placeholder = "Search")),
-                              tags$style(style="text/css", chartr0('#mapPanel #outer .btn .fa:before { content: "\\f056";  }
-                                                                   #mapPanel #outer .btn.collapsed .fa:before { content: "\\f055";  }')),
-                              HTML('<button class="btn collapsed" data-toggle="collapse" data-target="#mobile"><i class="fa fa-search-plus" aria-hidden="true"></i></button></div>
-                                   <div id="mobile" class="collapse" style="margin-top:55px;">
-                                   <small style="font-size:11px;margin-left:3px">Not all locations are exact. (See &rsquo;About&rsquo; for details.)</small>
-                                   <br>'),
-                              dateRangeInput("dates",
-                                             label = NULL,
-                                             start = Sys.Date()-10,
-                                             end = Sys.Date(),
-                                             min = as.Date("2004-01-01"),
-                                             max = Sys.Date(),
-                                             startview = "day"),
-                              tags$br(),
-                              actionButton("heatVision",
-                                           label = "Enable Heat Map",
-                                           icon = icon("eye")),
-                              HTML('<font color="#F47B25">'),
-                              checkboxInput("toggle311",
-                                            label = "311 Requests",
-                                            value = TRUE),
-                              HTML('</font>'),
-                              selectInput("req.type",
-                                          label = NULL,
-                                          c(`Request Type`='', request_types),
-                                          multiple = TRUE,
-                                          selectize=TRUE),
-                              selectInput("status_type",
-                                          label = NULL,
-                                          c(`Request Status`='', status_types),
-                                          multiple = TRUE,
-                                          selectize=TRUE),
-                              selectInput("dept_select",
-                                          label = NULL,
-                                          c(`Department`='', departments),
-                                          multiple = TRUE,
-                                          selectize=TRUE),
-                              selectInput("origin_select",
-                                          label = NULL,
-                                          c(`Request Origin`='', origins),
-                                          multiple = TRUE,
-                                          selectize=TRUE),
-                              HTML('<font color="#3663AD">'),
-                              checkboxInput("toggleBlotter",
-                                            label = "Police Blotter",
-                                            value= TRUE),
-                              HTML('</font>'),
-                              selectInput("hier",
-                                          label = NULL,
-                                          c(`Hierarchy`='', levels(hierarchies)),
-                                          multiple = TRUE,
-                                          selectize = TRUE),
-                              selectInput("offense_select",
-                                          label = NULL,
-                                          c(`Offense Type`='', offenses),
-                                          multiple = TRUE,
-                                          selectize=TRUE),
-                              HTML('<font color="#474545">'),
-                              checkboxInput("toggleArrests",
-                                            label = "Arrests",
-                                            value = TRUE),
-                              HTML('</font>'),
-                              HTML('<font color="#ED2393">'),
-                              checkboxInput("toggleCitations",
-                                            label = "Non-Traffic Citations",
-                                            value = TRUE),
-                              HTML('</font>'),
-                              HTML('<font color="#BA1924">'),
-                              checkboxInput("toggleFires",
-                                            label = "Fire Incidents",
-                                            value = TRUE),
-                              HTML('</font>'),
-                              selectInput("fire_desc_select",
-                                          label = NULL,
-                                          c(`Fire Type` = '', fire_desc),
-                                          multiple = TRUE,
-                                          selectize = TRUE),
-                              # HTML('<font color="#009FE1">'),
-                              # checkboxInput("togglePermits",
-                              #               label = "Building Permits",
-                              #               value = TRUE),
-                              # HTML('</font>'),
-                              # selectInput("permit_select",
-                              #             label = NULL,
-                              #             c(`Permit Type`='', permit_types),
-                              #             multiple = TRUE,
-                              #             selectize=TRUE),
-                              # selectInput("status_select",
-                              #             label = NULL,
-                              #             c(`Permit Status`='', permit_status),
-                              #             multiple = TRUE,
-                              #             selectize=TRUE),
-                              HTML('<font color="#0B9444">'),
-                              checkboxInput("toggleViolations",
-                                            label = "Code Violations", 
-                                            value = TRUE),
-                              HTML('</font>'),
-                              selectInput("violation_select",
-                                          label = NULL,
-                                          c(`Violation`='', violations),
-                                          multiple = TRUE,
-                                          selectize=TRUE),
-                              selectInput("result_select",
-                                          label = NULL,
-                                          c(`Inspection Result`='', inspect_results),
-                                          multiple = TRUE,
-                                          selectize=TRUE),
-                              HTML('<font color="#b9a5c1">'),
-                              checkboxInput("toggleCproj",
-                                            label = "Capital Projects",
-                                            value = TRUE),
-                              HTML('</font>'),
-                              selectInput("funcarea_select",
-                                          label = NULL,
-                                          c(`Functional Area`='', functional_areas),
-                                          multiple = TRUE,
-                                          selectize=TRUE),
-                              HTML('<font color="#2F9997">'),
-                              checkboxInput("toggleROW",
-                                            label = "Right of Way Permits",
-                                            value = FALSE),
-                              HTML('</font>'),
-                              selectInput("row_select",
-                                          label = NULL,
-                                          c(`ROW Permit Type`='', row_types),
-                                          multiple = TRUE,
-                                          selectize=TRUE),
-                              HTML('<font color="#F9C13D">'),
-                              checkboxInput("toggleCrashes",
-                                            label = "Traffic Collisions",
-                                            value = FALSE),
-                              HTML('</font>'),
-                              selectInput("crash_select",
-                                          label = NULL,
-                                          c(`Collision Type`='', crash_types),
-                                          multiple = TRUE,
-                                          selectize=TRUE),
-                              selectInput("circumstances_select",
-                                          label = NULL,
-                                          c(`Special Circumstances`='', circumstances_types),
-                                          multiple = TRUE,
-                                          selectize = TRUE),
-                              selectInput("dow_select",
-                                          label = NULL,
-                                          c(`Day of the Week` = '', c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")),
-                                          multiple = TRUE,
-                                          selectize = TRUE),
-                              sliderInput("times",
-                                          label = "Collision Time (24-hour clock)",
-                                          min = 0,
-                                          max = 24,
-                                          value = c(0,24),
-                                          step = 1),
-                              selectInput("basemap_select",
-                                          label = "Basemap",
-                                          choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `Code for Pittsburgh` = "mapStack", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `OSM Dark Matter` = "CartoDB.DarkMatter", `OSM Positron` = "CartoDB.Positron"),
-                                          selected = "OpenStreetMap.Mapnik"),
-                              uiOutput("filter_UI"),
-                              selectInput("filter_select",
-                                          "Filter by Area",
-                                          c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Fire Zone", "Public Works Division")),
-                                          selectize = TRUE,
-                                          selected = ""),
-                              
-                              HTML('</div>')
-                              ),
-                    # Generate Map
-                    div(class="mapBack", style="position: absolute;
-                        width: 100%;z-index: -1;
-                        left: 0px;
-                        top: 55px;", leafletOutput("map")),
-                    # Set map to style for Mobile
-                    tags$style(type = "text/css", "#map {height: calc(100vh - 115px) !important;}"),
-                    tags$head(tags$style(type="text/css", '.mapBack {
-                                         background-image: url("loading.png");
-                                         background-repeat: no-repeat;
-                                         background-position: center;
-                                         background-size: contain;}'))
+                    uiOutput("filter_UI"), 
+                    HTML("</div>")
                     )
-                    )
+                  )
+               ),
+               tabPanel(a("Places", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewPlaces/", style = "padding-top: 0px;
+                          padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
+               tabPanel(a("Parcels", href="https://pittsburghpa.shinyapps.io/BurghsEyeViewParcels/", style = "padding-top: 0px; padding-bottom: 0px; bottom: 19; top: -19; bottom: 19px")),
+               tabPanel('Data: Points', class = "Data: Points", value = "Data: Points",
+                        # Select Dataset for Export
+                        inputPanel(
+                          selectInput("report_select", 
+                                      tagList(shiny::icon("map-marker"), "Select Layer:"),
+                                      choices = c("311 Requests", "Arrests", "Blotter", "Capital Projects", "Code Violations", "Collisions", "Fire Incidents", "Non-Traffic Citations", "Right of Way Permits"), #  , "Building Permits"
+                                      selected= "311 Requests"),
+                          # Define Button Position
+                          uiOutput("buttonStyle")
+                        ),
+                        # Clean up the Data Table CSS
+                        tags$style(type = "text/css", ".dataTables_length {margin-left: 10px;}"),
+                        tags$style(type = "text/css", ".dataTables_info {margin-left: 10px;}"),
+                        tags$style(type = "text/css", ".dataTables_filter {margin-right: 5px;}"),
+                        dataTableOutput("report.table")
+               ),
+               tabPanel('About', class = "About", value = "About",
+                        includeHTML('about.html'),
+                        # Twitter Button
+                        tags$script(HTML("var header = $('.navbar > .container-fluid > .navbar-collapse');
+                                         header.append('<div class =\"twit\" style=\"float:right;margin-top: 15px;\"><a href=\"https://twitter.com/share\" class=\"twitter-share-button\" align=\"middle\" data-url=\"data.pittsburghpa.gov/BurghsEyeView\" data-text=\"Check out Burgh&#39;s Eye View! A new tool to view city data in Pittsburgh: https://goo.gl/z4cZ30\" data-size=\"large\">Tweet</a></div>');
+                                         console.log(header)")),
+                        tags$script(HTML("!function(d,s,id){
+                                         var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';
+                                         if(!d.getElementById(id)){
+                                         js=d.createElement(s);
+                                         js.id=id;
+                                         js.src=p+'://platform.twitter.com/widgets.js';
+                                         fjs.parentNode.insertBefore(js,fjs);
+                                         }
+                                         }(document, 'script', 'twitter-wjs');")),
+              # Facebook Button
+              HTML('<div id="fb-root"></div>'),
+              tags$script(HTML("(function(d, s, id) {
+                               var js, fjs = d.getElementsByTagName(s)[0];
+                               if (d.getElementById(id)) return;
+                               js = d.createElement(s); js.id = id;
+                               js.src = \"//connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.8\";
+                               fjs.parentNode.insertBefore(js, fjs);
+                               }(document, 'script', 'facebook-jssdk'));")),
+              tags$script(HTML('header.append(\'<div class="fb-share-button" style="float:right;margin-top: 15px;margin-right: 5px;" data-href="http://pittsburghpa.shinyapps.io/BurghsEyeView/?utm_source=facebook_button&amp;utm_campaign=facebook_button&amp;utm_medium=facebook%2Fsocial\" data-layout="button" data-size="large" data-mobile-iframe="true"><a class="fb-xfbml-parse-ignore" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http%3A%2F%2Fpittsburghpa.shinyapps.io%2FBurghsEyeView%2F%23utm_source%3Dfacebook_button%26utm_campaign%3Dfacebook_button%26utm_medium%3Dfacebook%252Fsocial&amp;src=sdkpreparse">Share</a></div>\');
+                               console.log(header)'))
+              )
+             )
 }
-})
+
+# Define server
+server <- shinyServer(function(input, output, session) {
+  # Observe changes to the dates function, if not default include in bookmark/url
+  observeEvent(input$dates,  {
+    if (input$dates[1] != Sys.Date()-10 | input$dates[2] != Sys.Date()){
+      setBookmarkExclude(c("GetScreenWidth", "report.table_rows_all", "report.table_rows_current"))
+    } else {
+      setBookmarkExclude(c("GetScreenWidth", "dates", "report.table_rows_all", "report.table_rows_current"))
+    }
+  })
+  # Crashes Event Message
+  observeEvent(input$toggleCrashes, {
+    if (input$toggleCrashes & format(input$dates[1], "%Y") == this_year) {
+      showNotification(HTML(paste0('<center><font color="white">Because Traffic Collision are reported by the State of Pennslyvania annually the Date Range has been set to last year.</font></center>')), type = "message", duration = 10, id = "crashmessage")
+      updateDateRangeInput(session = session,
+                           inputId = "dates",
+                           start = as.Date(input$dates[1]) - 365,
+                           end = as.Date(input$dates[2]) - 365,
+                           min = as.Date("2004-01-01"),
+                           max = Sys.Date())
+    }
+  })
+  # Night Vision Button Text
+  observeEvent(input$heatVision, {
+    if (input$heatVision %% 2){
+      updateActionButton(session = session,
+                         inputId = "heatVision",
+                         label = "Disable Heat Map",
+                         icon = icon("low-vision"))
+      updateSelectInput(session = session,
+                        inputId = "basemap_select",
+                        label = "Basemap",
+                        choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `Code for Pittsburgh` = "mapStack", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `OSM Dark Matter` = "CartoDB.DarkMatter", `OSM Positron` = "CartoDB.Positron"),
+                        selected = "CartoDB.DarkMatter")
+    } else {
+      updateActionButton(session = session,
+                         inputId = "heatVision",
+                         label = "Enable Heat Map",
+                         icon = icon("eye"))
+      updateSelectInput(session = session,
+                        inputId = "basemap_select",
+                        label = "Basemap",
+                        choices = c(`OSM Mapnik` = "OpenStreetMap.Mapnik", `Code for Pittsburgh` = "mapStack", `OSM France` = "OpenStreetMap.France", `OSM Humanitarian` = "OpenStreetMap.HOT", `Stamen Toner` = "Stamen.Toner", `Esri Satellite` = "Esri.WorldImagery", Esri = "Esri.WorldStreetMap", `OSM Dark Matter` = "CartoDB.DarkMatter", `OSM Positron` = "CartoDB.Positron"),
+                        selected = "OpenStreetMap.Mapnik")
+    }
+  })
+  # Tracking Info
+  sessionStart <- as.character(Sys.time())
+  names(sessionStart) <- "sessionStart"
+  sessionID <- paste(stri_rand_strings(1, 5), gsub("\\.", "-", sessionStart) , "points", sep="-")
+  userName <- Sys.getenv("SHINYPROXY_USERNAME")
+  names(userName) <- "userName"
+  names(sessionID) <- "sessionID"
+  observe({
+    # Trigger this observer every time an input changes
+    reactiveValuesToList(input)
+    session$doBookmark()
+  })
+  # Update page URL
+  onBookmarked(function(url) {
+    updateQueryString(url)
+  })
+  output$buttonStyle <- renderUI({
+    # Generate search & layer panel & Map (checks for mobile devices)
+    if (as.numeric(input$GetScreenWidth) > 800) {
+      div(style="margin-top: 20px", downloadButton("downloadData", paste("Export" , input$report_select), class = "dlBut"))
+    } else {
+      div(downloadButton("downloadData", paste("Export" , input$report_select), class = "dlBut"))
+    }
+  })
   # Filter by Area Display Options
   output$filter_UI <- renderUI({
     if (input$filter_select == "Neighborhood"){
@@ -2690,12 +2510,11 @@ server <- shinyServer(function(input, output, session) {
                                            "<br><b>Public Works Division:</b>", row$public_works_division)
                             )
           recs <- recs + nrow(row)
+        }
+      }
     }
-  }
-  }
     print(recs)
     if (recs < 1) {
-      
       if (Sys.Date() == eDay) {
         egg <- load.egg
       } else {
@@ -2715,8 +2534,10 @@ server <- shinyServer(function(input, output, session) {
     }
     #Generate Map
     map
-    })
-    })
+  })
+})
+
+enableBookmarking("url")
 
 # Run the application 
-shinyApp(ui = ui, server = server, enableBookmarking = "url")
+shinyApp(ui = ui, server = server)
