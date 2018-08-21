@@ -1924,13 +1924,13 @@ server <- shinyServer(function(input, output, session) {
   })
   # Generate Report Table
   output$report.table <- DT::renderDataTable({
-    if (url.exists(paste0(couchdb_url, ":5984/_utils/"))){
-      dateTime <- Sys.time()
-      names(dateTime) <- "dateTime"
-      inputs <- isolate(reactiveValuesToList(input))
-      couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart, userName)
-      cdbAddDoc(couchDB)
-    }
+    # if (url.exists(paste0(couchdb_url, ":5984/_utils/"))){
+    #   dateTime <- Sys.time()
+    #   names(dateTime) <- "dateTime"
+    #   inputs <- isolate(reactiveValuesToList(input))
+    #   couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart, userName)
+    #   cdbAddDoc(couchDB)
+    # }
     # Load Report dataset
     reportInput()
   }, escape = FALSE, options = list(scrollX = TRUE), rownames= FALSE)
@@ -2509,13 +2509,13 @@ server <- shinyServer(function(input, output, session) {
         setView(-79.9959, 40.4406, zoom = 10)
     }
     #Write inputs to Couch
-    if (url.exists(paste0(couchdb_url, ":5984/_utils/"))){
-      dateTime <- Sys.time()
-      names(dateTime) <- "dateTime"
-      inputs <- isolate(reactiveValuesToList(input))
-      couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart, userName)
-      cdbAddDoc(couchDB)
-    }
+    # if (url.exists(paste0(couchdb_url, ":5984/_utils/"))){
+    #   dateTime <- Sys.time()
+    #   names(dateTime) <- "dateTime"
+    #   inputs <- isolate(reactiveValuesToList(input))
+    #   couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart, userName)
+    #   cdbAddDoc(couchDB)
+    # }
     #Generate Map
     map
   })
