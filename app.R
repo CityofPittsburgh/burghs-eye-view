@@ -40,7 +40,7 @@ couchdb_un <- keys$couchdb_un
 couchdb_pw <- keys$couchdb_pw
 couchdb_url <- keys$couchdb_url
 
-selection_conn <- cdbIni(serverName = couchdb_url, port = "5984", uname = couchdb_un, pwd = couchdb_pw, DBName = "bev-inputs")
+# selection_conn <- cdbIni(serverName = couchdb_url, port = "5984", uname = couchdb_un, pwd = couchdb_pw, DBName = "bev-inputs")
 
 # Input Selection Function
 selectGet <- function(id, conn) {
@@ -134,11 +134,12 @@ ckanUniques <- function(id, field) {
 }
 
 # CouchDB Connection
-# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
+couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
+# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 # List for Clean Function
-council_list <- selectGet("council_list", selection_conn)
+# council_list <- selectGet("council_list", selection_conn)
+council_list <- c("1: Darlene Harris", "2: Theresa Kail-Smith", "3: Bruce Kraus", "4: Anthony Coghill", "5: Corey O'Connor", "6: R. Daniel Lavelle", "7: Deb Gross", "8: Erika Strassburger", "9: Rev. Ricky Burgess")
 
 # Council Clean
 cleanCouncil <- function(data, upper) {
@@ -554,10 +555,12 @@ ui <- ui <- function(request) {
                           # Add Tag Manager Script to Body
                           tags$body(tags$noscript(tags$iframe(src='https://www.googletagmanager.com/ns.html?id=GTM-TCTCQVD', height = 0, width = 0, style="display:none;visibility:hidden"))),
                           # Remove unwanted padding and margins
-                          tags$style(type="text/css", ".report.table {background-color: #fff;}
+                          tags$style(type="text/css", "#report.table { background-color: white !important;}
+                                                       #DataTables_Table_0_wrapper { background-color: white !important;}
+                                                       .shiny-input-panel {background-color: white; margin-bottom: 0px;}
                                                        .shiny-output-error { visibility: hidden;}
                                                        .shiny-output-error:before { visibility: hidden; }
-                                                       .container-fluid {padding:0;}
+                                                       .container-fluid { padding:0; }
                                                        .navbar-header {margin:auto;}
                                                        .navbar-static-top {margin-bottom:0;}
                                                        .navbar-brand {height:60px; 
@@ -1249,6 +1252,7 @@ server <- shinyServer(function(input, output, session) {
   blotterLoad <- reactive({
     # Blotter
     archive <- ckanQueryDates("044f2016-1dfd-4ab0-bc1e-065da05fca2e", input$dates[1], input$dates[2], "INCIDENTTIME")
+    
     # Clean for merge
     archive$X <- as.numeric(archive$X)
     archive$Y <- as.numeric(archive$Y)
@@ -1315,19 +1319,6 @@ server <- shinyServer(function(input, output, session) {
     # Load Blotter
     blotter <- blotterLoad()
     
-    # Offenses Columns
-    blotter$OFFENSES <- as.character(blotter$OFFENSES)
-    incidents <- as.data.frame(do.call(rbind, strsplit(blotter$OFFENSES, " / ", fixed = FALSE)))
-    blotter <- cbind(blotter, incidents)
-    offensesCol <- as.numeric(ncol(blotter))
-    offenses1 <- as.numeric(which(colnames(blotter)=="V1"))
-    
-    # Date filter
-    blotter <- subset(blotter, date >= input$dates[1] & date <= input$dates[2])
-    
-    # Sort
-    blotter <- blotter[rev(order(as.Date(blotter$date, format="%d/%m/%Y"))),]
-    
     # Hierarchy Filter
     if (length(input$hier) > 0){
       blotter <- blotter[blotter$HIERARCHY %in% input$hier,]
@@ -1348,15 +1339,8 @@ server <- shinyServer(function(input, output, session) {
     
     # Prepare Filter
     if (length(input$offense_select) > 0) { 
-      for (i in offenses1:offensesCol) {
-        if (i ==offenses1) {
-          out <- blotter[blotter[,i] %in% input$offense_select,]
-        } else {
-          new <- blotter[blotter[,i] %in% input$offense_select,]
-          out <- rbind(out, new)
-        }
-      }
-      blotter <- unique(out)
+      search_string <- paste(input$offense_select, collapse="|")
+      blotter <- blotter[which(grepl(search_string, blotter$OFFENSES, ignore.case = TRUE)),]
     }
     
     # Search Filter
@@ -1487,7 +1471,7 @@ server <- shinyServer(function(input, output, session) {
     return(citations) 
   })
   firesLoad <- reactive({
-    fires <- ckanQueryDates("8d76ac6b-5ae8-4428-82a4-043130d17b02", input$dates[1], input$dates[2], "alarm_time")
+    fires <- ckanQueryDates("8d76ac6b-5ae8-4428-82a4-043130d17b02", input$dates[2], input$dates[1], "alarm_time")
     
     # Clean
     fires$fire_desc <- paste(fires$incident_type, fires$type_description)
