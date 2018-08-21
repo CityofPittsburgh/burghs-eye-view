@@ -557,7 +557,7 @@ ui <- ui <- function(request) {
                           # Remove unwanted padding and margins
                           tags$style(type="text/css", "#report.table { background-color: white !important;}
                                                        #DataTables_Table_0_wrapper { background-color: white !important;}
-                                                       .shiny-input-panel {background-color: white; margin-bottom: 0px;}
+                                                       .shiny-input-panel { margin-bottom: 0px; }
                                                        .shiny-output-error { visibility: hidden;}
                                                        .shiny-output-error:before { visibility: hidden; }
                                                        .container-fluid { padding:0; }
@@ -1471,7 +1471,7 @@ server <- shinyServer(function(input, output, session) {
     return(citations) 
   })
   firesLoad <- reactive({
-    fires <- ckanQueryDates("8d76ac6b-5ae8-4428-82a4-043130d17b02", input$dates[2], input$dates[1], "alarm_time")
+    fires <- ckanQueryDates("8d76ac6b-5ae8-4428-82a4-043130d17b02", input$dates[1], input$dates[2], "alarm_time")
     
     # Clean
     fires$fire_desc <- paste(fires$incident_type, fires$type_description)
@@ -1924,13 +1924,13 @@ server <- shinyServer(function(input, output, session) {
   })
   # Generate Report Table
   output$report.table <- DT::renderDataTable({
-    # if (url.exists(paste0(couchdb_url, ":5984/_utils/"))){
-    #   dateTime <- Sys.time()
-    #   names(dateTime) <- "dateTime"
-    #   inputs <- isolate(reactiveValuesToList(input))
-    #   couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart, userName)
-    #   cdbAddDoc(couchDB)
-    # }
+    if (url.exists(paste0(couchdb_url, ":5984/_utils/"))){
+      dateTime <- Sys.time()
+      names(dateTime) <- "dateTime"
+      inputs <- isolate(reactiveValuesToList(input))
+      couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart, userName)
+      cdbAddDoc(couchDB)
+    }
     # Load Report dataset
     reportInput()
   }, escape = FALSE, options = list(scrollX = TRUE), rownames= FALSE)
@@ -2509,13 +2509,13 @@ server <- shinyServer(function(input, output, session) {
         setView(-79.9959, 40.4406, zoom = 10)
     }
     #Write inputs to Couch
-    # if (url.exists(paste0(couchdb_url, ":5984/_utils/"))){
-    #   dateTime <- Sys.time()
-    #   names(dateTime) <- "dateTime"
-    #   inputs <- isolate(reactiveValuesToList(input))
-    #   couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart, userName)
-    #   cdbAddDoc(couchDB)
-    # }
+    if (url.exists(paste0(couchdb_url, ":5984/_utils/"))){
+      dateTime <- Sys.time()
+      names(dateTime) <- "dateTime"
+      inputs <- isolate(reactiveValuesToList(input))
+      couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart, userName)
+      cdbAddDoc(couchDB)
+    }
     #Generate Map
     map
   })
