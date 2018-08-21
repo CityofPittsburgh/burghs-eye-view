@@ -554,11 +554,8 @@ ui <- ui <- function(request) {
                           tags$head(includeScript("google-analytics.js")),
                           # Add Tag Manager Script to Body
                           tags$body(tags$noscript(tags$iframe(src='https://www.googletagmanager.com/ns.html?id=GTM-TCTCQVD', height = 0, width = 0, style="display:none;visibility:hidden"))),
-                          # Remove unwanted padding and margins
-                          tags$style(type="text/css", "#report.table { background-color: white !important;}
-                                                       #DataTables_Table_0_wrapper { background-color: white !important;}
-                                                       .shiny-input-panel { margin-bottom: 0px; }
-                                                       .shiny-output-error { visibility: hidden;}
+                          # Layout CSS
+                          tags$style(type="text/css", ".shiny-output-error { visibility: hidden;}
                                                        .shiny-output-error:before { visibility: hidden; }
                                                        .container-fluid { padding:0; }
                                                        .navbar-header {margin:auto;}
@@ -583,8 +580,9 @@ ui <- ui <- function(request) {
                                                        @media only screen and (max-width: 600px) {
                                                          #map {height: calc(100vh - 115px) !important;
                                                                position: absolute !important;
-                                                               top: 115px;
+                                                               top: 60px;
                                                                z-index: 0;}
+                                                         .mapBack {height: calc(100vh);}
                                                          #aPanel {top: 60px !important; 
                                                                   left: 0px !important; 
                                                                   width: 100% !important;}
@@ -608,14 +606,16 @@ ui <- ui <- function(request) {
                                                          .btn.collapsed {display: in-line !important;}
                                                        }"),
                           # Generate Map
-                          leafletOutput("map"),
-                          # Add background image
-                          tags$head(tags$style(type="text/css", '.Points {
-                                               background-image: url("loading.png");
-                                               background-repeat: no-repeat;
-                                               background-position: center;
-                                               background-size: contain;
-                                               }')),
+                          div(class="mapBack", style='position: absolute;
+                                                      background-image: url("loading.png");
+                                                      background-repeat: no-repeat;
+                                                      background-position: center;
+                                                      background-size: contain;
+                                                      width: 100%;
+                                                      z-index: -1;
+                                                      left: 0px;
+                                                      top: 55px', 
+                              leafletOutput("map")),
         absolutePanel(
           # Input panel for Desktops (alpha'd)
           top = 70, left = 50, width = '325px', style = "z-index: 1000", id = "aPanel",
