@@ -40,8 +40,6 @@ couchdb_un <- keys$couchdb_un
 couchdb_pw <- keys$couchdb_pw
 couchdb_url <- keys$couchdb_url
 
-# selection_conn <- cdbIni(serverName = couchdb_url, port = "5984", uname = couchdb_un, pwd = couchdb_pw, DBName = "bev-inputs")
-
 # Input Selection Function
 selectGet <- function(id, conn) {
   conn$id <- id
