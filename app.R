@@ -71,14 +71,14 @@ dollarsComma <- function(x){
 
 # Function to download WPRDC Data
 ckan <- function(id) {
-  url <- paste0("https://data.wprdc.org/datastore/dump/", id)
+  url <- paste0("http://wprdc.ogopendata.com/datastore/dump/", id)
   r <- RETRY("GET", url)
   content(r)
 }
 
 # Function to Query WPRDC Data on Time Frame
 ckanQueryDates <- function(id, start, end, column) {
-  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column, "%22%20%3E=%20%27", start, "%27%20AND%20%22", column, "%22%20%3C=%20%27", end, "%27")
+  url <- paste0("http://wprdc.ogopendata.com/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column, "%22%20%3E=%20%27", start, "%27%20AND%20%22", column, "%22%20%3C=%20%27", end, "%27")
   r <- RETRY("GET", url)
   c <- content(r, "text")
   json <- gsub('NaN', '""', c, perl = TRUE)
@@ -98,7 +98,7 @@ ckanSQL <- function(url) {
 }
 
 ckanQuery2 <- function(id, query, column, arg, query2, column2) {
-  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column,"%22%20=%20%27", query, "%27%20", arg, "%20%22", column2, "%22%20=%20%27", query2, "%27")
+  url <- paste0("http://wprdc.ogopendata.com/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%20%22", column,"%22%20=%20%27", query, "%27%20", arg, "%20%22", column2, "%22%20=%20%27", query2, "%27")
   r <- RETRY("GET", url)
   c <- content(r, "text")
   json <- gsub('NaN', '""', c, perl = TRUE)
@@ -114,7 +114,7 @@ ckanQuery2 <- function(id, query, column, arg, query2, column2) {
 ckanQueryCrashes <- function(start_date, end_date) {
   start_month <- format(as.Date(start_date), "%Y-%m-01")
   end_month <- format(as.Date(end_date), "%Y-%m-01")
-  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20LIKE%20%27%%252301%27%20AND%20TO_DATE(%22CRASH_YEAR%22%20||%20%27-%27%20||%20%22CRASH_MONTH%22%20||%20%27-01%27,%20%27YYYY-MM-DD%27)%20BETWEEN%20%27", start_month, "%27%20AND%27", end_month, "%27")
+  url <- paste0("http://wprdc.ogopendata.com/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%222c13021f-74a9-4289-a1e5-fe0472c89881%22%20WHERE%20%22MUNICIPALITY%22%20LIKE%20%27%%252301%27%20AND%20TO_DATE(%22CRASH_YEAR%22%20||%20%27-%27%20||%20%22CRASH_MONTH%22%20||%20%27-01%27,%20%27YYYY-MM-DD%27)%20BETWEEN%20%27", start_month, "%27%20AND%27", end_month, "%27")
   r <- RETRY("GET", url)
   c <- content(r, "text")
   json <- gsub('NaN', '""', c, perl = TRUE)
@@ -129,13 +129,13 @@ ckanQueryCrashes <- function(start_date, end_date) {
 
 # Unique values for Resource Field
 ckanUniques <- function(id, field) {
-  url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(%22", field, "%22)%20from%20%22", id, "%22")
+  url <- paste0("http://wprdc.ogopendata.com/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(%22", field, "%22)%20from%20%22", id, "%22")
   c(ckanSQL(url))
 }
 
 # CouchDB Connection
-couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
+# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
+couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 # List for Clean Function
 # council_list <- selectGet("council_list", selection_conn)
@@ -285,7 +285,7 @@ icons_permits <- iconList(
 # load.workflow$tool <- paste0("<dt>", load.workflow$status_date, ": ", load.workflow$action_by_dept, "</dt>", "<dd>", load.workflow$task, " - ", load.workflow$status, "</dd>")
 
 # Building Code Violations
-violations <- as.factor(trimws(ckanSQL("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(SPLIT_PART(%22VIOLATION%22,%27::%27,1))%20FROM%20%224e5374be-1a88-47f7-afee-6a79317019b4%22")$split_part))
+violations <- as.factor(trimws(ckanSQL("http://wprdc.ogopendata.com/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(SPLIT_PART(%22VIOLATION%22,%27::%27,1))%20FROM%20%224e5374be-1a88-47f7-afee-6a79317019b4%22")$split_part))
 
 inspect_results <- c('Abated','Violations Found','Voided')
 
@@ -299,7 +299,7 @@ icons_violations <- iconList(
 # Blotter Input & Icons
 hierarchies <- as.factor(c("01 Murder", "02 Rape", "03 Robbery", "04 Assault", "05 Burglary", "06 Theft", "07 Vehicle Theft", "08 Arson", "09 Forgery", "10 Simple Assault", "11 Fraud", "12 Embezzlement", "13 Receiving Stolen Prop", "14 Vandalism", "15 Carrying Weapon", "16 Prostitution", "17 Sex Offense", "18 Drug Offense", "19 Gambling", "20 Endangering Children", "21 DUI", "22 Liquor Laws", "23 Public Drunkenness", "24 Disorderly Conduct", "25 Vagrancy", "26 Other"))
 
-offenses <- as.factor(trimws(ckanSQL("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(SPLIT_PART(%22OFFENSES%22,%27%20/%20%27,1))%20FROM%20%22044f2016-1dfd-4ab0-bc1e-065da05fca2e%22")$split_part))
+offenses <- as.factor(trimws(ckanSQL("http://wprdc.ogopendata.com/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(SPLIT_PART(%22OFFENSES%22,%27%20/%20%27,1))%20FROM%20%22044f2016-1dfd-4ab0-bc1e-065da05fca2e%22")$split_part))
 
 # Icons for Blotter
 icons_blotter <- iconList(
@@ -363,7 +363,7 @@ icons_crashes <- iconList(
 )
 
 # Fires
-fire_desc <- ckanSQL("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(%22incident_type%22||%20%27%20%27||%20%22type_description%22)%20from%20%228d76ac6b-5ae8-4428-82a4-043130d17b02%22")
+fire_desc <- ckanSQL("http://wprdc.ogopendata.com/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(%22incident_type%22||%20%27%20%27||%20%22type_description%22)%20from%20%228d76ac6b-5ae8-4428-82a4-043130d17b02%22")
 fire_desc <- levels(as.factor(fire_desc$X.column.))
 
 # Icons for Fires
@@ -377,7 +377,7 @@ icons_fires <- iconList(
 )
 
 # ROW Stuff
-row_types <- levels(as.factor(ckanSQL(paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(%22type%22)FROM%20%22cc17ee69-b4c8-4b0c-8059-23af341c9214%22%20WHERE%20%22open_date%22>%27", Sys.Date() - 365, "%27"))$type))
+row_types <- levels(as.factor(ckanSQL(paste0("http://wprdc.ogopendata.com/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(%22type%22)FROM%20%22cc17ee69-b4c8-4b0c-8059-23af341c9214%22%20WHERE%20%22open_date%22>%27", Sys.Date() - 365, "%27"))$type))
 
 
 # ROW Icons
@@ -421,7 +421,7 @@ dow <- sapply(seq(0,7),function(x) format(nov+x, "%a"))
 eDay <- nov + which(dow=="Mon")[1]
 
 if (Sys.Date() == eDay | Sys.Date() == pDay) {
-  load.egg <- ckanSQL("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%2251efa73c-d4b8-4ac0-b65a-9c9b1f904372%22%20WHERE%22MuniName%22%20=%20%27PITTSBURGH%27")
+  load.egg <- ckanSQL("http://wprdc.ogopendata.com/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%2251efa73c-d4b8-4ac0-b65a-9c9b1f904372%22%20WHERE%22MuniName%22%20=%20%27PITTSBURGH%27")
   load.egg$icon <- "election"
   load.egg$tt <- paste0("<font color='black'>No matter who you Vote for, make sure you Vote!
                         <br><b>Location: </b>", load.egg$LocName,
@@ -475,7 +475,7 @@ if (Sys.Date() == eDay | Sys.Date() == pDay) {
   load.egg$icon <- "july_4"
   load.egg$tt <- "<i>Happy Independence Day! Looks like you need to try another search term.</i>"
 } else if (Sys.Date() >= as.Date(paste0(this_year,"-05-01")) & Sys.Date() <= as.Date(paste0(this_year,"-08-31"))) {
-  load.pools <- geojson_read("https://data.wprdc.org/dataset/f7067c4e-0c1e-420c-8c31-f62769fcd29a/resource/77288f26-54a1-4c0c-bc59-7873b1109e76/download/poolsimg.geojson", what = "sp")
+  load.pools <- geojson_read("http://wprdc.ogopendata.com/dataset/f7067c4e-0c1e-420c-8c31-f62769fcd29a/resource/77288f26-54a1-4c0c-bc59-7873b1109e76/download/poolsimg.geojson", what = "sp")
   load.egg <- data.frame(coordinates(load.pools))
   colnames(load.egg) <- c("X","Y")
   load.egg$icon <- "summer"
@@ -513,7 +513,7 @@ icons_arrests <- iconList(
 )
 
 # UI for application
-ui <- ui <- function(request) {
+ui <- function(request) {
       navbarPage(id = "navTab",
                  windowTitle = "Burgh's Eye View Points",
                  selected = "Points",
@@ -998,7 +998,7 @@ server <- shinyServer(function(input, output, session) {
   # Point Data
   # Load Right of Way Data
   rowLoad <- reactive({
-    query <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT*%20FROM%20%22cc17ee69-b4c8-4b0c-8059-23af341c9214%22%20WHERE%20((%22from_date%22%20BETWEEN%20%27", input$dates[1], "%27%20AND%20%27", input$dates[2], "%27)%20OR%20(%22to_date%22%20BETWEEN%20%27",  input$dates[1], "%27%20AND%20%27", input$dates[2], "%27)%20OR%20(%22from_date%22<=%27", input$dates[1], "%27%20AND%20%22to_date%22>=%27", input$dates[2], "%27)%20OR%20(%22restoration_date%22%20BETWEEN%20%27", input$dates[1], "%27%20AND%20%27", input$dates[2], "%27))%20AND%20%22open_date%22>=%27", as.Date(input$dates[1]) - 365, "%27")
+    query <- paste0("http://wprdc.ogopendata.com/api/action/datastore_search_sql?sql=SELECT*%20FROM%20%22cc17ee69-b4c8-4b0c-8059-23af341c9214%22%20WHERE%20((%22from_date%22%20BETWEEN%20%27", input$dates[1], "%27%20AND%20%27", input$dates[2], "%27)%20OR%20(%22to_date%22%20BETWEEN%20%27",  input$dates[1], "%27%20AND%20%27", input$dates[2], "%27)%20OR%20(%22from_date%22<=%27", input$dates[1], "%27%20AND%20%22to_date%22>=%27", input$dates[2], "%27)%20OR%20(%22restoration_date%22%20BETWEEN%20%27", input$dates[1], "%27%20AND%20%27", input$dates[2], "%27))%20AND%20%22open_date%22>=%27", as.Date(input$dates[1]) - 365, "%27")
     
     row <- ckanSQL(query) %>%
       mutate(icon = as.factor(case_when(type == "Barricade Permit" ~ "barricade",
@@ -1708,7 +1708,7 @@ server <- shinyServer(function(input, output, session) {
     # Capital Projects
     year1 <- format(as.Date(input$dates[1]), "%Y")
     year2 <- format(as.Date(input$dates[2]), "%Y")
-    cproj <- ckanSQL(paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT*%20FROM%20%222fb96406-813e-4031-acfe-1a82e78dc33c%22%20WHERE%20%22fiscal_year%22=%27", year1, "%27%20OR%20%22fiscal_year%22=%27", year2, "%27%20OR%20%22status%22=%27Planned%27%20OR%20%22status%22=%27In%20Progress%27"))
+    cproj <- ckanSQL(paste0("http://wprdc.ogopendata.com/api/action/datastore_search_sql?sql=SELECT*%20FROM%20%222fb96406-813e-4031-acfe-1a82e78dc33c%22%20WHERE%20%22fiscal_year%22=%27", year1, "%27%20OR%20%22fiscal_year%22=%27", year2, "%27%20OR%20%22status%22=%27Planned%27%20OR%20%22status%22=%27In%20Progress%27"))
     
     cproj <- transform(cproj, icon = as.factor(mapvalues(area, functional_areas, c("administration", "engineering_construction", "facility_improvement", "neighborhood_development", "public_safety", "vehicles_equipment"))))
     
