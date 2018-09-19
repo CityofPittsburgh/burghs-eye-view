@@ -40,8 +40,6 @@ couchdb_un <- keys$couchdb_un
 couchdb_pw <- keys$couchdb_pw
 couchdb_url <- keys$couchdb_url
 
-# selection_conn <- cdbIni(serverName = couchdb_url, port = "5984", uname = couchdb_un, pwd = couchdb_pw, DBName = "bev-inputs")
-
 # Input Selection Function
 selectGet <- function(id, conn) {
   conn$id <- id
@@ -134,8 +132,8 @@ ckanUniques <- function(id, field) {
 }
 
 # CouchDB Connection
-couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
+# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
+couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 # List for Clean Function
 # council_list <- selectGet("council_list", selection_conn)
@@ -568,7 +566,7 @@ ui <- ui <- function(request) {
                                                                                max-height: 400px !important;}
                                                        .form-group {margin-bottom: 0px;}
                                                        @media only screen and (min-width: 600px) {
-                                                         #map {height: calc(100vh - 60px) !important; 
+                                                         #map {height: calc(100vh - 55px) !important; 
                                                                z-index: 0;}
                                                          #tPanel {opacity: 0.88;
                                                                   max-height: calc(100vh - 90px);}
@@ -787,7 +785,42 @@ ui <- ui <- function(request) {
                                 c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Fire Zone", "Public Works Division")),
                                 selectize = TRUE,
                                 selected = ""),
-                    uiOutput("filter_UI"), 
+                    # Conditional Filter Panels
+                    conditionalPanel("input.filter_select == 'Neighborhood'",
+                                     selectInput("hood_select",
+                                                 label = NULL,
+                                                 c(`Neighborhood`='', levels(load.hoods$hood)),
+                                                 multiple = TRUE,
+                                                 selectize=TRUE)
+                    ),
+                    conditionalPanel("input.filter_select == 'Public Works Division'",
+                                     selectInput("DPW_select",
+                                                 label = NULL,
+                                                 c(`Public Works Division`='', levels(load.dpw$PUBLIC_WORKS_DIVISION)),
+                                                 multiple = TRUE,
+                                                 selectize=TRUE)
+                    ),
+                    conditionalPanel("input.filter_select == 'Police Zone'",
+                                     selectInput("zone_select",
+                                                 label = NULL,
+                                                 c(`Police Zone`='', levels(load.zones$POLICE_ZONE)),
+                                                 multiple = TRUE,
+                                                 selectize=TRUE)
+                    ),
+                    conditionalPanel("input.filter_select == 'Council District'",
+                                     selectInput("council_select",
+                                                 label = NULL,
+                                                 c(`Council District`='', levels(load.council$COUNCIL_DISTRICT)),
+                                                 multiple = TRUE,
+                                                 selectize=TRUE)
+                    ),
+                    conditionalPanel("input.filter_select == 'Fire Zone'",
+                                     selectInput("firez_select",
+                                                 label = NULL,
+                                                 c(`Fire Zone`='', levels(load.firez$dist_zone)),
+                                                 multiple = TRUE,
+                                                 selectize=TRUE)
+                    ),
                     HTML("</div>")
                     )
                   )
@@ -909,40 +942,6 @@ server <- shinyServer(function(input, output, session) {
       div(style="margin-top: 20px", downloadButton("downloadData", paste("Export" , input$report_select), class = "dlBut"))
     } else {
       div(downloadButton("downloadData", paste("Export" , input$report_select), class = "dlBut"))
-    }
-  })
-  # Filter by Area Display Options
-  output$filter_UI <- renderUI({
-    if (input$filter_select == "Neighborhood"){
-      selectInput("hood_select",
-                  label = NULL,
-                  c(`Neighborhood`='', levels(load.hoods$hood)),
-                  multiple = TRUE,
-                  selectize=TRUE)
-    } else if (input$filter_select == "Public Works Division") {
-      selectInput("DPW_select",
-                  label = NULL,
-                  c(`Public Works Division`='', levels(load.dpw$PUBLIC_WORKS_DIVISION)),
-                  multiple = TRUE,
-                  selectize=TRUE)
-    } else if (input$filter_select == "Police Zone") {
-      selectInput("zone_select",
-                  label = NULL,
-                  c(`Police Zone`='', levels(load.zones$POLICE_ZONE)),
-                  multiple = TRUE,
-                  selectize=TRUE)
-    } else if (input$filter_select == "Council District") {
-      selectInput("council_select",
-                  label = NULL,
-                  c(`Council District`='', levels(load.council$COUNCIL_DISTRICT)),
-                  multiple = TRUE,
-                  selectize=TRUE)
-    } else if (input$filter_select == "Fire Zone") {
-      selectInput("firez_select",
-                  label = NULL,
-                  c(`Fire Zone`='', levels(load.firez$dist_zone)),
-                  multiple = TRUE,
-                  selectize=TRUE)
     }
   })
   # Boundary Data
