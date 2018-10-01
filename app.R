@@ -18,8 +18,8 @@ library(R4CouchDB)
 library(leaflet)
 library(leaflet.extras)
 library(DT)
-library(geojsonio)
 library(sp)
+library(rgdal)
 
 # Data Transform
 library(plyr)
@@ -187,19 +187,19 @@ cleanGeo <- function(data, upper) {
 
 # Load Boundary Files from Pittsburgh Shems server. This process may cause the error screen to appear before the application UI loads.
 # Neighborhoods
-load.hoods <- geojson_read("https://opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0.geojson", what = "sp")
+load.hoods <- readOGR("https://opendata.arcgis.com/datasets/dbd133a206cc4a3aa915cb28baa60fd4_0.geojson")
 # DPW
-load.dpw <- geojson_read("https://opendata.arcgis.com/datasets/524ecda73d354ca0aa4a0640bd6b8bd5_0.geojson", what = "sp")
+load.dpw <- readOGR("https://opendata.arcgis.com/datasets/524ecda73d354ca0aa4a0640bd6b8bd5_0.geojson")
 load.dpw$PUBLIC_WORKS_DIVISION <- load.dpw$division
 load.dpw@data <- cleanDPW(load.dpw@data, TRUE)
 # Zone
-load.zones <- geojson_read("https://opendata.arcgis.com/datasets/230d80a6f1a2479faf501025f10ba903_0.geojson", what = "sp")
+load.zones <- readOGR("https://opendata.arcgis.com/datasets/230d80a6f1a2479faf501025f10ba903_0.geojson")
 load.zones$POLICE_ZONE <- load.zones$zone
 load.zones@data <- cleanZone(load.zones@data, TRUE)
 # Fire Zone
-load.firez <- geojson_read("https://opendata.arcgis.com/datasets/da92100723d1400cb7e68753a505d2d3_0.geojson", what = "sp")
+load.firez <- readOGR("https://opendata.arcgis.com/datasets/da92100723d1400cb7e68753a505d2d3_0.geojson")
 # Council
-load.council <- geojson_read("https://opendata.arcgis.com/datasets/019101970961451890680bcc1862cb68_0.geojson", what = "sp")
+load.council <- readOGR("https://opendata.arcgis.com/datasets/019101970961451890680bcc1862cb68_0.geojson")
 load.council$COUNCIL_DISTRICT <- load.council$council
 load.council@data <- cleanCouncil(load.council@data, TRUE)
 
@@ -473,7 +473,7 @@ if (Sys.Date() == eDay | Sys.Date() == pDay) {
   load.egg$icon <- "july_4"
   load.egg$tt <- "<i>Happy Independence Day! Looks like you need to try another search term.</i>"
 } else if (Sys.Date() >= as.Date(paste0(this_year,"-05-01")) & Sys.Date() <= as.Date(paste0(this_year,"-08-31"))) {
-  load.pools <- geojson_read("https://data.wprdc.org/dataset/f7067c4e-0c1e-420c-8c31-f62769fcd29a/resource/77288f26-54a1-4c0c-bc59-7873b1109e76/download/poolsimg.geojson", what = "sp")
+  load.pools <- readOGR("https://data.wprdc.org/dataset/f7067c4e-0c1e-420c-8c31-f62769fcd29a/resource/77288f26-54a1-4c0c-bc59-7873b1109e76/download/poolsimg.geojson")
   load.egg <- data.frame(coordinates(load.pools))
   colnames(load.egg) <- c("X","Y")
   load.egg$icon <- "summer"
