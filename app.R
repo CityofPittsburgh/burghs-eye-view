@@ -1893,7 +1893,7 @@ server <- shinyServer(function(input, output, session) {
     if (Sys.Date() == eDay | Sys.Date() == pDay | input$search == "Vote!") {
       month <- as.numeric(format(Sys.Date(), "%m")) 
       
-      if (month =< 10) {
+      if (month <= 10) {
         yearQ <- format(Sys.Date(), "%Y")
         monthQ <- "November"
       } else if (month > 3 ) {
