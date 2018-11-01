@@ -24,6 +24,7 @@ library(rgdal)
 # Data Transform
 library(plyr)
 library(dplyr)
+library(tidyr)
 library(zoo)
 library(lubridate)
 library(stringi)
@@ -129,6 +130,22 @@ ckanQueryCrashes <- function(start_date, end_date) {
 ckanUniques <- function(id, field) {
   url <- paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20DISTINCT(%22", field, "%22)%20from%20%22", id, "%22")
   c(ckanSQL(url))
+}
+
+# Get ID's
+getIds <- function(phrase) {
+  url <- paste0("http://data.wprdc.org/api/action/package_search?q=", gsub(" ", "%20", phrase))
+  r <- GET(url)
+  raw <- content(r, "text")
+  df <- jsonlite::fromJSON(raw)$result$results
+  tib <- tibble(df$resources) %>%
+    unnest() %>%
+    filter(format == "CSV")
+  final <- df %>%
+    select(id, name) %>%
+    right_join(tib, by = c("id" = "package_id"))
+  
+  return(final)
 }
 
 # CouchDB Connection
@@ -1874,7 +1891,22 @@ server <- shinyServer(function(input, output, session) {
   )
   easterEgg <- reactive({
     if (Sys.Date() == eDay | Sys.Date() == pDay | input$search == "Vote!") {
-      load.egg <- ckanSQL("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22b20b87e4-dd05-42de-a4ed-85ff57f68b98%22%20WHERE%22MuniName%22%20=%20%27PITTSBURGH%27") %>%
+      month <- as.numeric(format(Sys.Date(), "%m")) 
+      
+      if (month =< 10) {
+        yearQ <- format(Sys.Date(), "%Y")
+        monthQ <- "November"
+      } else if (month > 3 ) {
+        yearQ <- as.character(as.numeric(format(Sys.Date(), "%Y")) - 1)
+        monthQ <- "November"
+      } else {
+        yearQ <- format(Sys.Date(), "%Y")
+        monthQ <- "May"
+      }
+      
+      ids <- getIds(paste("Allegheny County Polling Place Locations",  monthQ, yearQ))
+      
+      load.egg <- ckanSQL(paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%W20FROM%20%22", id, "%22%20WHERE%22MuniName%22%20=%20%27PITTSBURGH%27")) %>%
         mutate(icon = "election",
                X = as.numeric(X),
                Y = as.numeric(Y),
