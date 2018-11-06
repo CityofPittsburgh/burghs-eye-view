@@ -569,7 +569,7 @@ ui <- ui <- function(request) {
                     HTML('<div id="outer" style="z-index: 9; background-color:#ecf0f1;">'),
                     div(style="display:inline-block;", 
                         textInput("search", 
-                                  value = "",
+                                  value = ifelse(eDay == Sys.Date() | pDay == Sys.Date(), "Vote!", ""),
                                   label = NULL, 
                                   placeholder = "Search")),
                     tags$style(style="text/css", chartr0('#tPanel #outer .btn .fa:before { content: "\\f056";  }
