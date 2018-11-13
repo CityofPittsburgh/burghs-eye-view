@@ -5,3 +5,8 @@ key.json
 rsconnect
 .RData
 packrat/lib*/
+google-analytics.js
+tag-manager-head.js
+tag-manager-body.js
+ETL/*
+burghs-eye-view.Rproj
