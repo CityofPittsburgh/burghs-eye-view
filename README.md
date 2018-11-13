@@ -25,3 +25,4 @@ Burgh's Eye View is a Shiny application built on a single app file, and therefor
 * icons/: All subfolders contain the icons for their respective layer on Burgh's Eye View
 * key_example.json: Example file for users to input their own credentials for the WPRDC and a CouchDB of their choice.
 * app.R: Main application
+* MISSING: tag-manager-header/body.js and google-analytics.js
