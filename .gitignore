@@ -5,3 +5,6 @@ key.json
 rsconnect
 .RData
 packrat/lib*/
+burghs-eye-view.Rproj
+ETL/couch_configs.R
+ETL/key_webhost.json
