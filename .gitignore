@@ -8,3 +8,6 @@ packrat/lib*/
 burghs-eye-view.Rproj
 ETL/couch_configs.R
 ETL/key_webhost.json
+google-analytics.js
+tag-manager-body.js
+tag-manager-head.js
