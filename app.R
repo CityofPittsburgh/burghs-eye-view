@@ -416,24 +416,28 @@ icons_row <- iconList(
 this_year <- format(Sys.Date(), format="%Y")
 last_year <- as.numeric(this_year) -  1
 
-# Election/Primary Day
-presidential_years <- seq(2020, 2050, 4)
-
-# Check if Presidential Year for Primary
-if (this_year %in% presidential_years) {
-  apr <- as.Date(paste0(this_year, "-04-01"))
-  dow <- sapply(seq(0,31),function(x) format(apr+x, "%a"))
-  pDay <- apr + which(dow=="Tue")[4] - 1
-} else {
-  may <- as.Date(paste0(this_year, "-05-01"))
-  dow <- sapply(seq(0,31),function(x) format(may+x, "%a"))
-  pDay <- may + which(dow=="Tue")[3] - 1
-}
+# Presidential Years
+presidential_years <- seq(2016, 3000, 4)
 
 # Election Day
 nov <- ymd(as.Date(paste0(this_year, "-11-01")))
 dow <- sapply(seq(0,7),function(x) format(nov+x, "%a"))
 eDay <- nov + which(dow=="Mon")[1]
+
+# Primary Day
+if (this_year %in% presidential_years) {
+  april <- ymd(as.Date(paste0(this_year, "-04-01")))
+  dow <- sapply(seq(0,7),function(x) format(april+x, "%a"))
+  firstTuesday <- april + which(dow=="Tue")[1]
+  # In Presidential Years PA Primaries are on the 4th Tuesday of April
+  pDay <- firstTuesday + 20
+} else {
+  may <- ymd(as.Date(paste0(this_year, "-05-01")))
+  dow <- sapply(seq(0,7),function(x) format(may+x, "%a"))
+  firstTuesday <- may + which(dow=="Tue")[1]
+  # In Non-Presidential Years PA Primaries are on the 3rd Tuesay of May
+  pDay <- firstTuesday + 13
+}
 
 icons_egg <- iconList(
   halloween = makeIcon("./icons/egg/pirate.png", iconAnchorX = 31, iconAnchorY = 12.5, popupAnchorX = 0, popupAnchorY = -12.5, iconWidth = 72),
@@ -1893,25 +1897,28 @@ server <- shinyServer(function(input, output, session) {
     if (Sys.Date() == eDay | Sys.Date() == pDay | input$search == "Vote!") {
       month <- as.numeric(format(Sys.Date(), "%m")) 
       
-      if (month <= 10) {
-        yearQ <- format(Sys.Date(), "%Y")
-        monthQ <- "November"
+      if (month >= 10) {
+        yearQ <- format(Sys.Date(), "*%Y")
+        monthQ <- "*november*"
       } else if (month > 3 ) {
-        yearQ <- as.character(as.numeric(format(Sys.Date(), "%Y")) - 1)
-        monthQ <- "November"
+        yearQ <- as.character(as.numeric(format(Sys.Date(), "*%Y")) - 1)
+        monthQ <- "*november*"
       } else {
-        yearQ <- format(Sys.Date(), "%Y")
-        monthQ <- "May"
+        yearQ <- format(Sys.Date(), "*%Y")
+        monthQ <- "*may"
       }
       
-      ids <- getIds(paste("Allegheny County Polling Place Locations",  monthQ, yearQ))
+      ids <- getIds("Allegheny County Polling Place Locations") %>%
+        filter(grepl(yearQ, name.x, ignore.case = T) & grepl(monthQ, name.x, ignore.case = T))
       
-      load.egg <- ckanSQL(paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%W20FROM%20%22", id, "%22%20WHERE%22MuniName%22%20=%20%27PITTSBURGH%27")) %>%
+      id <- ids$id.y[1]
+      
+      load.egg <- ckanSQL(paste0("https://data.wprdc.org/api/action/datastore_search_sql?sql=SELECT%20*%20FROM%20%22", id, "%22%20WHERE%22MuniName%22%20=%20%27PITTSBURGH%27")) %>%
         mutate(icon = "election",
                X = as.numeric(X),
                Y = as.numeric(Y),
                tt = paste0("<font color='black'>No matter who you Vote for, make sure you Vote!
-                            <br><b>Location: </b>", LocName,
+                            <br><br><b>Location: </b>", LocName,
                             "<br><b>Ward: </b>", Ward,
                             "<br><b>District: </b>", District,
                             "<br><b>Address: </b>", NewAddress,
