@@ -168,6 +168,7 @@ cleanCouncil <- function(data, upper) {
   }
   return(data)
 }
+
 # DPW Clean
 cleanDPW <-function(data, upper) {
   upper <- ifelse(missing(upper), FALSE, upper)
@@ -478,7 +479,8 @@ ui <- ui <- function(request) {
                           # Google Tag Manager Script to Head
                           tags$head(includeScript("tag-manager-head.js")),
                           # Notification Centered and Color Fix
-                          tags$head(tags$style(HTML(".shiny-notification {
+                          tags$head(tags$style(type = "text/css", 
+                                               ".shiny-notification {
                                                     position: fixed;
                                                     background: #2c3e50;
                                                     top: calc(50%);;
