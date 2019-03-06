@@ -12,3 +12,4 @@ google-analytics.js
 tag-manager-body.js
 tag-manager-head.js
 *.csv
+.DS_Store
