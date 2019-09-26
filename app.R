@@ -3,7 +3,6 @@
 # Dept: Innovation & Performance
 # Team: Analytics & Strategy
 # Author: Geoffrey Arnold
-# Changes
 
 # Load required packages
 library(shiny)
@@ -13,7 +12,6 @@ library(htmltools)
 #"Dogfooding" Packages
 library(httr)
 library(jsonlite)
-library(R4CouchDB)
 
 # Visuals Libraries
 library(leaflet)
@@ -35,20 +33,6 @@ library(stringr)
 options(scipen = 999)
 
 httr::set_config(config(ssl_verifypeer = 0L))
-
-keys <- jsonlite::fromJSON("key.json")
-ckan_api <- keys$ckan_api
-couchdb_un <- keys$couchdb_un
-couchdb_pw <- keys$couchdb_pw
-couchdb_url <- keys$couchdb_url
-
-# Input Selection Function
-selectGet <- function(id, conn) {
-  conn$id <- id
-  r <- cdbGetDoc(conn)$res
-  vals <- unlist(r)[3:length(r)]
-  levels(as.factor(vals))
-}
 
 # Function to read backslashes correctly
 chartr0 <- function(foo) chartr('\\','\\/',foo)
@@ -148,10 +132,6 @@ getIds <- function(phrase) {
   
   return(final)
 }
-
-# CouchDB Connection
-# couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points")
-couchDB <- cdbIni(serverName = couchdb_url, uname = couchdb_un, pwd = couchdb_pw, DBName = "burghs-eye-view-points-dev")
 
 # List for Clean Function
 # council_list <- selectGet("council_list", selection_conn)
@@ -480,7 +460,7 @@ ui <- ui <- function(request) {
                           # Google Tag Manager Script to Head
                           tags$head(includeScript("tag-manager-head.js")),
                           # Notification Centered and Color Fix
-                          tags$head(tags$style(type = "text/css", 
+                          tags$head(tags$style(HTML(type = "text/css", 
                                                ".shiny-notification {
                                                     position: fixed;
                                                     background: #2c3e50;
@@ -1878,13 +1858,6 @@ server <- shinyServer(function(input, output, session) {
   })
   # Generate Report Table
   output$report.table <- DT::renderDataTable({
-    if (url.exists(paste0(couchdb_url, ":5984/_utils/"))){
-      dateTime <- Sys.time()
-      names(dateTime) <- "dateTime"
-      inputs <- isolate(reactiveValuesToList(input))
-      couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart, userName)
-      cdbAddDoc(couchDB)
-    }
     # Load Report dataset
     reportInput()
   }, escape = FALSE, options = list(scrollX = TRUE), rownames= FALSE)
@@ -2553,14 +2526,6 @@ server <- shinyServer(function(input, output, session) {
       
       map <- addMarkers(map, data = egg, lng= ~X, lat= ~Y, icon = ~icons_egg[icon], popup = ~tt) %>% 
         setView(-79.9959, 40.4406, zoom = 12)
-    }
-    #Write inputs to Couch
-    if (url.exists(paste0(couchdb_url, ":5984/_utils/"))){
-      dateTime <- Sys.time()
-      names(dateTime) <- "dateTime"
-      inputs <- isolate(reactiveValuesToList(input))
-      couchDB$dataList <- c(inputs, sessionID, dateTime, sessionStart, userName)
-      cdbAddDoc(couchDB)
     }
     #Generate Map
     map
