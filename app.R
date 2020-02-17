@@ -135,7 +135,7 @@ getIds <- function(phrase) {
 
 # List for Clean Function
 # council_list <- selectGet("council_list", selection_conn)
-council_list <- c("1: Darlene Harris", "2: Theresa Kail-Smith", "3: Bruce Kraus", "4: Anthony Coghill", "5: Corey O'Connor", "6: R. Daniel Lavelle", "7: Deb Gross", "8: Erika Strassburger", "9: Rev. Ricky Burgess")
+council_list <- c("1: Bobby Wilson", "2: Theresa Kail-Smith", "3: Bruce Kraus", "4: Anthony Coghill", "5: Corey O'Connor", "6: R. Daniel Lavelle", "7: Deb Gross", "8: Erika Strassburger", "9: Rev. Ricky Burgess")
 
 # Council Clean
 cleanCouncil <- function(data, upper) {
