@@ -202,6 +202,9 @@ load.council <- readOGR("https://opendata.arcgis.com/datasets/019101970961451890
 load.council$COUNCIL_DISTRICT <- load.council$council
 load.council@data <- cleanCouncil(load.council@data, TRUE)
 
+# Ward
+load.ward <- readOGR("http://pghgis-pittsburghpa.opendata.arcgis.com/datasets/dff605f73fe24791875567f1d942275d_0.geojson")
+
 # 311 Input & Icons
 request_types <- ckanUniques("76fda9d0-69be-4dd5-8108-0de7907fc5a4", "REQUEST_TYPE")
 request_types <- levels(as.factor(request_types$REQUEST_TYPE))
@@ -676,7 +679,7 @@ ui <- ui <- function(request) {
                                 selected = "OpenStreetMap.Mapnik"),
                     selectInput("filter_select",
                                 "Filter by Area",
-                                c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Fire Zone", "Public Works Division")),
+                                c(`Area Type`='', c("Neighborhood", "Council District", "Police Zone", "Fire Zone", "Public Works Division", "Ward")),
                                 selectize = TRUE,
                                 selected = ""),
                     # Conditional Filter Panels
@@ -712,6 +715,13 @@ ui <- ui <- function(request) {
                                      selectInput("firez_select",
                                                  label = NULL,
                                                  c(`Fire Zone`='', levels(load.firez$dist_zone)),
+                                                 multiple = TRUE,
+                                                 selectize=TRUE)
+                    ),
+                    conditionalPanel("input.filter_select == 'Ward'",
+                                     selectInput("ward_select",
+                                                 label = NULL,
+                                                 c(`Ward`='', levels(load.ward$wardtext)),
                                                  multiple = TRUE,
                                                  selectize=TRUE)
                     ),
@@ -888,6 +898,16 @@ server <- shinyServer(function(input, output, session) {
     
     firez
   })
+  
+  wardInput <- reactive({
+    wards <- load.ward
+    
+    if (length(input$ward_select) > 0){
+      wards <- wards[wards$wardtext %in% input$ward_select,]
+    }
+    
+    wards
+  })
   # Point Data
   # Load Right of Way Data
   rowLoad <- reactive({
@@ -939,6 +959,8 @@ server <- shinyServer(function(input, output, session) {
       row <- row[row$council_district %in% input$council_select,]
     } else if (length(input$firez_select) > 0 & input$filter_select == "Fire Zone") {
       row <- row[row$fire_zone %in% input$firez_select,]
+    } else if (length(input$ward_select) > 0 & input$filter_select == "Ward") {
+      row <- row[row$ward %in% input$ward_select,]
     }
     
     # Search Filter
@@ -1683,7 +1705,7 @@ server <- shinyServer(function(input, output, session) {
                Neighborhood = neighborhood,
                `Council District` = council_district,
                `Public Works Division` = public_works_division) %>%
-        select(`Permit ID`, `Permit Type`, `Open Date`, `Valid From`, `Valid To`, `Restoration By`, `Primary Address`, `Street/Location`, `From Street`, `To Street`, `Contractor/Utility`, License, Neighborhood, `Council District`, `Public Works Division`)
+        select(`Permit ID`, `Permit Type`, `Open Date`, `Valid From`, `Valid To`, `Restoration By`, `Primary Address`, `Street/Location`, `From Street`, `To Street`, `Contractor/Utility`, License, Neighborhood, ward, `Council District`, `Public Works Division`)
     }
     # Return Data
     return(report)
@@ -2303,6 +2325,7 @@ server <- shinyServer(function(input, output, session) {
                                            ifelse(is.na(row$from_street),  "", paste("<br><b>From Street:</b>", row$from_street)),
                                            ifelse(is.na(row$to_street),  "", paste("<br><b>To Street:</b>", row$to_street)),
                                            "<br><b>Neighborhood:</b>", row$neighborhood,
+                                           "<br><b>Ward:</b>", row$ward,
                                            "<br><b>Council District:</b>", row$council_district,
                                            "<br><b>Public Works Division:</b>", row$public_works_division)
                             )
